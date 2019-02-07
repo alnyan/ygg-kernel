@@ -1,7 +1,11 @@
 #include "debug.h"
+#include <stdint.h>
 
 #if defined(ARCH_AARCH64)
 #include "arch/aarch64/uart.h"
+#endif
+#if defined(ARCH_X86)
+#include "arch/x86/com.h"
 #endif
 
 static const char *s_debug_xs_set0 = "0123456789abcdef";
@@ -10,6 +14,9 @@ static const char *s_debug_xs_set1 = "0123456789ABCDEF";
 static void debugc(char c) {
 #ifdef ARCH_AARCH64
     uart_send(0, c);
+#endif
+#ifdef ARCH_X86
+	com_send(X86_COM0, c);
 #endif
 }
 

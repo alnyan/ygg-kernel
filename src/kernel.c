@@ -1,6 +1,7 @@
 #include "arch/aarch64/mmio.h"
 #include "arch/aarch64/uart.h"
 #include "arch/aarch64/board/bcm2837/board.h"
+#include "sys/debug.h"
 
 int hw_init(void) {
     return bcm2837_init_hw();
@@ -16,9 +17,7 @@ void kernel_main(void) {
     };
     uart_config(0, &uartc);
 
-    uart_send(0, 'A');
-    uart_send(0, '!');
-
     while (1) {
+        asm volatile("wfe");
     }
 }

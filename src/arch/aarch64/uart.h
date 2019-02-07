@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 // UART number, 0 will work for most boards
 typedef uint32_t uart_num_t;

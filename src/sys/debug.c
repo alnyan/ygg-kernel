@@ -56,4 +56,8 @@ void debug_init(void) {
     } else {
         debug("UART is already initialized, skipping\n");
     }
+
+    if (!uart_state(0)) {
+        debug("Failed to setup UART for debugging\n");
+    }
 }

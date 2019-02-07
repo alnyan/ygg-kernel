@@ -50,6 +50,8 @@ void uart_config(uart_num_t uart, const uart_setup_t *setup) {
     bcm2837_uart0->cr = (setup->uart_flags & 0x1) |
                         ((setup->uart_flags & 0x2) << 7) |
                         ((setup->uart_flags & 0x4) << 8);
+
+    bcm2837_uart_state |= 1;
 }
 
 int uart_state(uart_num_t n) {

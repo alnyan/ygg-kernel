@@ -3,17 +3,18 @@ AS=$(CROSS_COMPILE)as
 LD=$(CROSS_COMPILE)ld
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-CFLAGS=-ffreestanding -nostdlib -nostartfiles
+CFLAGS=-ffreestanding -nostdlib -nostartfiles -Isrc
 LDFLAGS=-nostdlib -nostartfiles -Tsrc/linker.ld
 
 OBJS=build/boot.o \
 	 build/kernel.o \
-	 build/arch/aarch64/board/bcm2837.o
+	 build/arch/aarch64/board/bcm2837/board.o \
+	 build/arch/aarch64/board/bcm2837/uart.o
 
 all: mkdirs build/kernel.bin
 
 mkdirs:
-	mkdir -p build/arch/aarch64/board
+	mkdir -p build/arch/aarch64/board/bcm2837
 
 clean:
 	rm -rf build

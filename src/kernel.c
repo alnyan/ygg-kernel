@@ -17,6 +17,8 @@ void kernel_main(void) {
     };
     uart_config(0, &uartc);
 
+    debug("AAAA\n");
+
     while (1) {
         asm volatile("wfe");
     }

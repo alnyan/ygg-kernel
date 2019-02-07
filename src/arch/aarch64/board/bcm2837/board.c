@@ -6,7 +6,5 @@ void hw_init(void) {
     // Disable UART0
     bcm2837_uart0->cr = 0;
 
-    // Disable GPIO push-pull
-    bcm2837_gpio->gppud = 0;
-    delay(150);
+    bcm2837_gpio_init();
 }

@@ -14,12 +14,17 @@ struct bcm2837_gpio {
     uint32_t gppsel4;
     uint32_t gppsel5;
     uint32_t res0;
+    // Set GPIOn value to 1
     uint32_t gpset0;
     uint32_t gpset1;
     uint32_t res1;
+    // Set GPIOn value to 0
     uint32_t gpclr0;
     uint32_t gpclr1;
-    uint32_t pad[25];
+    uint32_t res2;
+    uint32_t gplev0;
+    uint32_t gplev1;
+    uint32_t pad[22];
     uint32_t gppud;
     uint32_t gppudclk0;
 };
@@ -77,11 +82,10 @@ struct bcm2837_uart {
 static volatile struct bcm2837_gpio *bcm2837_gpio = (struct bcm2837_gpio *) BCM2837_GPIO_BASE;
 static volatile struct bcm2837_uart *bcm2837_uart0 = (struct bcm2837_uart *) BCM2837_UART0_BASE;
 
-
 // Loop <delay> times in a way that the compiler won't optimize away
 static inline void delay(int32_t count) {
 	asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
 		 : "=r"(count): [count]"0"(count) : "cc");
 }
 
-int bcm2837_init_hw(void);
+void bcm2837_gpio_init(void);

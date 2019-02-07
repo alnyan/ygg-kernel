@@ -32,5 +32,5 @@ build/%.o: src/%.c
 build/kernel.bin: build/kernel.elf
 	$(OBJCOPY) -O binary $< $@
 
-build/kernel.elf: $(OBJS)
-	$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(OBJS)
+build/kernel.elf: $(BOOT_OBJS) $(OBJS)
+	$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS)

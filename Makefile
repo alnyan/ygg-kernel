@@ -3,19 +3,22 @@ AS=$(CROSS_COMPILE)as
 LD=$(CROSS_COMPILE)ld
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-CFLAGS=-ffreestanding -nostdlib -nostartfiles -Isrc
-LDFLAGS=-nostdlib -nostartfiles -Tsrc/linker.ld
+include config/make/generic.mk
 
-OBJS=build/boot.o \
-	 build/kernel.o \
-	 build/arch/aarch64/board/bcm2837/board.o \
-	 build/arch/aarch64/board/bcm2837/uart.o \
-	 build/sys/debug.o
+ifeq ($(ARCH),)
+$(error "No $${ARCH} set")
+endif
+
+ifneq ($(BOARD),)
+include config/make/$(ARCH)/$(BOARD).mk
+else
+include config/make/$(ARCH)/generic.mk
+endif
 
 all: clean mkdirs build/kernel.bin
 
 mkdirs:
-	mkdir -p build/arch/aarch64/board/bcm2837 build/sys
+	mkdir -p $(DIRS)
 
 clean:
 	rm -rf build
@@ -30,4 +33,4 @@ build/kernel.bin: build/kernel.elf
 	$(OBJCOPY) -O binary $< $@
 
 build/kernel.elf: $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS)
+	$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(OBJS)

@@ -9,6 +9,13 @@ int hw_init(void) {
 void kernel_main(void) {
     hw_init();
 
+    uart_setup_t uartc = {
+        .uart_baud = 115200,
+        .uart_intr = 0x7FF,
+        .uart_flags = (1 << 0) | (1 << 1) | (1 << 2)
+    };
+    uart_config(0, &uartc);
+
     uart_send(0, 'A');
     uart_send(0, '!');
 

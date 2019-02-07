@@ -6,6 +6,24 @@
 #define BCM2837_GPIO_GPPUD      0x94
 #define BCM2837_GPIO_GPPUDCLK0  0x98
 
+struct bcm2837_gpio {
+    uint32_t gppsel0;
+    uint32_t gppsel1;
+    uint32_t gppsel2;
+    uint32_t gppsel3;
+    uint32_t gppsel4;
+    uint32_t gppsel5;
+    uint32_t res0;
+    uint32_t gpset0;
+    uint32_t gpset1;
+    uint32_t res1;
+    uint32_t gpclr0;
+    uint32_t gpclr1;
+    uint32_t pad[25];
+    uint32_t gppud;
+    uint32_t gppudclk0;
+};
+
 //// UART
 #define BCM2837_UART0_BASE      0x3F201000
 #define BCM2837_UART_DR         0x00
@@ -26,5 +44,44 @@
 #define BCM2837_UART_ITIP       0x84
 #define BCM2837_UART_ITOP       0x88
 #define BCM2837_UART_TDR        0x8C
+
+struct bcm2837_uart {
+    uint32_t dr;
+    uint32_t rsrecr;
+    uint32_t pad0[4];
+    uint32_t fr;
+    uint32_t pad1;
+    uint32_t ilpr;
+    // Baud control
+    uint32_t ibrd;
+    uint32_t fbrd;
+    // Transport and general control
+    uint32_t lcrh;
+    uint32_t cr;
+    // IT control
+    uint32_t ifls;
+    uint32_t imsc;
+    uint32_t ris;
+    uint32_t mis;
+    uint32_t icr;
+    uint32_t dmacr;
+    // Test control regs, unused
+    uint32_t pad2[13];
+    uint32_t itcr;
+    uint32_t itip;
+    uint32_t itop;
+    uint32_t tdr;
+};
+
+// MMIO
+static volatile struct bcm2837_gpio *bcm2837_gpio = (struct bcm2837_gpio *) BCM2837_GPIO_BASE;
+static volatile struct bcm2837_uart *bcm2837_uart0 = (struct bcm2837_uart *) BCM2837_UART0_BASE;
+
+
+// Loop <delay> times in a way that the compiler won't optimize away
+static inline void delay(int32_t count) {
+	asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
+		 : "=r"(count): [count]"0"(count) : "cc");
+}
 
 int bcm2837_init_hw(void);

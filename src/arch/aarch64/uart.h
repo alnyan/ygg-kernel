@@ -20,6 +20,8 @@ typedef struct {
 
 // See actual implementations in board files
 void uart_config(uart_num_t n, const uart_setup_t *setup);
+void uart_default_config(uart_num_t n);
+int uart_state(uart_num_t n);
 
 void uart_send(uart_num_t n, uint8_t c);
 uint8_t uart_recv(uart_num_t n);

@@ -12,7 +12,7 @@ OBJS=build/boot.o \
 	 build/arch/aarch64/board/bcm2837/uart.o \
 	 build/sys/debug.o
 
-all: mkdirs build/kernel.bin
+all: clean mkdirs build/kernel.bin
 
 mkdirs:
 	mkdir -p build/arch/aarch64/board/bcm2837 build/sys

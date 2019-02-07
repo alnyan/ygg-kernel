@@ -2,6 +2,8 @@
 #include "board.h"
 #include "arch/aarch64/uart.h"
 
+static uint32_t bcm2837_uart_state = 0;
+
 static inline int bcm2837_uart0_tx_busy(void) {
     return bcm2837_uart0->fr & (1 << 5);
 }
@@ -48,4 +50,18 @@ void uart_config(uart_num_t uart, const uart_setup_t *setup) {
     bcm2837_uart0->cr = (setup->uart_flags & 0x1) |
                         ((setup->uart_flags & 0x2) << 7) |
                         ((setup->uart_flags & 0x4) << 8);
+}
+
+int uart_state(uart_num_t n) {
+    return bcm2837_uart_state & (1 << n);
+}
+
+void uart_default_config(uart_num_t n) {
+    uart_setup_t uartc = {
+        .uart_baud = 115200,
+        .uart_intr = 0x7FF,
+        .uart_flags = (1 << 0) | (1 << 1) | (1 << 2)
+    };
+
+    uart_config(n, &uartc);
 }

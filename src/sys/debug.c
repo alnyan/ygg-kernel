@@ -5,6 +5,13 @@ static void debugc(char c) {
     uart_send(0, c);
 }
 
+static void debugs(const char *s) {
+    char c;
+    while ((c = *s++)) {
+        debugc(c);
+    }
+}
+
 void debugf(const char *f, ...) {
     va_list args;
     va_start(args, f);
@@ -14,11 +21,19 @@ void debugf(const char *f, ...) {
 
 void debugfv(const char *fmt, va_list args) {
     char c;
+    union {
+        const char *v_string;
+    } value;
+
     while ((c = *fmt)) {
         switch (c) {
             case '%':
                 c = *(++fmt);
                 switch (c) {
+                    case 's':
+                        value.v_string = va_arg(args, const char *);
+                        debugs(value.v_string ? value.v_string : "(null)");
+                        break;
                     default:
                         debugc('%');
                         debugc(c);
@@ -31,5 +46,14 @@ void debugfv(const char *fmt, va_list args) {
         }
 
         ++fmt;
+    }
+}
+
+void debug_init(void) {
+    if (!uart_state(0)) {
+        uart_default_config(0);
+        debug("Set up UART debugging\n");
+    } else {
+        debug("UART is already initialized, skipping\n");
     }
 }

@@ -1,8 +1,13 @@
 #include "debug.h"
+
+#if defined(ARCH_AARCH64)
 #include "arch/aarch64/uart.h"
+#endif
 
 static void debugc(char c) {
+#ifdef ARCH_AARCH64
     uart_send(0, c);
+#endif
 }
 
 static void debugs(const char *s) {
@@ -50,6 +55,7 @@ void debugfv(const char *fmt, va_list args) {
 }
 
 void debug_init(void) {
+#if defined(ARCH_AARCH64)
     if (!uart_state(0)) {
         uart_default_config(0);
         debug("Set up UART debugging\n");
@@ -60,4 +66,5 @@ void debug_init(void) {
     if (!uart_state(0)) {
         debug("Failed to setup UART for debugging\n");
     }
+#endif
 }

@@ -68,6 +68,7 @@ exc_hang:
     b \handler
 .endm
 
+.section .data
 .balign 0x800
 .global aarch64_exc_vectors
 aarch64_exc_vectors:

@@ -27,7 +27,7 @@ build/%.o: src/%.s
 	$(AS) -o $@ $<
 
 build/%.o: src/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) -ggdb $(CFLAGS) -c -o $@ $<
 
 build/kernel.bin: build/kernel.elf
 	$(OBJCOPY) -O binary $< $@

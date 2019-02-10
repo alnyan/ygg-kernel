@@ -12,11 +12,10 @@ QEMU_CMD?=$(QEMU_BIN) \
 		  -machine raspi3 \
 		  -kernel build/kernel.bin \
 		  -serial mon:stdio \
-		  -nographic \
-		  -d int
+		  -nographic
 
 ifdef QEMU_DEBUG
-QEMU_CMD+= -s -S
+QEMU_CMD+= -s -S -d int
 endif
 
 

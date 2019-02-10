@@ -3,6 +3,7 @@
 #include "util.h"
 
 void kernel_main(void) {
+
     hw_init();
 
     debug_init();

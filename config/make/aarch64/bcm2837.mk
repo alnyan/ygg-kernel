@@ -6,7 +6,6 @@ OBJS+=build/arch/aarch64/board/bcm2837/board.o \
 DIRS+=build/arch/aarch64/board/bcm2837
 
 CFLAGS+=-DBOARD_BCM2837
-
 QEMU_BIN?=qemu-system-aarch64
 QEMU_CMD?=$(QEMU_BIN) \
 		  -machine raspi3 \
@@ -14,6 +13,11 @@ QEMU_CMD?=$(QEMU_BIN) \
 		  -serial mon:stdio \
 		  -nographic \
 		  -d int
+
+ifdef QEMU_DEBUG
+QEMU_CMD+= -s -S
+endif
+
 
 all:
 

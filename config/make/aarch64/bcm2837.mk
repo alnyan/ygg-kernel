@@ -7,13 +7,18 @@ DIRS+=build/arch/aarch64/board/bcm2837
 
 CFLAGS+=-DBOARD_BCM2837
 
+QEMU_BIN?=qemu-system-aarch64
+QEMU_CMD?=$(QEMU_BIN) \
+		  -machine raspi3 \
+		  -kernel build/kernel.bin \
+		  -serial mon:stdio \
+		  -nographic \
+		  -d int
+
 all:
 
 info-board:
 	@echo "Target board is BCM2837"
 
 qemu: clean mkdirs build/kernel.bin
-	qemu-system-aarch64 \
-		-machine raspi3 \
-		-kernel build/kernel.bin \
-		-serial stdio
+	$(QEMU_CMD)

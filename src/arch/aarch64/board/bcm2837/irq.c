@@ -8,6 +8,6 @@ void aarch64_irq_handler(void) {
         debug("Timer tick\n");
         bcm2835_irq_regs->irq_basic_pending &= ~1;
         bcm283xsp804->irq_clr = 1;
-        asm volatile ("msr daifclr, #0x2");
+        return;
     }
 }

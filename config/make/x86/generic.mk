@@ -16,9 +16,9 @@ QEMU_BIN?=qemu-system-i386
 QEMU_CMD?=$(QEMU_BIN) \
 		  -kernel build/kernel.elf \
 		  -serial mon:stdio \
-		  -nographic
+		  -nographic $(QEMU_ADD)
 ifdef QEMU_DEBUG
-QEMU_CMD+= -s -S -d int
+QEMU_CMD+= -s -S
 endif
 
 qemu: clean mkdirs build/kernel.bin

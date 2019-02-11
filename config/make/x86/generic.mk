@@ -12,7 +12,14 @@ CFLAGS+=-DARCH_X86
 LDFLAGS+=-static-libgcc
 LDFLAGS_POST=-lgcc
 
+QEMU_BIN?=qemu-system-i386
+QEMU_CMD?=$(QEMU_BIN) \
+		  -kernel build/kernel.elf \
+		  -serial mon:stdio \
+		  -nographic
+ifdef QEMU_DEBUG
+QEMU_CMD+= -s -S -d int
+endif
+
 qemu: clean mkdirs build/kernel.bin
-	qemu-system-i386 \
-		-kernel build/kernel.elf \
-		-serial stdio
+	$(QEMU_CMD)

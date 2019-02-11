@@ -3,6 +3,8 @@ AS=$(CROSS_COMPILE)as
 LD=$(CROSS_COMPILE)ld
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
+all: clean mkdirs build/kernel.bin
+
 include config/make/generic.mk
 
 ifeq ($(ARCH),)
@@ -14,8 +16,6 @@ include config/make/$(ARCH)/$(BOARD).mk
 else
 include config/make/$(ARCH)/generic.mk
 endif
-
-all: clean mkdirs build/kernel.bin
 
 mkdirs:
 	mkdir -p $(DIRS)

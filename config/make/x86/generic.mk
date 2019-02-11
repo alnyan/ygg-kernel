@@ -28,8 +28,8 @@ qemu-iso: clean mkdirs build/kernel.iso
 	$(QEMU_BIN) -serial stdio -cdrom build/kernel.iso
 
 build/kernel.iso: clean mkdirs build/kernel.elf
-	mkdir -p build/isotmp/boot/grub
-	cp src/arch/x86/grub.cfg build/isotmp/boot/grub
-	cp build/kernel.elf build/isotmp/boot/kernel
-	grub-mkrescue build/isotmp -o build/kernel.iso
-	rm -rf build/isotmp
+	mkdir -p isotmp/boot/grub
+	cp src/arch/x86/grub.cfg isotmp/boot/grub
+	cp build/kernel.elf isotmp/boot/kernel
+	grub-mkrescue -o build/kernel.iso isotmp
+	rm -rf isotmp

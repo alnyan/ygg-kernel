@@ -17,3 +17,4 @@ typedef struct {
 
 void x86_gdt_set(int idx, uint32_t base, uint32_t limit, uint8_t flags, uint8_t access);
 void x86_gdt_load(void);
+void gdt_init(void);

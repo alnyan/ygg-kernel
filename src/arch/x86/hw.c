@@ -7,4 +7,6 @@ void hw_init(void) {
 
     gdt_init();
     ints_init();
+
+    int a = 1 / 0;
 }

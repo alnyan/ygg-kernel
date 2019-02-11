@@ -4,7 +4,8 @@ BOOT_OBJS+=build/arch/x86/boot.o
 OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/com.o \
 	  build/arch/x86/gdt.o \
-	  build/arch/x86/ints.o
+	  build/arch/x86/ints.o \
+	  build/arch/x86/ints_s.o
 
 DIRS+=build/arch/x86
 

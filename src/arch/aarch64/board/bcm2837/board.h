@@ -78,7 +78,40 @@ struct bcm2837_uart {
     uint32_t tdr;
 };
 
+//// ARM timer
+#define BCM283xS804_BASE        0x3F00B400
+
+struct bcm283xsp804 {
+    uint32_t load;
+    uint32_t value;
+    uint32_t control;
+    uint32_t irq_clr;
+    uint32_t irq_raw;
+    uint32_t irq_mask;
+    uint32_t reload;
+    uint32_t prediv;
+    uint32_t freecntr;
+};
+
+//// IRQ Controller
+#define BCM2835_IRQ_REGS_BASE   0x3F00B200
+
+struct bcm2835_irq_regs {
+    uint32_t irq_basic_pending;
+    uint32_t irq_pending1;
+    uint32_t irq_pending2;
+    uint32_t fiq_ctl;
+    uint32_t irq_enable1;
+    uint32_t irq_enable2;
+    uint32_t irq_basic_enable;
+    uint32_t irq_disable1;
+    uint32_t irq_disable2;
+    uint32_t irq_basic_disable;
+};
+
 // MMIO
+static volatile struct bcm2835_irq_regs *bcm2835_irq_regs = (struct bcm2835_irq_regs *) BCM2835_IRQ_REGS_BASE;
+static volatile struct bcm283xsp804 *bcm283xsp804 = (struct bcm283xsp804 *) BCM283xS804_BASE;
 static volatile struct bcm2837_gpio *bcm2837_gpio = (struct bcm2837_gpio *) BCM2837_GPIO_BASE;
 static volatile struct bcm2837_uart *bcm2837_uart0 = (struct bcm2837_uart *) BCM2837_UART0_BASE;
 

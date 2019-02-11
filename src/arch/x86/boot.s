@@ -75,6 +75,7 @@ __preserve_boot_ebx:
     .long 0x00000000
 
 .section .bss
+.global boot_page_directory
 .balign 0x1000
 boot_page_directory:
     .skip 0x1000

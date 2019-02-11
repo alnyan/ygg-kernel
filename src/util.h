@@ -8,5 +8,5 @@
 #ifdef ARCH_AARCH64
 #define __idle() asm volatile("wfe")
 #else
-#define __idle()
+#define __idle() asm volatile("hlt")
 #endif

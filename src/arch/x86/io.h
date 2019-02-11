@@ -10,3 +10,9 @@ static inline uint8_t inb(uint16_t addr) {
     asm volatile("inb %1, %0":"=a"(v):"Nd"(addr));
 	return v;
 }
+
+static inline void io_wait(void) {
+    asm volatile("jmp 1f\n\t"
+                 "1:jmp 2f\n\t"
+                 "2:" );
+}

@@ -5,7 +5,9 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/com.o \
 	  build/arch/x86/gdt.o \
 	  build/arch/x86/ints.o \
-	  build/arch/x86/ints_s.o
+	  build/arch/x86/ints_s.o \
+	  build/arch/x86/pic8259.o \
+	  build/arch/x86/timer.o
 
 DIRS+=build/arch/x86
 

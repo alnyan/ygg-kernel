@@ -1,6 +1,7 @@
 #include "ints.h"
 #include <stdint.h>
 #include "sys/debug.h"
+#include "irq.h"
 
 typedef struct {
     uint16_t base_lo;
@@ -72,9 +73,12 @@ extern void x86_isr_29();
 extern void x86_isr_30();
 extern void x86_isr_31();
 
+extern void x86_irq_0();
+
 void x86_isr_handler(x86_int_regs_t regs) {
     if (regs.int_no < 32) { // Exceptions
         debug("System exception, halting\n");
+        debug("Exception %d\n", regs.int_no);
         debug("eax = %x\n"
               "ecx = %x\n"
               "edx = %x\n"
@@ -131,6 +135,10 @@ void ints_init(void) {
     x86_idt_set(29, (uint32_t) x86_isr_29, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
     x86_idt_set(30, (uint32_t) x86_isr_30, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
     x86_idt_set(31, (uint32_t) x86_isr_31, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
+
+    pic8259_init();
+
+    x86_idt_set(32, (uint32_t) x86_irq_0, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
 
     s_idtr.offset = (uint32_t) s_idt;
     s_idtr.size = sizeof(s_idt) - 1;

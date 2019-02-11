@@ -26,6 +26,43 @@ x86_isr_generic:
     addl $8, %esp
     iret
 
+.global x86_irq_0
+x86_irq_0:
+    cli
+
+    pushal
+
+    // Stack state:
+    // ss
+    // esp
+    // eflags
+    // cs
+    // eip
+    // eax
+    // ecx
+    // edx
+    // ebx
+    // oesp
+    // ebp
+    // esi
+    // edi
+
+    // Push a pointer to all the registers on stack
+    push %esp
+
+    call x86_timer_handler
+
+    // Remove pointer from stack
+    addl $4, %esp
+
+    movw $0x20, %dx
+    movb $0x20, %al
+    outb %al, %dx
+
+    popal
+
+    iret
+
 .macro x86_isr_stub_nc n
 .global x86_isr_\n
 x86_isr_\n:

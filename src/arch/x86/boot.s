@@ -54,18 +54,16 @@ _start:
     jmp *%eax
 
 _start_high:
-    movw $0x3F8, %dx
-    movb $'A', %al
-    outb %al, %dx
-    movb $'!', %al
-    outb %al, %dx
-    movb $'\n', %al
-    outb %al, %dx
-	//mov $stack_top, %esp
 
-	//call kernel_main
+    // Unmap lower mapping
+    movl $0, boot_page_directory
 
-	cli
+    // Setup stack
+    movl $stack_top, %esp
+
+    call kernel_main
+
+    cli
 1:	hlt
 	jmp 1b
 

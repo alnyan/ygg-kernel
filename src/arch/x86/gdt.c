@@ -4,7 +4,9 @@
 // NULL
 // CODE K
 // DATA K
-#define GDT_NENTR   3
+// CODE U
+// DATA U
+#define GDT_NENTR   6
 
 #define GDT_ACC_AC  (1 << 0)
 #define GDT_ACC_RW  (1 << 1)
@@ -20,8 +22,13 @@
 #define GDT_FLG_SZ  (1 << 6)
 #define GDT_FLG_GR  (1 << 7)
 
+static x86_tss_entry_t s_tss;
 static x86_gdt_entry_t s_gdt[GDT_NENTR];
 static x86_gdt_ptr_t s_gdtr;
+
+void x86_tss_set(uint32_t esp0) {
+    s_tss.esp0 = esp0;
+}
 
 void x86_gdt_load(void) {
     s_gdtr.offset = (uint32_t) s_gdt;
@@ -42,6 +49,9 @@ void x86_gdt_set(int idx, uint32_t base, uint32_t limit, uint8_t flags, uint8_t 
 void gdt_init(void) {
     debug("Setting up GDT entries\n");
 
+    s_tss.ss0 = 0x10;
+    s_tss.flags = sizeof(s_tss) << 16;
+
     x86_gdt_set(0, 0, 0, 0, 0);
     x86_gdt_set(1, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
@@ -49,5 +59,17 @@ void gdt_init(void) {
     x86_gdt_set(2, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
             GDT_ACC_PR | GDT_ACC_R0 | GDT_ACC_RW | GDT_ACC_S);
+    x86_gdt_set(3, 0, 0xFFFFF,
+            GDT_FLG_GR | GDT_FLG_SZ,
+            GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_EX | GDT_ACC_DC | GDT_ACC_S);
+    x86_gdt_set(4, 0, 0xFFFFF,
+            GDT_FLG_GR | GDT_FLG_SZ,
+            GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_RW | GDT_ACC_S);
+    x86_gdt_set(5, (uint32_t) &s_tss, sizeof(s_tss),
+            GDT_FLG_SZ,
+            GDT_ACC_PR | GDT_ACC_EX | GDT_ACC_AC);
+
     x86_gdt_load();
+
+    asm volatile ("movw $0x28, %%ax; ltr %%ax":::"memory");
 }

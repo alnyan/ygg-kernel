@@ -1,13 +1,11 @@
 #include <stdint.h>
 #include "sys/debug.h"
 #include "arch/hw.h"
+#include "mm.h"
 
 #define X86_MM_FLG_PS   (1 << 7)
 #define X86_MM_FLG_PR   (1 << 0)
 #define X86_MM_HNT_OVW  (1 << 31)   // Kernel hint - overwrite existing mapping
-
-typedef uintptr_t *mm_pagedir_t;
-typedef uintptr_t *mm_pagetab_t;    // Not yet used
 
 static mm_pagedir_t s_mm_current;   // Currently used page directory
 static mm_pagedir_t s_mm_kernel;    // Kernel global page dir

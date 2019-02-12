@@ -8,11 +8,6 @@
 #define PIT_CH2D        0x42
 #define PIT_MCMD        0x43
 
-typedef struct {
-    uint32_t edi, esi, ebp, oesp;
-    uint32_t ebx, edx, ecx, eax;
-} x86_irq_regs_t;
-
 void x86_timer_init(uint32_t freq) {
     uint32_t div = PIT_BASE_FRQ / freq;
 
@@ -28,8 +23,4 @@ void x86_timer_init(uint32_t freq) {
     outb(PIT_CH0D, div & 0xFF);
     io_wait();
     outb(PIT_CH0D, (div >> 8) & 0xFF);
-}
-
-void x86_timer_handler(x86_irq_regs_t *regs) {
-    /*debug("Tick\n");*/
 }

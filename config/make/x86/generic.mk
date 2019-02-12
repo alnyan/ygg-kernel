@@ -8,7 +8,9 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/ints_s.o \
 	  build/arch/x86/pic8259.o \
 	  build/arch/x86/timer.o \
-	  build/arch/x86/mm.o
+	  build/arch/x86/mm.o \
+	  build/arch/x86/task.o \
+	  build/arch/x86/irq0.o
 
 DIRS+=build/arch/x86
 

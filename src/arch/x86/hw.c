@@ -13,4 +13,6 @@ void hw_init(void) {
     ints_init();
 
     x86_timer_init(100);
+
+    x86_task_init();
 }

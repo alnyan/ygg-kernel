@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "sys/debug.h"
 #include "irq.h"
+#include "regs.h"
 
 typedef struct {
     uint16_t base_lo;
@@ -31,10 +32,9 @@ typedef struct {
 #define IDT_FLG_P           (1 << 7)
 
 typedef struct {
-    uint32_t edi, esi, ebp, oesp;
-    uint32_t ebx, edx, ecx, eax;
+    x86_gp_regs_t gp;
     uint32_t errcode, int_no;
-    uint32_t eip, cs, eflags, esp, ss;
+    x86_iret_regs_t iret;
 } x86_int_regs_t;
 
 static x86_idt_entry_t s_idt[IDT_NENTR];
@@ -84,8 +84,8 @@ void x86_isr_handler(x86_int_regs_t regs) {
               "edx = %x\n"
               "ebx = %x\n"
               "cs:eip = %x:%x\n",
-              regs.eax, regs.ecx, regs.edx, regs.ebx,
-              regs.cs, regs.eip);
+              regs.gp.eax, regs.gp.ecx, regs.gp.edx, regs.gp.ebx,
+              regs.iret.cs, regs.iret.eip);
         while (1) {
             asm volatile ("cli");
         }

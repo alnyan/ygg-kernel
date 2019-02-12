@@ -23,13 +23,13 @@ QEMU_BIN?=qemu-system-i386
 QEMU_CMD?=$(QEMU_BIN) \
 		  -serial mon:stdio \
 		  -kernel build/kernel.elf \
-		  -nographic $(QEMU_ADD)
+		  $(QEMU_ADD)
 ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
 qemu: clean mkdirs build/kernel.bin
-	$(QEMU_CMD)
+	$(QEMU_CMD)	2>&1 | tee log
 qemu-iso: clean mkdirs build/kernel.iso
 	$(QEMU_BIN) -serial stdio -cdrom build/kernel.iso
 

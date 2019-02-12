@@ -22,8 +22,9 @@ void kernel_main(void) {
     debug("0x%x 0x%X\n", 0x1234BADB, 0x4321BDAB);
     debug("0x%lx 0x%lX\n", 0x12345678BADB002, 0x200BDAB87654321);
 
-    /*__enable_irq();*/
     irq_enable();
+
+    task_start();
 
     while (1) {
         __idle();

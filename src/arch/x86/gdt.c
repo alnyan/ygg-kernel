@@ -49,19 +49,20 @@ void x86_gdt_set(int idx, uint32_t base, uint32_t limit, uint8_t flags, uint8_t 
 void gdt_init(void) {
     debug("Setting up GDT entries\n");
 
+    memset(&s_tss, 0, sizeof(s_tss));
     s_tss.ss0 = 0x10;
     s_tss.flags = sizeof(s_tss) << 16;
 
     x86_gdt_set(0, 0, 0, 0, 0);
     x86_gdt_set(1, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
-            GDT_ACC_PR | GDT_ACC_R0 | GDT_ACC_EX | GDT_ACC_DC | GDT_ACC_S);
+            GDT_ACC_PR | GDT_ACC_R0 | GDT_ACC_EX | GDT_ACC_S);
     x86_gdt_set(2, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
             GDT_ACC_PR | GDT_ACC_R0 | GDT_ACC_RW | GDT_ACC_S);
     x86_gdt_set(3, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
-            GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_EX | GDT_ACC_DC | GDT_ACC_S);
+            GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_EX | GDT_ACC_S);
     x86_gdt_set(4, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
             GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_RW | GDT_ACC_S);

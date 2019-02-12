@@ -73,7 +73,7 @@ static void debug_ds(int64_t x, char *res, int s, int sz) {
     }
 }
 
-static void debug_xs(uint64_t v, char *res, const char *set) {
+void debug_xs(uint64_t v, char *res, const char *set) {
     if (!v) {
         res[0] = '0';
         res[1] = 0;

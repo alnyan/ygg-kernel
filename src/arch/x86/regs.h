@@ -8,3 +8,7 @@ typedef struct {
 typedef struct {
     uint32_t eip, cs, eflags, esp, ss;
 } x86_iret_regs_t;
+
+typedef struct {
+    uint32_t ds, es, fs, gs;
+} x86_seg_regs_t;

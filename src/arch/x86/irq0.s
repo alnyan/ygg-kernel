@@ -19,14 +19,40 @@ x86_irq_0:
     // ebp
     // esi
     // edi
+    // gs
+    // fs
+    // es
+    // ds
+
+    pushl %gs
+    pushl %fs
+    pushl %es
+    pushl %ds
 
     // Push a pointer to all the registers on stack
     push %esp
 
-    // TODO: add code here to call scheduler
+    // Setup kernel segments
+    movl $0x10, %eax
+    movl %ax, %ds
+    movl %ax, %es
+    movl %ax, %fs
+    movl %ax, %gs
+
+    call x86_irq_timer
+
+    // New esp0 is returned by the call
+    movl %eax, %esp
 
     // Remove pointer from stack
-    addl $4, %esp
+    popl %eax
+    movl %eax, %ds
+    popl %eax
+    movl %eax, %es
+    popl %eax
+    movl %eax, %fs
+    popl %eax
+    movl %eax, %gs
 
     movw $0x20, %dx
     movb $0x20, %al

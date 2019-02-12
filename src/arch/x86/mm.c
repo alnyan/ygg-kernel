@@ -4,6 +4,8 @@
 #include "mm.h"
 
 #define X86_MM_FLG_PS   (1 << 7)
+#define X86_MM_FLG_US   (1 << 2)
+#define X86_MM_FLG_RW   (1 << 1)
 #define X86_MM_FLG_PR   (1 << 0)
 #define X86_MM_HNT_OVW  (1 << 31)   // Kernel hint - overwrite existing mapping
 
@@ -38,6 +40,15 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
     return 0;
 }
 
+void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
+    if (pd[pdi] & 0x1) {
+        debug("PD:0x%x[%d (0x%x)] = 0x%x, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
+                pd[pdi] & X86_MM_FLG_RW ? 'w' : 'o', pd[pdi] & X86_MM_FLG_US ? 'u' : 'k');
+    } else {
+        debug("PD:0x%x[%d (0x%x)] = not present\n", pd, pdi, pdi << 22);
+    }
+}
+
 void x86_mm_init(void) {
     // Dump entries retained from bootloader
     debug("Initializing memory management\n");
@@ -48,7 +59,7 @@ void x86_mm_init(void) {
 
     for (int i = 0; i < 1024; ++i) {
         if (s_mm_current[i] & 0x1) {
-            debug("retain: boot_page_directory[%d (0x%x)] = 0x%x\n", i, i << 22, s_mm_current[i] & -0x400000);
+            x86_mm_dump_entry(s_mm_current, i);
         }
     }
 }

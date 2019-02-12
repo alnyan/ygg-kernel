@@ -1,6 +1,11 @@
 .set KERNEL_VIRT_BASE, 0xC0000000
 .set KERNEL_VIRT_PAGE, (KERNEL_VIRT_BASE >> 22)
 
+.set MM_FLG_PS, (1 << 7)
+.set MM_FLG_US, (1 << 2)
+.set MM_FLG_RW, (1 << 1)
+.set MM_FLG_PR, (1 << 0)
+
 .set ALIGN,    1 << 0
 .set MEMINFO,  1 << 1
 .set FLAGS,    ALIGN | MEMINFO
@@ -33,8 +38,8 @@ _start:
     rep stosl
 
     // Set zero-destination mapping from 0xC0000000 and 0
-    movl $0x00000083, (boot_page_directory - KERNEL_VIRT_BASE + KERNEL_VIRT_PAGE * 4)
-    movl $0x00000083, (boot_page_directory - KERNEL_VIRT_BASE)
+    movl $(MM_FLG_PR | MM_FLG_RW | MM_FLG_PS | MM_FLG_US), (boot_page_directory - KERNEL_VIRT_BASE + KERNEL_VIRT_PAGE * 4)
+    movl $(MM_FLG_PR | MM_FLG_PS | MM_FLG_RW), (boot_page_directory - KERNEL_VIRT_BASE)
 
     // Set paging directory
     movl $(boot_page_directory - KERNEL_VIRT_BASE), %eax

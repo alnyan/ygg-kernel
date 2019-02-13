@@ -4,6 +4,8 @@
 #include "irq.h"
 #include "regs.h"
 
+#define X86_INT_STACK       256
+
 typedef struct {
     uint16_t base_lo;
     uint16_t selector;
@@ -33,9 +35,12 @@ typedef struct {
 
 typedef struct {
     x86_gp_regs_t gp;
-    uint32_t errcode, int_no;
+    uint32_t int_no;
+    uint32_t err_code;
     x86_iret_regs_t iret;
 } x86_int_regs_t;
+
+uint32_t x86_int_stack[X86_INT_STACK];
 
 static x86_idt_entry_t s_idt[IDT_NENTR];
 static x86_idt_ptr_t s_idtr;
@@ -75,21 +80,18 @@ extern void x86_isr_31();
 
 extern void x86_irq_0();
 
-void x86_isr_handler(x86_int_regs_t regs) {
-    if (regs.int_no < 32) { // Exceptions
-        debug("System exception, halting\n");
-        debug("Exception %d\n", regs.int_no);
-        debug("eax = %x\n"
-              "ecx = %x\n"
-              "edx = %x\n"
-              "ebx = %x\n"
-              "cs:eip = %x:%x\n",
-              regs.gp.eax, regs.gp.ecx, regs.gp.edx, regs.gp.ebx,
-              regs.iret.cs, regs.iret.eip);
-        while (1) {
-            asm volatile ("cli");
-        }
+void x86_isr_handler(x86_int_regs_t *regs) {
+    debug("CPU Exception #%d\n", regs->int_no);
+    debug("Error code: %d (0x%x)\n", regs->err_code);
+
+    if (regs->iret.cs == 0x08) {
+        debug("This is kernel-space exception\n");
+    } else {
+        debug("This is user-space exception\n");
     }
+
+    x86_dump_gp_regs(&regs->gp);
+    x86_dump_iret_regs(&regs->iret);
 }
 
 void x86_idt_set(int idx, uint32_t base, uint16_t selector, uint8_t flags) {

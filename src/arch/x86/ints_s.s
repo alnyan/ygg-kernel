@@ -1,5 +1,8 @@
+.set X86_INT_STACK, (256 * 4)
+
 .section .text
 .extern x86_isr_handler
+.extern x86_int_stack
 
 x86_isr_generic:
     pushal
@@ -9,6 +12,8 @@ x86_isr_generic:
     // esp
     // eflags
     // cs
+    // error code
+    // int num
     // eip
     // eax
     // ecx
@@ -18,13 +23,19 @@ x86_isr_generic:
     // ebp
     // esi
     // edi
+    // TODO: check (using code) if the error is recoverable, push the whole context if it is
+    movl %esp, %esi
+    movl $(x86_int_stack + X86_INT_STACK), %esp
 
+    // x86_isr_handler(&task_ctx)
+    pushl %esi
     call x86_isr_handler
+    addl $4, %esp
 
-    popal
-
-    addl $8, %esp
-    iret
+    // No recoverable error support yet
+1:
+    hlt
+    jmp 1b
 
 .macro x86_isr_stub_nc n
 .global x86_isr_\n

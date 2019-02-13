@@ -8,7 +8,9 @@
 .set X86_TASK_STRUCT_ESP0,  0x00
 .set X86_TASK_STRUCT_EBP0,  0x04
 .set X86_TASK_STRUCT_EBP3,  0x08
-.set X86_TASK_STRUCT_NEXT,  0x0C
+.set X86_TASK_STRUCT_FLAG,  0x0C
+.set X86_TASK_STRUCT_CTL,   0x10
+.set X86_TASK_STRUCT_NEXT,  0x14
 
 .extern x86_task_current
 .extern x86_task_first

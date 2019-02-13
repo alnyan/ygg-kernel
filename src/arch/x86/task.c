@@ -1,6 +1,7 @@
 #include "task.h"
 #include "arch/hw.h"
 #include <stddef.h>
+#include "sys/task.h"
 #include "sys/debug.h"
 #include "sys/mem.h"
 
@@ -19,10 +20,16 @@
 
 #define X86_TASK_TOTAL_STACK    (X86_TASK_SWITCH_STACK + X86_TASK_STACK)
 
+struct x86_task_ctl {
+    uint32_t sleep;
+};
+
 struct x86_task {
     uint32_t esp0;
     uint32_t ebp0;
     uint32_t ebp3;
+    uint32_t flag;
+    struct x86_task_ctl *ctl;
     struct x86_task *next;
 };
 
@@ -33,27 +40,33 @@ static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
 static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
 static uint32_t s_userStacks[X86_USER_STACK * X86_TASK_MAX];
 static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
+static struct x86_task_ctl s_taskCtls[sizeof(struct x86_task_ctl) * X86_TASK_MAX];
 
 struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
+static struct x86_task *x86_task_idle = NULL;
 
 void task0(void *arg) {
     uint16_t *myptr = (uint16_t *) arg;
     *myptr = 0x0200 | 'A';
 
     while (1) {
-        for (int i = 0; i < 0x0400000; ++i) {
-        }
-
         *myptr ^= 0x2200 | 'A';
     }
 }
 
-struct x86_task *x86_task_alloc(void) {
-    return &s_taskStructs[s_lastThread++];
+static void x86_task_idle_func(void *arg) {
+    while (1) {
+    }
 }
 
-void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg) {
+struct x86_task *x86_task_alloc(void) {
+    struct x86_task *t = &s_taskStructs[s_lastThread++];
+    t->ctl = &s_taskCtls[s_lastThread - 1];
+    return t;
+}
+
+void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int flag) {
     uint32_t stackIndex = s_lastStack++;
 
     // Create kernel-space stack for state storage
@@ -99,24 +112,29 @@ void x86_task_init(void) {
     s_lastStack = 0;
 
     struct x86_task *prev_task = NULL;
+    struct x86_task *task;
 
-    for (int i = 0; i < 8; ++i) {
-        struct x86_task *task = x86_task_alloc();
+    // Create idle task (TODO: make it kernel space, so it can HLT)
+    task = x86_task_alloc();
+    task->next = NULL;
+    task->flag = 0;
+    x86_task_setup(task, x86_task_idle_func, NULL, 0);
+
+    x86_task_idle = task;
+    x86_task_current = task;
+    x86_task_first = task;
+
+    prev_task = task;
+
+    for (int i = 0; i < 7; ++i) {
+        task = x86_task_alloc();
 
         task->next = NULL;
+        task->flag = 0;
 
-        if (!x86_task_first) {
-            debug("%p is the first\n", task);
-            x86_task_first = task;
-            x86_task_current = task;
-        }
+        x86_task_setup(task, task0, (void *) (0xC00B8000 + i * 2), 0);
 
-        x86_task_setup(task, task0, (void *) (0xC00B8000 + i * 2));
-
-        if (prev_task) {
-            prev_task->next = task;
-            debug("%p's next is %p\n", prev_task, task);
-        }
+        prev_task->next = task;
 
         prev_task = task;
     }
@@ -127,7 +145,50 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         return;
     }
 
-    if (!(x86_task_current = x86_task_current->next)) {
-        x86_task_current = x86_task_first;
+    // Update tasks' flags and ctl
+    for (struct x86_task *t = x86_task_first; t; t = t->next) {
+        if (t == x86_task_idle) {
+            continue;
+        }
+        // Decrease sleep counters
+        if (t->flag & TASK_FLG_WAIT) {
+            if (!(--t->ctl->sleep)) {
+                t->flag &= ~TASK_FLG_WAIT;
+            }
+        }
     }
+
+    struct x86_task *from = x86_task_current;
+
+    x86_task_current->flag &= ~TASK_FLG_RUNNING;
+
+    while (1) {
+        if (!(x86_task_current = x86_task_current->next)) {
+            x86_task_current = x86_task_first;
+        }
+
+        if (x86_task_current->flag & TASK_FLG_WAIT) {
+            // If a loop was done and we couldn't find any task, just use the previous one
+            if (x86_task_current == from) {
+                break;
+            }
+            continue;
+        }
+
+        break;
+    }
+
+    if (x86_task_current == from && (x86_task_current->flag & TASK_FLG_WAIT)) {
+        // If we couldn't find any non-waiting task
+        x86_task_current = x86_task_idle;
+        x86_task_current->flag |= TASK_FLG_RUNNING;
+        return;
+    }
+
+    if (from != x86_task_idle) {
+        from->ctl->sleep = 100;
+        from->flag |= TASK_FLG_WAIT;
+    }
+
+    x86_task_current->flag |= TASK_FLG_RUNNING;
 }

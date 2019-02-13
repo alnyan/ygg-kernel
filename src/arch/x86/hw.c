@@ -3,11 +3,13 @@
 #include "ints.h"
 #include "timer.h"
 #include "task.h"
+#include "console.h"
 #include "ps2.h"
 #include "mm.h"
 
 void hw_early_init(void) {
     com_init(X86_COM0);
+    x86_con_init();
 }
 
 void hw_init(void) {

@@ -7,6 +7,7 @@
 #endif
 #if defined(ARCH_X86)
 #include "arch/x86/com.h"
+#include "arch/x86/console.h"
 #endif
 
 static const char *s_debug_xs_set0 = "0123456789abcdef";
@@ -18,6 +19,7 @@ static void debugc(char c) {
 #endif
 #ifdef ARCH_X86
 	com_send(X86_COM0, c);
+    x86_con_putc(c);
 #endif
 }
 

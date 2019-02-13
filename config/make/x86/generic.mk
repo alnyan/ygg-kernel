@@ -14,7 +14,8 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/regs.o \
 	  build/arch/x86/ps2.o \
 	  build/arch/x86/irqs_s.o \
-	  build/arch/x86/multiboot.o
+	  build/arch/x86/multiboot.o \
+	  build/arch/x86/console.o
 HDRS+=src/arch/x86/com.h \
 	  src/arch/x86/gdt.h \
 	  src/arch/x86/hw.h \
@@ -26,7 +27,8 @@ HDRS+=src/arch/x86/com.h \
 	  src/arch/x86/ps2.h \
 	  src/arch/x86/regs.h \
 	  src/arch/x86/task.h \
-	  src/arch/x86/timer.h
+	  src/arch/x86/timer.h \
+	  src/arch/x86/console.h
 
 DIRS+=build/arch/x86
 

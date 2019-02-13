@@ -6,7 +6,7 @@ HOSTLD=ld
 HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-all: clean mkdirs build/kernel.bin
+all: mkdirs build/kernel.bin
 	HOSTCC=$(HOSTCC) make -C util $(UTILS)
 
 include config/make/generic.mk
@@ -31,7 +31,7 @@ build/%.o: src/%.s
 	@$(AS) -o $@ $<
 	@printf " AS\t%s\n" "$<"
 
-build/%.o: src/%.c
+build/%.o: src/%.c $(HDRS)
 	@$(CC) -ggdb $(CFLAGS) -c -o $@ $<
 	@printf	" CC\t%s\n" "$<"
 

@@ -6,6 +6,7 @@ OBJS+=build/kernel.o \
 	  build/sys/debug.o \
 	  build/sys/mem.o \
 	  build/sys/string.o
+HDRS+=src/util.h
 
 DIRS+=build/sys
 

@@ -10,3 +10,4 @@
 #else
 #define __idle() asm volatile("hlt")
 #endif
+

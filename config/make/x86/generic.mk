@@ -15,6 +15,18 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/ps2.o \
 	  build/arch/x86/irqs_s.o \
 	  build/arch/x86/multiboot.o
+HDRS+=src/arch/x86/com.h \
+	  src/arch/x86/gdt.h \
+	  src/arch/x86/hw.h \
+	  src/arch/x86/ints.h \
+	  src/arch/x86/io.h \
+	  src/arch/x86/irq.h \
+	  src/arch/x86/mm.h \
+	  src/arch/x86/multiboot.h \
+	  src/arch/x86/ps2.h \
+	  src/arch/x86/regs.h \
+	  src/arch/x86/task.h \
+	  src/arch/x86/timer.h
 
 DIRS+=build/arch/x86
 
@@ -33,13 +45,13 @@ ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
-qemu: clean mkdirs build/kernel.bin
+qemu: all
 	$(QEMU_CMD)
 
-qemu-iso: clean mkdirs build/kernel.iso
+qemu-iso: build/kernel.iso
 	$(QEMU_BIN) -serial stdio -cdrom build/kernel.iso
 
-build/kernel.iso: clean mkdirs build/kernel.elf
+build/kernel.iso: all
 	mkdir -p isotmp/boot/grub
 	cp src/arch/x86/grub.cfg isotmp/boot/grub
 	cp build/kernel.elf isotmp/boot/kernel

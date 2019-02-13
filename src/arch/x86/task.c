@@ -34,42 +34,6 @@ void task0(void *arg) {
     }
 }
 
-/*void task1(void) {*/
-    /*uint16_t *myptr = (uint16_t *) 0xC00B8002;*/
-    /**myptr = 0x0700 | 'B';*/
-
-    /*while (1) {*/
-        /*for (int i = 0; i < 0x0400000; ++i) {*/
-        /*}*/
-
-        /**myptr ^= 0x7700;*/
-    /*}*/
-/*}*/
-
-/*void task2(void) {*/
-    /*uint16_t *myptr = (uint16_t *) 0xC00B8004;*/
-    /**myptr = 0x0400 | 'C';*/
-
-    /*while (1) {*/
-        /*for (int i = 0; i < 0x0400000; ++i) {*/
-        /*}*/
-
-        /**myptr ^= 0x4400 | 'C';*/
-    /*}*/
-/*}*/
-
-/*void task3(void) {*/
-    /*uint16_t *myptr = (uint16_t *) 0xC00B8006;*/
-    /**myptr = 0x0500 | 'D';*/
-
-    /*while (1) {*/
-        /*for (int i = 0; i < 0x0400000; ++i) {*/
-        /*}*/
-
-        /**myptr ^= 0x5500;*/
-    /*}*/
-/*}*/
-
 uint32_t x86_task_create(void (*addr)(void *), void *arg) {
     uint32_t stackIndex = s_lastStack++;
     uint32_t ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
@@ -123,10 +87,6 @@ void x86_task_init(void) {
     for (int i = 0; i < 4; ++i) {
         x86_tasks[i] = x86_task_create(task0, (void *) (0xC00B8000 + i * 2));
     }
-    /*x86_tasks[0] = x86_task_create((uint32_t) task0);*/
-    /*x86_tasks[1] = x86_task_create((uint32_t) task1);*/
-    /*x86_tasks[2] = x86_task_create((uint32_t) task2);*/
-    /*x86_tasks[3] = x86_task_create((uint32_t) task3);*/
 }
 
 void task_start(void) {

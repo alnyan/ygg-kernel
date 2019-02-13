@@ -13,7 +13,8 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/irq0.o \
 	  build/arch/x86/regs.o \
 	  build/arch/x86/ps2.o \
-	  build/arch/x86/irqs_s.o
+	  build/arch/x86/irqs_s.o \
+	  build/arch/x86/multiboot.o
 
 DIRS+=build/arch/x86
 

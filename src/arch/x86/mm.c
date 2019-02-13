@@ -1,7 +1,9 @@
 #include <stdint.h>
+#include <stddef.h>
 #include "sys/debug.h"
 #include "arch/hw.h"
 #include "mm.h"
+#include "hw.h"
 
 #define X86_MM_FLG_PS   (1 << 7)
 #define X86_MM_FLG_US   (1 << 2)
@@ -52,6 +54,30 @@ void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
 void x86_mm_init(void) {
     // Dump entries retained from bootloader
     debug("Initializing memory management\n");
+
+    // Add all physical memory entries
+    struct multiboot_mmap_entry *mmap_first = (struct multiboot_mmap_entry *) (x86_multiboot_info->mmap_addr + KERNEL_VIRT_BASE);
+    struct multiboot_mmap_entry *mmap = mmap_first;
+    size_t mmap_len = x86_multiboot_info->mmap_length;
+    int index = 0;
+
+    debug("Memory map:\n");
+
+    while (1) {
+        uint32_t addr = (uint32_t) mmap->addr;
+        uint32_t len = (uint32_t) mmap->len;
+
+        debug(" [%d] %c 0x%x, %dK\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, len / 1024);
+
+        uintptr_t next_ptr = ((uintptr_t) mmap) + sizeof(mmap->size) + mmap->size;
+        uintptr_t next_off = next_ptr - ((uintptr_t) mmap_first);
+
+        if (next_off >= mmap_len) {
+            break;
+        }
+
+        mmap = (struct multiboot_mmap_entry *) next_ptr;
+    }
 
     extern uint32_t boot_page_directory[1024];
     s_mm_current = boot_page_directory;

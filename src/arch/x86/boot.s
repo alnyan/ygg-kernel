@@ -28,8 +28,9 @@ stack_top:
 .global _start
 .type _start, @function
 _start:
-    mov $(__preserve_boot_ebx - KERNEL_VIRT_BASE), %edx
-    mov %ebx, (%edx)
+    // Store multiboot info
+    addl $KERNEL_VIRT_BASE, %ebx
+    movl %ebx, x86_multiboot_info - KERNEL_VIRT_BASE
 
     // Clear out boot page directory
     movl $(boot_page_directory - KERNEL_VIRT_BASE), %edx
@@ -73,11 +74,6 @@ _start_high:
 	jmp 1b
 
 .size _start, . - _start
-
-.section .data
-.balign 0x4
-__preserve_boot_ebx:
-    .long 0x00000000
 
 .section .bss
 .global boot_page_directory

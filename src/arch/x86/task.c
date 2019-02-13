@@ -46,17 +46,14 @@ struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
 static struct x86_task *x86_task_idle = NULL;
 
+extern void x86_task_idle_func(void *arg);
+
 void task0(void *arg) {
     uint16_t *myptr = (uint16_t *) arg;
     *myptr = 0x0200 | 'A';
 
     while (1) {
         *myptr ^= 0x2200 | 'A';
-    }
-}
-
-static void x86_task_idle_func(void *arg) {
-    while (1) {
     }
 }
 
@@ -88,7 +85,11 @@ void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int fl
     *--esp0 = 0x23;             // SS
     *--esp0 = (uint32_t) esp3;  // ESP
     *--esp0 = 0x248;            // EFLAGS
-    *--esp0 = 0x1B;             // CS
+    if (flag & 1) {
+        *--esp0 = 0x08;             // CS
+    } else {
+        *--esp0 = 0x1B;             // CS
+    }
     *--esp0 = (uint32_t) entry; // EIP
 
     // Push GP regs
@@ -118,7 +119,7 @@ void x86_task_init(void) {
     task = x86_task_alloc();
     task->next = NULL;
     task->flag = 0;
-    x86_task_setup(task, x86_task_idle_func, NULL, 0);
+    x86_task_setup(task, x86_task_idle_func, NULL, 1);
 
     x86_task_idle = task;
     x86_task_current = task;

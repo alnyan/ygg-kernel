@@ -6,11 +6,6 @@
 .set X86_INT_STACK,         256
 
 .set X86_TASK_STRUCT_ESP0,  0x00
-.set X86_TASK_STRUCT_EBP0,  0x04
-.set X86_TASK_STRUCT_EBP3,  0x08
-.set X86_TASK_STRUCT_FLAG,  0x0C
-.set X86_TASK_STRUCT_CTL,   0x10
-.set X86_TASK_STRUCT_NEXT,  0x14
 
 .extern x86_task_current
 .extern x86_task_first
@@ -74,7 +69,7 @@ x86_irq_0:
     movl x86_task_current, %esi
 
     // Load TO task's esp0 to %eax and %edx
-    movl (%esi), %eax
+    movl X86_TASK_STRUCT_ESP0(%esi), %eax
     movl %eax, %edx
 
     // Write TSS entry, eax + 18 * 4
@@ -105,3 +100,11 @@ x86_irq_0:
 
     iret
 
+// We shouldn't use any kernel stack here
+// As we're in Ring 0 and there's no user stack for us
+.global x86_task_idle_func
+x86_task_idle_func:
+1:
+    sti
+    hlt
+    jmp 1b

@@ -5,35 +5,6 @@
 #include "sys/debug.h"
 #include "sys/mem.h"
 
-// GP regs: 8
-// IRET regs: 5
-// SEGS regs: 4
-// CR3 1
-#define X86_TASK_STACK          18
-// This allows irq0 (or other switching code) to call something
-// And this should be enough
-#define X86_TASK_SWITCH_STACK   0
-#define X86_TASK_TOTAL_STACK    (X86_TASK_SWITCH_STACK + X86_TASK_STACK)
-
-#define X86_USER_STACK          256
-
-#define X86_TASK_MAX            8
-
-#define X86_TASK_IDLE           (1 << 1)
-
-struct x86_task_ctl {
-    uint32_t sleep;
-};
-
-struct x86_task {
-    uint32_t esp0;
-    uint32_t ebp0;
-    uint32_t ebp3;
-    uint32_t flag;
-    struct x86_task_ctl *ctl;
-    struct x86_task *next;
-};
-
 // TODO: real allocator
 static int s_lastStack = 0;
 static int s_lastThread = 0;
@@ -51,11 +22,21 @@ static int x86_tasking_entry = 1;
 extern void x86_task_idle_func(void *arg);
 
 void task0(void *arg) {
-    uint16_t *myptr = (uint16_t *) arg;
-    *myptr = 0x0200 | 'A';
+    uint32_t myarg = (uint32_t) arg;
+    uint16_t *myptr = (uint16_t *) (0xC00B8000 + (myarg & 0xFF));
+    uint32_t sleep = (myarg >> 16) & 0xFF;
+    int state = 1;
 
     while (1) {
-        *myptr ^= 0x2200 | 'A';
+        if (state) {
+            *myptr = 0x2000 | (((myarg >> 8) & 0xFF) - 'A' + 'a');
+        } else {
+            *myptr = 0x0200 | ((myarg >> 8) & 0xFF);
+        }
+
+        state = !state;
+
+        asm volatile("movl %0, %%eax; int $0x80"::"r"(sleep):"memory");
     }
 }
 
@@ -156,7 +137,7 @@ void x86_task_init(void) {
         task->next = NULL;
         task->flag = 0;
 
-        x86_task_setup(task, task0, (void *) (0xC00B8000 + i * 2), 0);
+        x86_task_setup(task, task0, (void *) ((2 * i) | (('A' + i) << 8) | ((i * 20) << 16)), 0);
 
         prev_task->next = task;
 
@@ -208,11 +189,6 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         x86_task_current = x86_task_idle;
         x86_task_current->flag |= TASK_FLG_RUNNING;
         return;
-    }
-
-    if (from != x86_task_idle) {
-        from->ctl->sleep = 100;
-        from->flag |= TASK_FLG_WAIT;
     }
 
     x86_task_current->flag |= TASK_FLG_RUNNING;

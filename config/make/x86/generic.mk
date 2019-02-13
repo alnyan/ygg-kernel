@@ -15,7 +15,8 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/ps2.o \
 	  build/arch/x86/irqs_s.o \
 	  build/arch/x86/multiboot.o \
-	  build/arch/x86/console.o
+	  build/arch/x86/console.o \
+	  build/arch/x86/syscall.o
 HDRS+=src/arch/x86/com.h \
 	  src/arch/x86/gdt.h \
 	  src/arch/x86/hw.h \

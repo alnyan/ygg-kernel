@@ -1,11 +1,16 @@
 .section .text
 
-.set TSS_ESP0,          0x04
-.set X86_TASK_STACK,    18
+.set TSS_ESP0,              0x04
+.set X86_TASK_STACK,        18
+
+.set X86_TASK_STRUCT_ESP0,  0x00
+.set X86_TASK_STRUCT_EBP0,  0x04
+.set X86_TASK_STRUCT_EBP3,  0x08
+.set X86_TASK_STRUCT_NEXT,  0x0C
 
 // TODO: Should be changed to linked list approach
-.extern x86_task_index
-.extern x86_tasks
+.extern x86_task_current
+.extern x86_task_first
 
 .extern x86_tss
 
@@ -52,27 +57,36 @@ x86_irq_0:
     movl %eax, %fs
     movl %eax, %gs
 
-    // Check if we're entering from Ring 0
-    xorl %edx, %edx
+    // %esi = FROM task ptr (or first task if entering)
+    movl x86_task_current, %esi
 
+    // Check if we're entering from Ring 0
     movl 56(%esp), %eax
     cmp $0x08, %eax
-    je 1f
+    je 2f
 
     // If not, we need to switch to a next Ring 3 task
-    movl x86_task_index, %edx
-    incl %edx
-    andl $0x3, %edx     // XXX: for testing, there're only 4 tasks now
+    // %eax = task's next ptr
+    leal 12(%esi), %edx
+    movl (%edx), %eax
 
-    // Store new index
-    movl %edx, x86_task_index
+    test %eax, %eax
+    jnz 1f
+
+    // If no "next", wrap around
+    movl x86_task_first, %eax
+    movl %eax, x86_task_current
+
+    jmp 2f
 1:
+    movl %eax, x86_task_current
+2:
+    // %esi = TO task ptr
+    movl x86_task_current, %esi
 
-    // Load TO task's esp0 to eax
-    leal x86_tasks, %esi
-    leal (%esi, %edx, 4), %eax
-    movl (%eax), %edx
-    movl %edx, %eax
+    // Load TO task's esp0 to %eax and %edx
+    movl (%esi), %eax
+    movl %eax, %edx
 
     // Write TSS entry, eax + 18 * 4
     addl $(X86_TASK_STACK * 4), %edx

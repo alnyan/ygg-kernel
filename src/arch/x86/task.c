@@ -1,5 +1,6 @@
 #include "task.h"
 #include "arch/hw.h"
+#include <stddef.h>
 #include "sys/debug.h"
 
 // GP regs: 8
@@ -11,16 +12,32 @@
 // And this should be enough
 #define X86_TASK_SWITCH_STACK   0
 
+#define X86_USER_STACK          256
+
+#define X86_TASK_MAX            8
+
 #define X86_TASK_TOTAL_STACK    (X86_TASK_SWITCH_STACK + X86_TASK_STACK)
+
+struct x86_task {
+    uint32_t esp0;
+    uint32_t ebp0;
+    uint32_t ebp3;
+    struct x86_task *next;
+};
 
 // TODO: real allocator
 static int s_lastStack = 0;
-static uint32_t s_pagedirs[1024 * 4] __attribute__((aligned(4096)));
-static uint32_t s_stacks[X86_TASK_TOTAL_STACK * 4];
-static uint32_t s_userStacks[256 * 4];
+static int s_lastThread = 0;
+static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
+static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
+static uint32_t s_userStacks[X86_USER_STACK * X86_TASK_MAX];
+static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
 
-uint32_t x86_tasks[4];
-int x86_task_index = 0;
+struct x86_task *x86_task_current = NULL;
+struct x86_task *x86_task_first = NULL;
+
+/*uint32_t x86_tasks[4];*/
+/*int x86_task_index = 0;*/
 
 void task0(void *arg) {
     uint16_t *myptr = (uint16_t *) arg;
@@ -34,49 +51,48 @@ void task0(void *arg) {
     }
 }
 
-uint32_t x86_task_create(void (*addr)(void *), void *arg) {
+struct x86_task *x86_task_alloc(void) {
+    return &s_taskStructs[s_lastThread++];
+}
+
+void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg) {
     uint32_t stackIndex = s_lastStack++;
-    uint32_t ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
-    uint32_t ebp3 = (uint32_t) &s_userStacks[stackIndex * 256 + 256];
+
+    // Create kernel-space stack for state storage
+    t->ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
+    // Create user-space stack
+    t->ebp3 = (uint32_t) &s_userStacks[stackIndex * X86_USER_STACK + X86_USER_STACK];
+    // Create a page dir
     uint32_t cr3 = (uint32_t) &s_pagedirs[stackIndex * 1024];
-    debug("Allocated task stack: 0x%x\n", ebp0);
-    uint32_t *esp0 = (uint32_t *) ebp0;
-    uint32_t *esp3 = (uint32_t *) ebp3;
-
-    memset((void *) cr3, 0, 1024 * 4);
-    ((uint32_t *) cr3)[768] = 0x87;     // TODO: replace with actual kernel pagedir cloning
-
+    memset((void *) cr3, 0, 4096);
+    ((uint32_t *) cr3)[768] = 0x87;
     cr3 -= KERNEL_VIRT_BASE;
 
-    // Push function argument
-    *--esp3 = (uint32_t) arg;
-    // Push some random return address, as return from userspace thread is NYI
-    *--esp3 = 0x12345678;
+    uint32_t *esp0 = (uint32_t *) t->ebp0;
+    uint32_t *esp3 = (uint32_t *) t->ebp3;
 
-    *--esp0 = 0x23; // SS
-    *--esp0 = (uint32_t) esp3; // ESP
-    *--esp0 = 0x248;    // EFLAGS
-    *--esp0 = 0x1B; // CS
-    *--esp0 = (uint32_t) addr; // EIP
-    // Task control params
+    *--esp3 = (uint32_t) arg;   // Push thread arg
+    *--esp3 = 0x12345678;       // Push some funny return address
 
-    *--esp0 = 0;    // EAX
-    *--esp0 = 0;    // ECX
-    *--esp0 = 0;    // EDX
-    *--esp0 = 0;    // EBX
-    *--esp0 = 0;    // oESP
-    *--esp0 = 0;    // EBP
-    *--esp0 = 0;    // ESI
-    *--esp0 = 0;    // EDI
+    *--esp0 = 0x23;             // SS
+    *--esp0 = (uint32_t) esp3;  // ESP
+    *--esp0 = 0x248;            // EFLAGS
+    *--esp0 = 0x1B;             // CS
+    *--esp0 = (uint32_t) entry; // EIP
 
-    *--esp0 = cr3;   // XXX: actually should be a real cr3
+    // Push GP regs
+    for (int i = 0; i < 8; ++i) {
+        *--esp0 = 0;
+    }
 
-    *--esp0 = 0x23;
-    *--esp0 = 0x23;
-    *--esp0 = 0x23;
-    *--esp0 = 0x23;
+    *--esp0 = cr3;              // CR3
 
-    return (uint32_t) esp0;
+    // Push segs
+    for (int i = 0; i < 4; ++i) {
+        *--esp0 = 0x23;
+    }
+
+    t->esp0 = (uint32_t) esp0;
 }
 
 void x86_task_init(void) {
@@ -84,8 +100,27 @@ void x86_task_init(void) {
 
     s_lastStack = 0;
 
-    for (int i = 0; i < 4; ++i) {
-        x86_tasks[i] = x86_task_create(task0, (void *) (0xC00B8000 + i * 2));
+    struct x86_task *prev_task = NULL;
+
+    for (int i = 0; i < 8; ++i) {
+        struct x86_task *task = x86_task_alloc();
+
+        task->next = NULL;
+
+        if (!x86_task_first) {
+            debug("0x%x is the first\n", task);
+            x86_task_first = task;
+            x86_task_current = task;
+        }
+
+        x86_task_setup(task, task0, (void *) (0xC00B8000 + i * 2));
+
+        if (prev_task) {
+            prev_task->next = task;
+            debug("0x%x's next is 0x%x\n", prev_task, task);
+        }
+
+        prev_task = task;
     }
 }
 

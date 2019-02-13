@@ -74,6 +74,8 @@ int main(int argc, char **argv) {
         if (!strcmp(section_name, ".strtab")) {
             strtab2 = shdr->sh_offset + data;
         }
+
+        printf(" [%d] %s\n", i, section_name);
     }
 
     if (!symtabh || !strtab2) {

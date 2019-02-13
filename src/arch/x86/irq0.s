@@ -8,7 +8,6 @@
 .set X86_TASK_STRUCT_EBP3,  0x08
 .set X86_TASK_STRUCT_NEXT,  0x0C
 
-// TODO: Should be changed to linked list approach
 .extern x86_task_current
 .extern x86_task_first
 

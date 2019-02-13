@@ -36,9 +36,6 @@ static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
 struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
 
-/*uint32_t x86_tasks[4];*/
-/*int x86_task_index = 0;*/
-
 void task0(void *arg) {
     uint16_t *myptr = (uint16_t *) arg;
     *myptr = 0x0200 | 'A';

@@ -2,6 +2,7 @@
 #include "gdt.h"
 #include "ints.h"
 #include "timer.h"
+#include "ps2.h"
 #include "mm.h"
 
 void hw_init(void) {
@@ -13,6 +14,7 @@ void hw_init(void) {
     ints_init();
 
     x86_timer_init(100);
+    x86_ps2_init();
 
     x86_task_init();
 }

@@ -1,5 +1,6 @@
 #include "sys/debug.h"
 #include "arch/hw.h"
+#include "sys/mm.h"
 #include "util.h"
 
 void kernel_main(void) {
@@ -7,20 +8,32 @@ void kernel_main(void) {
     debug_init();
     hw_init();
 
-    debug("AAAA\n");
+    // Alloc some pages
+    debug("Before alloc:\n");
+    mm_dump_pages(mm_current);
 
-    // Both should be '-1'
-    debug("%d %ld\n", 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF);
-    // And these shouldn't
-    debug("%u %lu\n", 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF);
+    // Allocate contiguous region in kernel memory
+    uintptr_t v = mm_alloc_kernel_pages(mm_current, 2, MM_AFLG_RW | MM_AFLG_US);
 
-    // Should be okay
-    debug("%d %ld\n", 0x7FFFFFFF, 0x7FFFFFFFFFFFFFFF);
-    debug("%d %ld\n", -0x7FFFFFFF, -0x7FFFFFFFFFFFFFFF);
+    if (v == MM_NADDR) {
+        debug("mm failed to alloc a page\n");
+    } else {
+        debug("mm allocd %p\n", v);
+    }
 
-    // Some hex numbers
-    debug("0x%x 0x%X\n", 0x1234BADB, 0x4321BDAB);
-    debug("0x%lx 0x%lX\n", 0x12345678BADB002, 0x200BDAB87654321);
+    // Test some writing
+    for (int i = 0; i < (2 * MM_PAGESZ / 64); ++i) {
+        ((uint32_t *) v)[i * 16] = i;
+    }
+
+    debug("After alloc:\n");
+    mm_dump_pages(mm_current);
+
+    // Unmap contiguous region
+    mm_unmap_cont_region(mm_current, v, 2, MM_UFLG_PF);
+
+    debug("After unmap:\n");
+    mm_dump_pages(mm_current);
 
     irq_enable();
 

@@ -106,7 +106,7 @@ void x86_task_init(void) {
         task->next = NULL;
 
         if (!x86_task_first) {
-            debug("0x%x is the first\n", task);
+            debug("%p is the first\n", task);
             x86_task_first = task;
             x86_task_current = task;
         }
@@ -115,7 +115,7 @@ void x86_task_init(void) {
 
         if (prev_task) {
             prev_task->next = task;
-            debug("0x%x's next is 0x%x\n", prev_task, task);
+            debug("%p's next is %p\n", prev_task, task);
         }
 
         prev_task = task;

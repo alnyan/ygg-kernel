@@ -44,10 +44,10 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
 
 void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
     if (pd[pdi] & 0x1) {
-        debug("PD:0x%x[%d (0x%x)] = 0x%x, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
+        debug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
                 pd[pdi] & X86_MM_FLG_RW ? 'w' : 'o', pd[pdi] & X86_MM_FLG_US ? 'u' : 'k');
     } else {
-        debug("PD:0x%x[%d (0x%x)] = not present\n", pd, pdi, pdi << 22);
+        debug("PD:%p[%d (%p)] = not present\n", pd, pdi, pdi << 22);
     }
 }
 
@@ -67,7 +67,7 @@ void x86_mm_init(void) {
         uint32_t addr = (uint32_t) mmap->addr;
         uint32_t len = (uint32_t) mmap->len;
 
-        debug(" [%d] %c 0x%x, %dK\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, len / 1024);
+        debug(" [%d] %c %p, %dK\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, len / 1024);
 
         uintptr_t next_ptr = ((uintptr_t) mmap) + sizeof(mmap->size) + mmap->size;
         uintptr_t next_off = next_ptr - ((uintptr_t) mmap_first);

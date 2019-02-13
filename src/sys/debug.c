@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "string.h"
 #include <stdint.h>
 
 #if defined(ARCH_AARCH64)
@@ -24,6 +25,22 @@ static void debugs(const char *s) {
     char c;
     while ((c = *(s++))) {
         debugc(c);
+    }
+}
+
+static void debugspl(const char *s, char p, size_t c) {
+    size_t l = strlen(s);
+    for (size_t i = l; i < c; ++i) {
+        debugc(p);
+    }
+    debugs(s);
+}
+
+static void debugspr(const char *s, char p, size_t c) {
+    size_t l = strlen(s);
+    debugs(s);
+    for (size_t i = l; l < c; ++i) {
+        debugc(p);
     }
 }
 
@@ -112,6 +129,7 @@ void debugfv(const char *fmt, va_list args) {
         uint32_t v_uint32;
         int64_t v_int64;
         uint64_t v_uint64;
+        uintptr_t v_ptr;
     } value;
     char buf[64];
 
@@ -174,6 +192,13 @@ void debugfv(const char *fmt, va_list args) {
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_xs(value.v_uint64 & 0xFFFFFFFF, buf, s_debug_xs_set1);
                         debugs(buf);
+                        break;
+                    case 'p':
+                        value.v_ptr = va_arg(args, uintptr_t);
+                        debugc('0');
+                        debugc('x');
+                        debug_xs(value.v_ptr, buf, s_debug_xs_set0);
+                        debugspl(buf, '0', sizeof(uintptr_t) * 2);
                         break;
                     case 's':
                         value.v_string = va_arg(args, const char *);

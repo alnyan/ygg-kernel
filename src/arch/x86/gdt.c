@@ -28,7 +28,7 @@ static x86_gdt_entry_t s_gdt[GDT_NENTR];
 static x86_gdt_ptr_t s_gdtr;
 
 void x86_tss_set(uint32_t esp0) {
-    debug("0x%x -> 0x%x\n", x86_tss.esp0, esp0);
+    debug("%p -> %p\n", x86_tss.esp0, esp0);
     x86_tss.esp0 = esp0;
 }
 

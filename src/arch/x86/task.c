@@ -2,6 +2,7 @@
 #include "arch/hw.h"
 #include <stddef.h>
 #include "sys/debug.h"
+#include "sys/mem.h"
 
 // GP regs: 8
 // IRET regs: 5

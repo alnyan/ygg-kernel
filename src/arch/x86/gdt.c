@@ -1,5 +1,6 @@
 #include "gdt.h"
 #include "sys/debug.h"
+#include "sys/mem.h"
 
 // NULL
 // CODE K

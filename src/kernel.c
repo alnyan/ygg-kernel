@@ -3,9 +3,10 @@
 #include "util.h"
 
 void kernel_main(void) {
+    hw_early_init();
+    debug_init();
     hw_init();
 
-    debug_init();
     debug("AAAA\n");
 
     // Both should be '-1'
@@ -23,8 +24,6 @@ void kernel_main(void) {
     debug("0x%lx 0x%lX\n", 0x12345678BADB002, 0x200BDAB87654321);
 
     irq_enable();
-
-    task_start();
 
     while (1) {
         __idle();

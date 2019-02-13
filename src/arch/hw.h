@@ -10,4 +10,5 @@
 
 #endif                      // !ARCH_X86
 
+void hw_early_init(void);
 void hw_init(void);

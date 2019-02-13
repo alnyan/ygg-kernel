@@ -122,6 +122,12 @@ void x86_task_init(void) {
     }
 }
 
-void task_start(void) {
+void x86_task_switch(x86_irq_regs_t *regs) {
+    if (regs->iret.cs == 0x08) {
+        return;
+    }
 
+    if (!(x86_task_current = x86_task_current->next)) {
+        x86_task_current = x86_task_first;
+    }
 }

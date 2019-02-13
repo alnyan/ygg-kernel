@@ -3,6 +3,8 @@
 .set TSS_ESP0,              0x04
 .set X86_TASK_STACK,        18
 
+.set X86_INT_STACK,         256
+
 .set X86_TASK_STRUCT_ESP0,  0x00
 .set X86_TASK_STRUCT_EBP0,  0x04
 .set X86_TASK_STRUCT_EBP3,  0x08
@@ -10,6 +12,8 @@
 
 .extern x86_task_current
 .extern x86_task_first
+.extern x86_task_switch
+.extern x86_int_stack
 
 .extern x86_tss
 
@@ -56,29 +60,14 @@ x86_irq_0:
     movl %eax, %fs
     movl %eax, %gs
 
-    // %esi = FROM task ptr (or first task if entering)
-    movl x86_task_current, %esi
+    // Setup kernel interrupt stack pointer and store FROM stack in %esi
+    movl %esp, %esi
+    movl $(x86_int_stack + X86_INT_STACK), %esp
 
-    // Check if we're entering from Ring 0
-    movl 56(%esp), %eax
-    cmp $0x08, %eax
-    je 2f
+    pushl %esi
+    call x86_task_switch
+    addl $4, %esp
 
-    // If not, we need to switch to a next Ring 3 task
-    // %eax = task's next ptr
-    movl X86_TASK_STRUCT_NEXT(%esi), %eax
-
-    test %eax, %eax
-    jnz 1f
-
-    // If no "next", wrap around
-    movl x86_task_first, %eax
-    movl %eax, x86_task_current
-
-    jmp 2f
-1:
-    movl %eax, x86_task_current
-2:
     // %esi = TO task ptr
     movl x86_task_current, %esi
 

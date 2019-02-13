@@ -67,8 +67,7 @@ x86_irq_0:
 
     // If not, we need to switch to a next Ring 3 task
     // %eax = task's next ptr
-    leal 12(%esi), %edx
-    movl (%edx), %eax
+    movl X86_TASK_STRUCT_NEXT(%esi), %eax
 
     test %eax, %eax
     jnz 1f

@@ -78,7 +78,17 @@ extern void x86_isr_29();
 extern void x86_isr_30();
 extern void x86_isr_31();
 
+// "Magic" timer IRQ #0
 extern void x86_irq_0();
+
+// Generic IRQs like keyboard
+extern void x86_irq_1();
+extern void x86_irq_2();
+extern void x86_irq_3();
+extern void x86_irq_4();
+extern void x86_irq_5();
+extern void x86_irq_6();
+extern void x86_irq_7();
 
 void x86_isr_handler(x86_int_regs_t *regs) {
     debug("CPU Exception #%d\n", regs->int_no);
@@ -141,6 +151,14 @@ void ints_init(void) {
     pic8259_init();
 
     x86_idt_set(32, (uint32_t) x86_irq_0, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
+
+    x86_idt_set(33, (uint32_t) x86_irq_1, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
+    /*x86_idt_set(34, (uint32_t) x86_irq_2, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
+    /*x86_idt_set(35, (uint32_t) x86_irq_3, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
+    /*x86_idt_set(36, (uint32_t) x86_irq_4, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
+    /*x86_idt_set(37, (uint32_t) x86_irq_5, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
+    /*x86_idt_set(38, (uint32_t) x86_irq_6, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
+    /*x86_idt_set(39, (uint32_t) x86_irq_7, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
 
     s_idtr.offset = (uint32_t) s_idt;
     s_idtr.size = sizeof(s_idt) - 1;

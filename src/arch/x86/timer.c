@@ -9,12 +9,6 @@
 #define PIT_CH2D        0x42
 #define PIT_MCMD        0x43
 
-typedef struct {
-    x86_seg_regs_t segs;
-    x86_gp_regs_t gp;
-    x86_iret_regs_t iret;
-} x86_irq_regs_t;
-
 void x86_timer_init(uint32_t freq) {
     uint32_t div = PIT_BASE_FRQ / freq;
 

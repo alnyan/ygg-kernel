@@ -1,5 +1,3 @@
-.set X86_INT_STACK, (256 * 4)
-
 .section .text
 .extern x86_isr_handler
 .extern x86_int_stack
@@ -25,7 +23,7 @@ x86_isr_generic:
     // edi
     // TODO: check (using code) if the error is recoverable, push the whole context if it is
     movl %esp, %esi
-    movl $(x86_int_stack + X86_INT_STACK), %esp
+    movl $x86_int_stack, %esp
 
     // x86_isr_handler(&task_ctx)
     pushl %esi

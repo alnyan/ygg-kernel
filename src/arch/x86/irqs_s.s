@@ -5,7 +5,6 @@
 .set X86_TASK_STRUCT_ESP0,  0x00
 .set X86_TASK_STACK,        18
 
-.set X86_INT_STACK,         (256 * 4)
 .extern x86_int_stack
 
 .macro irq_handler n
@@ -31,7 +30,7 @@ x86_irq_\n:
 
     // Switch to kernel interrupt stack
     movl %esp, %esi
-    movl $(x86_int_stack + X86_INT_STACK), %esp
+    movl $x86_int_stack, %esp
 
     // Preserve context stack ptr
     pushl %esi
@@ -86,7 +85,7 @@ x86_irq_syscall:
 
     // Switch to kernel interrupt stack
     movl %esp, %esi
-    movl $(x86_int_stack + X86_INT_STACK), %esp
+    movl $x86_int_stack, %esp
 
     addl $4, %esi
 

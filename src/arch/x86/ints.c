@@ -4,8 +4,6 @@
 #include "irq.h"
 #include "regs.h"
 
-#define X86_INT_STACK       256
-
 typedef struct {
     uint16_t base_lo;
     uint16_t selector;
@@ -39,8 +37,6 @@ typedef struct {
     uint32_t err_code;
     x86_iret_regs_t iret;
 } x86_int_regs_t;
-
-uint32_t x86_int_stack[X86_INT_STACK];
 
 static x86_idt_entry_t s_idt[IDT_NENTR];
 static x86_idt_ptr_t s_idtr;

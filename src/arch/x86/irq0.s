@@ -3,8 +3,6 @@
 .set TSS_ESP0,              0x04
 .set X86_TASK_STACK,        18
 
-.set X86_INT_STACK,         256
-
 .set X86_TASK_STRUCT_ESP0,  0x00
 
 .extern x86_task_current
@@ -59,7 +57,7 @@ x86_irq_0:
 
     // Setup kernel interrupt stack pointer and store FROM stack in %esi
     movl %esp, %esi
-    movl $(x86_int_stack + X86_INT_STACK), %esp
+    movl $x86_int_stack, %esp
 
     pushl %esi
     call x86_task_switch

@@ -1,9 +1,13 @@
 CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
 LD=$(CROSS_COMPILE)ld
+HOSTCC=gcc
+HOSTLD=ld
+HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 all: clean mkdirs build/kernel.bin
+	HOSTCC=$(HOSTCC) make -C util $(UTILS)
 
 include config/make/generic.mk
 
@@ -24,13 +28,17 @@ clean:
 	rm -rf build
 
 build/%.o: src/%.s
-	$(AS) -o $@ $<
+	@$(AS) -o $@ $<
+	@printf " AS\t%s\n" "$<"
 
 build/%.o: src/%.c
-	$(CC) -ggdb $(CFLAGS) -c -o $@ $<
+	@$(CC) -ggdb $(CFLAGS) -c -o $@ $<
+	@printf	" CC\t%s\n" "$<"
 
 build/kernel.bin: build/kernel.elf
-	$(OBJCOPY) -O binary $< $@
+	@$(OBJCOPY) -O binary $< $@
+	@printf " OC\t%s\n" "$@"
 
 build/kernel.elf: $(BOOT_OBJS) $(OBJS)
-	$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
+	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
+	@printf " LD\t%s\n" "$@"

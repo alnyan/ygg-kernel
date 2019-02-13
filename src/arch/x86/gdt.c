@@ -22,12 +22,13 @@
 #define GDT_FLG_SZ  (1 << 6)
 #define GDT_FLG_GR  (1 << 7)
 
-static x86_tss_entry_t s_tss;
+x86_tss_entry_t x86_tss;
 static x86_gdt_entry_t s_gdt[GDT_NENTR];
 static x86_gdt_ptr_t s_gdtr;
 
 void x86_tss_set(uint32_t esp0) {
-    s_tss.esp0 = esp0;
+    debug("0x%x -> 0x%x\n", x86_tss.esp0, esp0);
+    x86_tss.esp0 = esp0;
 }
 
 void x86_gdt_load(void) {
@@ -49,9 +50,9 @@ void x86_gdt_set(int idx, uint32_t base, uint32_t limit, uint8_t flags, uint8_t 
 void gdt_init(void) {
     debug("Setting up GDT entries\n");
 
-    memset(&s_tss, 0, sizeof(s_tss));
-    s_tss.ss0 = 0x10;
-    s_tss.flags = sizeof(s_tss) << 16;
+    memset(&x86_tss, 0, sizeof(x86_tss));
+    x86_tss.ss0 = 0x10;
+    x86_tss.flags = sizeof(x86_tss) << 16;
 
     x86_gdt_set(0, 0, 0, 0, 0);
     x86_gdt_set(1, 0, 0xFFFFF,
@@ -66,7 +67,7 @@ void gdt_init(void) {
     x86_gdt_set(4, 0, 0xFFFFF,
             GDT_FLG_GR | GDT_FLG_SZ,
             GDT_ACC_PR | GDT_ACC_R3 | GDT_ACC_RW | GDT_ACC_S);
-    x86_gdt_set(5, (uint32_t) &s_tss, sizeof(s_tss),
+    x86_gdt_set(5, (uint32_t) &x86_tss, sizeof(x86_tss),
             GDT_FLG_SZ,
             GDT_ACC_PR | GDT_ACC_EX | GDT_ACC_AC);
 

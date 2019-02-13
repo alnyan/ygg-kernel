@@ -19,17 +19,19 @@ CFLAGS+=-DARCH_X86
 LDFLAGS+=-static-libgcc
 LDFLAGS_POST=-lgcc
 
+UTILS+=x86/mmap-gen
+
 QEMU_BIN?=qemu-system-i386
 QEMU_CMD?=$(QEMU_BIN) \
 		  -serial mon:stdio \
-		  -kernel build/kernel.elf \
-		  $(QEMU_ADD)
+		  -kernel build/kernel.elf $(QEMU_ADD)
 ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
 qemu: clean mkdirs build/kernel.bin
-	$(QEMU_CMD)	2>&1 | tee log
+	$(QEMU_CMD)
+
 qemu-iso: clean mkdirs build/kernel.iso
 	$(QEMU_BIN) -serial stdio -cdrom build/kernel.iso
 

@@ -59,7 +59,6 @@ void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
 }
 
 static void x86_mm_claim_page(uintptr_t page) {
-    debug("Claimed %p\n", page);
     s_ptrack[X86_MM_PTRACK_I(page)] &= ~(1 << X86_MM_PTRACK_N(page));
 }
 

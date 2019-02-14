@@ -9,10 +9,19 @@
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
     struct x86_task *t = x86_task_current;
+    int ret;
 
     switch (regs->gp.eax) {
+    case SYSCALL_NR_READ:
+        if ((ret = sys_read(regs->gp.ebx, (void *) regs->gp.ecx, regs->gp.edx)) != 0) {
+            regs->gp.eax = ret;
+        } else {
+            // Task is now busy, switch to next one
+            x86_task_switch(regs);
+        }
+        break;
     case SYSCALL_NR_WRITE:
-        regs->gp.eax = sys_write(regs->gp.ebx, (const char *) regs->gp.ecx, regs->gp.edx);
+        regs->gp.eax = sys_write(regs->gp.ebx, (const void *) regs->gp.ecx, regs->gp.edx);
         break;
     default:
         regs->gp.eax = -1;
@@ -20,11 +29,15 @@ void x86_syscall(x86_irq_regs_t *regs) {
     }
 }
 
-int sys_write(unsigned int fd, const char *buf, size_t len) {
-    // TODO: validate sizes, check if memory is allocated etc.
-    for (size_t i = 0; i < len; ++i) {
-        x86_con_putc(buf[i]);
+SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
+    for (int i = 0; i < len; ++i) {
+        x86_con_putc(((const char *) data)[i]);
     }
+    return len;
+}
 
+SYSCALL_DEFINE3(read, int fd, void *data, size_t len) {
+    x86_task_current->ctl->readc = 2;
+    x86_task_current->flag |= TASK_FLG_BUSY;
     return 0;
 }

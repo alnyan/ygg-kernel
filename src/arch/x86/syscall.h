@@ -2,5 +2,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define SYSCALL_DECL3(name, x, y, z)   int sys_##name(x, y, z)
+#define SYSCALL_DEFINE3(name, x, y, z) int sys_##name(x, y, z)
+
 #define SYSCALL_NR_WRITE    0x04
-int sys_write(unsigned int fd, const char *buf, size_t len);
+SYSCALL_DECL3(write, int, const void *, size_t sz);
+
+#define SYSCALL_NR_READ     0x03
+SYSCALL_DECL3(read, int, void *, size_t sz);

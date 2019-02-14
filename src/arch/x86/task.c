@@ -210,7 +210,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             x86_task_current = x86_task_first;
         }
 
-        if (x86_task_current->flag & TASK_FLG_WAIT) {
+        if ((x86_task_current->flag & TASK_FLG_WAIT) || (x86_task_current->flag & TASK_FLG_BUSY)) {
             // If a loop was done and we couldn't find any task, just use the previous one
             if (x86_task_current == from) {
                 break;
@@ -221,7 +221,9 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         break;
     }
 
-    if (x86_task_current == from && (x86_task_current->flag & TASK_FLG_WAIT)) {
+    if (x86_task_current == from &&
+            ((x86_task_current->flag & TASK_FLG_WAIT) ||
+             (x86_task_current->flag & TASK_FLG_BUSY))) {
         // If we couldn't find any non-waiting task
         x86_task_current = x86_task_idle;
         x86_task_current->flag |= TASK_FLG_RUNNING;

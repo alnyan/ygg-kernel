@@ -11,19 +11,15 @@ int write(int fd, const char *buf, size_t lim) {
     return (int) syscall3(0x04, fd, (uint32_t) buf, lim);
 }
 
-static char some_var[3];
-static int cntr = 0;
+int read(int fd, char *buf, size_t lim) {
+    return (int) syscall3(0x03, fd, (uint32_t) buf, lim);
+}
 
 void _start(void *arg) {
-    some_var[2] = 0;
-    some_var[1] = '\n';
+    char buf[4096];
 
     while (1) {
-        ++cntr;
-        some_var[0] = (cntr % ('z' - 'a')) + 'a';
-
-        write(0, some_var, 2);
-
-        for (int i = 0; i < 0x400000; ++i) ;
+        int f = read(0, buf, sizeof(buf));
+        write(0, "Hello\n", 6);
     }
 }

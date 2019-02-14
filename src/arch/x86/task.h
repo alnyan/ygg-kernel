@@ -21,6 +21,8 @@
 #define X86_TASK_IDLE           (1 << 1)
 
 struct x86_task_ctl {
+    uint32_t readc;
+    uint32_t writec;
     uint32_t sleep;
 };
 
@@ -35,6 +37,7 @@ struct x86_task {
 };
 
 extern struct x86_task *x86_task_current;
+extern struct x86_task *x86_task_first;
 
 void x86_task_switch(x86_irq_regs_t *regs);
 void x86_task_init(void);

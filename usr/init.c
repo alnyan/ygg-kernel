@@ -1,23 +1,29 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static uint16_t *s_vidmem;
-
-int write(int fd, const char *buf, size_t lim) {
-    int res;
-    asm volatile("int $0x80":"=a"(res));
+static uint32_t syscall3(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx) {
+    uint32_t res;
+    asm volatile("int $0x80":"=a"(res):"a"(eax), "b"(ebx), "c"(ecx), "d"(edx));
     return res;
 }
 
+int write(int fd, const char *buf, size_t lim) {
+    return (int) syscall3(0x04, fd, (uint32_t) buf, lim);
+}
+
+static char some_var[3];
+static int cntr = 0;
+
 void _start(void *arg) {
-    s_vidmem = (uint16_t *) arg;
-    int v = 0;
+    some_var[2] = 0;
+    some_var[1] = '\n';
 
     while (1) {
-        v = !v;
+        ++cntr;
+        some_var[0] = (cntr % ('z' - 'a')) + 'a';
 
-        s_vidmem[0] = v * (0x0700 | (write(0, 0, 0) % ('z' - 'a') + 'a'));
+        write(0, some_var, 2);
 
-        for (int i = 0; i < 0x4000000; ++i) ;
+        for (int i = 0; i < 0x400000; ++i) ;
     }
 }

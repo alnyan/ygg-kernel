@@ -1,3 +1,5 @@
+#include "def.h"
+
 .section .text
 
 .set TSS_ESP0,              0x04
@@ -73,6 +75,11 @@ x86_irq_0:
     // Write TSS entry, eax + 18 * 4
     addl $(X86_TASK_STACK * 4), %edx
     movl %edx, x86_tss + TSS_ESP0
+
+    // Write "mm_current"
+    movl 16(%eax), %edx
+    addl $KERNEL_VIRT_BASE, %edx
+    movl %edx, mm_current
 
     // Now, esp should be TO task's esp0
     movl %eax, %esp

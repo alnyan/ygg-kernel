@@ -14,6 +14,7 @@ static inline void x86_irq_eoi(int n) {
 
 typedef struct {
     x86_seg_regs_t segs;
+    uint32_t cr3;
     x86_gp_regs_t gp;
     x86_iret_regs_t iret;
 } x86_irq_regs_t;

@@ -1,5 +1,7 @@
 #include "irq.h"
 #include "task.h"
+#include "arch/hw.h"
+#include "mm.h"
 #include "sys/task.h"
 #include "sys/debug.h"
 
@@ -7,10 +9,8 @@
 void x86_syscall(x86_irq_regs_t *regs) {
     struct x86_task *t = x86_task_current;
 
-    if (t) {
-        t->ctl->sleep = regs->gp.eax + 20;
-        t->flag |= TASK_FLG_WAIT;
+    t->ctl->sleep = regs->gp.eax + 20;
+    t->flag |= TASK_FLG_WAIT;
 
-        x86_task_switch(regs);
-    }
+    x86_task_switch(regs);
 }

@@ -8,6 +8,7 @@
 // TODO: real allocator
 static int s_lastStack = 0;
 static int s_lastThread = 0;
+static uint32_t s_lastPid = 0;
 static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
 static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
 static uint32_t s_userStacks[X86_USER_STACK * X86_TASK_MAX];
@@ -23,7 +24,7 @@ extern void x86_task_idle_func(void *arg);
 
 void task0(void *arg) {
     uint32_t myarg = (uint32_t) arg;
-    uint16_t *myptr = (uint16_t *) (0xC00B8000 + (myarg & 0xFF));
+    uint16_t *myptr = (uint16_t *) (0xB8000 + (myarg & 0xFF));
     uint32_t sleep = (myarg >> 16) & 0xFF;
     int state = 1;
 
@@ -50,12 +51,27 @@ struct x86_task *x86_task_alloc(int flag) {
     return t;
 }
 
-void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int flag) {
+int x86_alloc_pid(void) {
+    return s_lastPid++;
+}
+
+int x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int flag) {
     uint32_t stackIndex = s_lastStack++;
 
     uint32_t cr3;
     uint32_t *esp0;
     uint32_t *esp3;
+
+    int pid = x86_alloc_pid();
+
+    if (pid < 0) {
+        return -1;
+    }
+
+    t->pid = pid;
+
+    t->flag = 0;
+    t->next = NULL;
 
     // Create kernel-space stack for state storage
     t->ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
@@ -70,6 +86,7 @@ void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int fl
         cr3 = (uint32_t) &s_pagedirs[stackIndex * 1024];
         memset((void *) cr3, 0, 4096);
         ((uint32_t *) cr3)[768] = 0x87;
+        ((uint32_t *) cr3)[0]   = 0x87;
     }
 
     cr3 -= KERNEL_VIRT_BASE;
@@ -109,6 +126,8 @@ void x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int fl
     }
 
     t->esp0 = (uint32_t) esp0;
+
+    return 0;
 }
 
 void x86_task_init(void) {

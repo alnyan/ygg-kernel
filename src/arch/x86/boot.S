@@ -1,5 +1,4 @@
-.set KERNEL_VIRT_BASE, 0xC0000000
-.set KERNEL_VIRT_PAGE, (KERNEL_VIRT_BASE >> 22)
+#include "def.h"
 
 .set MM_FLG_PS, (1 << 7)
 .set MM_FLG_US, (1 << 2)

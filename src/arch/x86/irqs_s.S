@@ -35,7 +35,6 @@ x86_irq_\n:
     // Preserve context stack ptr
     pushl %esi
 
-    addl $4, %esi
     // Call IRQ handler
     pushl %esi
     call x86_irq_handler_\n
@@ -86,8 +85,6 @@ x86_irq_syscall:
     // Switch to kernel interrupt stack
     movl %esp, %esi
     movl $x86_int_stack, %esp
-
-    addl $4, %esi
 
     pushl %esi
     call x86_syscall

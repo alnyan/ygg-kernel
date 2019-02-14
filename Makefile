@@ -28,17 +28,20 @@ clean:
 	rm -rf build
 
 build/%.o: src/%.s
-	@$(AS) -o $@ $<
+	@$(error "$<: We don't do that here. Please rename it to .S")
+
+build/%.o: src/%.S
 	@printf " AS\t%s\n" "$<"
+	@$(CC) -ggdb -Isrc -c -o $@ $<
 
 build/%.o: src/%.c $(HDRS)
-	@$(CC) -ggdb $(CFLAGS) -c -o $@ $<
 	@printf	" CC\t%s\n" "$<"
+	@$(CC) -ggdb $(CFLAGS) -c -o $@ $<
 
 build/kernel.bin: build/kernel.elf
-	@$(OBJCOPY) -O binary $< $@
 	@printf " OC\t%s\n" "$@"
+	@$(OBJCOPY) -O binary $< $@
 
 build/kernel.elf: $(BOOT_OBJS) $(OBJS)
-	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
 	@printf " LD\t%s\n" "$@"
+	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)

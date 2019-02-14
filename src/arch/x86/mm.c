@@ -3,7 +3,7 @@
 #include "sys/debug.h"
 #include "sys/mem.h"
 #include "sys/mm.h"
-#include "arch/hw.h"
+#include "def.h"
 #include "mm.h"
 #include "hw.h"
 

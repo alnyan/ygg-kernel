@@ -1,8 +1,8 @@
 #include "ints.h"
 #include <stdint.h>
 #include "sys/debug.h"
+#include "sys/panic.h"
 #include "irq.h"
-#include "regs.h"
 
 typedef struct {
     uint16_t base_lo;
@@ -30,13 +30,6 @@ typedef struct {
 #define IDT_FLG_R2          (2 << 5)
 #define IDT_FLG_R3          (3 << 5)
 #define IDT_FLG_P           (1 << 7)
-
-typedef struct {
-    x86_gp_regs_t gp;
-    uint32_t int_no;
-    uint32_t err_code;
-    x86_iret_regs_t iret;
-} x86_int_regs_t;
 
 static x86_idt_entry_t s_idt[IDT_NENTR];
 static x86_idt_ptr_t s_idtr;
@@ -91,17 +84,20 @@ extern void x86_irq_7();
 extern void x86_irq_syscall();
 
 void x86_isr_handler(x86_int_regs_t *regs) {
-    debug("CPU Exception #%d\n", regs->int_no);
-    debug("Error code: %d (0x%x)\n", regs->err_code);
+    panic_isr("Non-recoverable Exception\n", regs);
+    /*debug("CPU Exception #%d\n", regs->int_no);*/
+    /*debug("Error code: %d (0x%x)\n", regs->err_code);*/
 
-    if (regs->iret.cs == 0x08) {
-        debug("This is kernel-space exception\n");
-    } else {
-        debug("This is user-space exception\n");
-    }
+    /*if (regs->iret.cs == 0x08) {*/
+        /*debug("This is kernel-space exception\n");*/
+    /*} else {*/
+        /*debug("This is user-space exception\n");*/
+    /*}*/
 
-    x86_dump_gp_regs(&regs->gp);
-    x86_dump_iret_regs(&regs->iret);
+    /*x86_dump_gp_regs(&regs->gp);*/
+    /*x86_dump_iret_regs(&regs->iret);*/
+
+    /*panic("Non-recoverable exception\n");*/
 }
 
 void x86_idt_set(int idx, uint32_t base, uint16_t selector, uint8_t flags) {

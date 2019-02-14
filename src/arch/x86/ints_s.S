@@ -6,24 +6,39 @@ x86_isr_generic:
     pushal
 
     // Stack state:
-    // ss
-    // esp
-    // eflags
-    // cs
-    // error code
-    // int num
-    // eip
-    // eax
-    // ecx
-    // edx
-    // ebx
-    // oesp
-    // ebp
-    // esi
-    // edi
+    // ss           <esp + 56>
+    // esp          <esp + 52>
+    // eflags       <esp + 48>
+    // cs           <esp + 44>
+    // error code   <esp + 40>
+    // int num      <esp + 36>
+    // eip          <esp + 32>
+    // eax          <esp + 28>
+    // ecx          <esp + 24>
+    // edx          <esp + 20>
+    // ebx          <esp + 16>
+    // oesp         <esp + 12>
+    // ebp          <esp + 08>
+    // esi          <esp + 04>
+    // edi          <esp + 00>
     // TODO: check (using code) if the error is recoverable, push the whole context if it is
     movl %esp, %esi
+
+    // Now select which stack to use (we may overwrite some important info if we use kernel stack
+    // when exception happens in kernel mode (which means they both use the same stack)
+    movl 44(%esi), %eax
+    cmpl $0x08, %eax
+    jne 1f
+
+    // cs is 0x08, use a dedicated kernel exception stack
+    movl $x86_kernel_exc_stack_end, %esp
+    jmp 2f
+1:
+    // cs is in userspace, use plain kernel stack
     movl $x86_int_stack, %esp
+
+    jmp 2f
+2:
 
     // x86_isr_handler(&task_ctx)
     pushl %esi
@@ -31,9 +46,9 @@ x86_isr_generic:
     addl $4, %esp
 
     // No recoverable error support yet
-1:
+3:
     hlt
-    jmp 1b
+    jmp 3b
 
 .macro x86_isr_stub_nc n
 .global x86_isr_\n
@@ -84,3 +99,8 @@ x86_isr_stub_nc 28
 x86_isr_stub_nc 29
 x86_isr_stub    30
 x86_isr_stub_nc 31
+
+.section .bss
+x86_kernel_exc_stack:
+    .skip 1024
+x86_kernel_exc_stack_end:

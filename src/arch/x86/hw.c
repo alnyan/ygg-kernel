@@ -6,6 +6,7 @@
 #include "def.h"
 #include "hw.h"
 #include "sys/debug.h"
+#include "sys/panic.h"
 #include "console.h"
 #include "ps2.h"
 #include "mm.h"
@@ -25,14 +26,14 @@ void hw_init(void) {
     x86_ps2_init();
 
     // Add initrd device
-    struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
-    debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+    /*struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);*/
+    /*debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);*/
 
-    if (x86_multiboot_info->mods_count == 0) {
-        debug("Sorry, boot without initrd is not supported yet\n");
+    /*if (x86_multiboot_info->mods_count == 0) {*/
+        /*panic("Sorry, boot without initrd is not supported yet\n");*/
+    /*}*/
 
-        while (1) { asm volatile ("cli; hlt"); }
-    }
+    ((uint32_t *) 0x0)[71389] = 1;
 
     x86_task_init();
 }

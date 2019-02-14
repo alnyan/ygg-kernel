@@ -33,7 +33,5 @@ void hw_init(void) {
         /*panic("Sorry, boot without initrd is not supported yet\n");*/
     /*}*/
 
-    ((uint32_t *) 0x0)[71389] = 1;
-
     x86_task_init();
 }

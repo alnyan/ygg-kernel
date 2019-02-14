@@ -1,12 +1,13 @@
 CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
 LD=$(CROSS_COMPILE)ld
+AR=$(CROSS_COMPILE)ar
 HOSTCC=gcc
 HOSTLD=ld
 HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-all: mkdirs build/kernel.bin
+all: mkdirs build/kernel.bin userspace
 	HOSTCC=$(HOSTCC) make -C util $(UTILS)
 
 include config/make/generic.mk
@@ -45,3 +46,7 @@ build/kernel.bin: build/kernel.elf
 build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 	@printf " LD\t%s\n" "$@"
 	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
+
+userspace:
+	echo "Building userspace"
+	AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -C usr all

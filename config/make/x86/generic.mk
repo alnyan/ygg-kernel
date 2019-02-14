@@ -31,7 +31,8 @@ HDRS+=src/arch/x86/com.h \
 	  src/arch/x86/regs.h \
 	  src/arch/x86/task.h \
 	  src/arch/x86/timer.h \
-	  src/arch/x86/console.h
+	  src/arch/x86/console.h \
+	  src/arch/x86/syscall.h
 
 USR_LINKER=config/ld/x86/user.ld
 
@@ -54,7 +55,7 @@ ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
-qemu: all build/usr/init.elf
+qemu: all
 	$(QEMU_CMD)
 
 qemu-iso: build/kernel.iso
@@ -66,7 +67,3 @@ build/kernel.iso: all
 	cp build/kernel.elf isotmp/boot/kernel
 	grub-mkrescue -o build/kernel.iso isotmp
 	rm -rf isotmp
-
-build/usr/%.elf: usr/%.S
-	@printf " CC\t%s\n" "$<"
-	@$(CC) -nostdlib -nostartfiles -ffreestanding -T$(USR_LINKER) -o $@ $<

@@ -7,6 +7,7 @@
 
 // TODO: real allocator
 static int s_lastStack = 0;
+static int s_lastPagedir = 0;
 static int s_lastThread = 0;
 static uint32_t s_lastPid = 0;
 static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
@@ -48,6 +49,9 @@ struct x86_task *x86_task_alloc(int flag) {
     } else {
         t->ctl = &s_taskCtls[s_lastThread - 1];
     }
+
+    t->flag = 0;
+    t->next = NULL;
     return t;
 }
 
@@ -55,41 +59,17 @@ int x86_alloc_pid(void) {
     return s_lastPid++;
 }
 
-int x86_task_setup(struct x86_task *t, void (*entry)(void *), void *arg, int flag) {
+int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, mm_pagedir_t pd, int flag) {
     uint32_t stackIndex = s_lastStack++;
-
-    uint32_t cr3;
+    uint32_t cr3 = ((uintptr_t) pd) - KERNEL_VIRT_BASE;
     uint32_t *esp0;
     uint32_t *esp3;
 
-    int pid = x86_alloc_pid();
-
-    if (pid < 0) {
-        return -1;
+    if (!(flag & X86_TASK_IDLE)) {
+        t->ebp3 = (uint32_t) &s_userStacks[stackIndex * X86_USER_STACK + X86_USER_STACK];
     }
-
-    t->pid = pid;
-
-    t->flag = 0;
-    t->next = NULL;
-
     // Create kernel-space stack for state storage
     t->ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
-
-    // Create a page dir
-    if (flag & X86_TASK_IDLE) {
-        cr3 = (uint32_t) mm_kernel;
-    } else {
-        // Create user-space stack
-        t->ebp3 = (uint32_t) &s_userStacks[stackIndex * X86_USER_STACK + X86_USER_STACK];
-
-        cr3 = (uint32_t) &s_pagedirs[stackIndex * 1024];
-        memset((void *) cr3, 0, 4096);
-        ((uint32_t *) cr3)[768] = 0x87;
-        ((uint32_t *) cr3)[0]   = 0x87;
-    }
-
-    cr3 -= KERNEL_VIRT_BASE;
 
     esp0 = (uint32_t *) t->ebp0;
 
@@ -142,7 +122,8 @@ void x86_task_init(void) {
     task = x86_task_alloc(X86_TASK_IDLE);
     task->next = NULL;
     task->flag = 0;
-    x86_task_setup(task, x86_task_idle_func, NULL, X86_TASK_IDLE);
+    task->pid = x86_alloc_pid();
+    x86_task_setup_stack(task, x86_task_idle_func, NULL, mm_kernel, X86_TASK_IDLE);
 
     x86_task_idle = task;
     x86_task_current = task;
@@ -155,8 +136,13 @@ void x86_task_init(void) {
 
         task->next = NULL;
         task->flag = 0;
+        task->pid = x86_alloc_pid();
+        mm_pagedir_t cr3 = (uint32_t) &s_pagedirs[(s_lastPagedir++) * 1024];
+        memset((void *) cr3, 0, 4096);
+        ((uint32_t *) cr3)[768] = 0x87;
+        ((uint32_t *) cr3)[0]   = 0x87;
 
-        x86_task_setup(task, task0, (void *) ((2 * i) | (('A' + i) << 8) | ((i * 20) << 16)), 0);
+        x86_task_setup_stack(task, task0, (void *) ((2 * i) | (('A' + i) << 8) | ((i * 20) << 16)), cr3, 0);
 
         prev_task->next = task;
 

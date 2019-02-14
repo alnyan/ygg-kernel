@@ -101,6 +101,10 @@ static uintptr_t x86_mm_alloc_phys_page(uintptr_t start, uintptr_t end) {
     return MM_NADDR;
 }
 
+uintptr_t mm_alloc_phys_page(void) {
+    return x86_mm_alloc_phys_page(0x400000, -0x400000);
+}
+
 void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t flags) {
     for (int i = 0; i < count; ++i) {
         uint32_t ent = pd[(vaddr >> 22) + i];

@@ -33,7 +33,10 @@ HDRS+=src/arch/x86/com.h \
 	  src/arch/x86/timer.h \
 	  src/arch/x86/console.h
 
-DIRS+=build/arch/x86
+USR_LINKER=config/ld/x86/user.ld
+
+DIRS+=build/arch/x86 \
+	  build/usr
 
 LD=$(CC)
 CFLAGS+=-DARCH_X86
@@ -45,12 +48,13 @@ UTILS+=x86/mmap-gen
 QEMU_BIN?=qemu-system-i386
 QEMU_CMD?=$(QEMU_BIN) \
 		  -serial mon:stdio \
-		  -kernel build/kernel.elf $(QEMU_ADD)
+		  -kernel build/kernel.elf \
+		  -initrd build/usr/init.elf $(QEMU_ADD)
 ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
-qemu: all
+qemu: all build/usr/init.elf
 	$(QEMU_CMD)
 
 qemu-iso: build/kernel.iso
@@ -62,3 +66,7 @@ build/kernel.iso: all
 	cp build/kernel.elf isotmp/boot/kernel
 	grub-mkrescue -o build/kernel.iso isotmp
 	rm -rf isotmp
+
+build/usr/%.elf: usr/%.S
+	@printf " CC\t%s\n" "$<"
+	@$(CC) -nostdlib -nostartfiles -ffreestanding -T$(USR_LINKER) -o $@ $<

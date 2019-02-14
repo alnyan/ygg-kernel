@@ -1,7 +1,11 @@
 #include "task.h"
 #include "arch/hw.h"
 #include <stddef.h>
+#include "hw.h"
+#include "multiboot.h"
+#include "sys/panic.h"
 #include "sys/task.h"
+#include "sys/elf.h"
 #include "sys/debug.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
@@ -133,6 +137,42 @@ void x86_task_init(void) {
     prev_task = task;
 
     // TODO: create a user-space task here once I'm done with ELF loading and simple initrd
+    // Find an ELF to load
+    struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
+    debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+
+    if (x86_multiboot_info->mods_count != 1) {
+        panic("Kernel expected 1 module, but there're %d\n", x86_multiboot_info->mods_count);
+    }
+
+    uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
+    size_t mod_size = mod_list->mod_end - mod_list->mod_start;
+
+    debug("Init module of %uK\n", mod_size / 1024);
+
+    task = x86_task_alloc(0);
+    task->next = NULL;
+    task->flag = 0;
+    task->pid = x86_alloc_pid();
+
+    // Create a memory space
+    mm_pagedir_t pd = &s_pagedirs[(s_lastPagedir++) * 1024];
+    memset(pd, 0, 4096);
+    pd[768] = X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_RW;
+
+    // For test, allow task to write video mem at 0xB8000 -> 0xD00B8000
+    pd[(0xD0000000 >> 22)] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US | X86_MM_FLG_PR;
+
+    uint32_t entry_addr;
+
+    if ((entry_addr = elf_load(pd, mod_base, mod_size)) == MM_NADDR) {
+        panic("Failed to load ELF\n");
+    }
+
+    // TODO: allocate an userspace stack for task
+    x86_task_setup_stack(task, entry_addr, NULL, pd, 0);
+
+    prev_task->next = task;
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {

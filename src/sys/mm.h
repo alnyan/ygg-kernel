@@ -17,5 +17,6 @@
 #endif
 
 uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t aflags);
+uintptr_t mm_alloc_phys_page(void);
 void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t addr, int count, uint32_t uflags);
 void mm_dump_pages(mm_pagedir_t pd);

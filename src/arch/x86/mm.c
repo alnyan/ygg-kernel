@@ -7,12 +7,6 @@
 #include "mm.h"
 #include "hw.h"
 
-#define X86_MM_FLG_PS   (1 << 7)
-#define X86_MM_FLG_US   (1 << 2)
-#define X86_MM_FLG_RW   (1 << 1)
-#define X86_MM_FLG_PR   (1 << 0)
-#define X86_MM_HNT_OVW  (1 << 31)   // Kernel hint - overwrite existing mapping
-
 mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
 

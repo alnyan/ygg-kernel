@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "sys/task.h"
 #include "sys/debug.h"
+#include "sys/mm.h"
 #include "sys/mem.h"
 
 // TODO: real allocator
@@ -23,24 +24,24 @@ static int x86_tasking_entry = 1;
 
 extern void x86_task_idle_func(void *arg);
 
-void task0(void *arg) {
-    uint32_t myarg = (uint32_t) arg;
-    uint16_t *myptr = (uint16_t *) (0xB8000 + (myarg & 0xFF));
-    uint32_t sleep = (myarg >> 16) & 0xFF;
-    int state = 1;
+/*void task0(void *arg) {*/
+    /*uint32_t myarg = (uint32_t) arg;*/
+    /*uint16_t *myptr = (uint16_t *) (0xB8000 + (myarg & 0xFF));*/
+    /*uint32_t sleep = (myarg >> 16) & 0xFF;*/
+    /*int state = 1;*/
 
-    while (1) {
-        if (state) {
-            *myptr = 0x2000 | (((myarg >> 8) & 0xFF) - 'A' + 'a');
-        } else {
-            *myptr = 0x0200 | ((myarg >> 8) & 0xFF);
-        }
+    /*while (1) {*/
+        /*if (state) {*/
+            /**myptr = 0x2000 | (((myarg >> 8) & 0xFF) - 'A' + 'a');*/
+        /*} else {*/
+            /**myptr = 0x0200 | ((myarg >> 8) & 0xFF);*/
+        /*}*/
 
-        state = !state;
+        /*state = !state;*/
 
-        asm volatile("movl %0, %%eax; int $0x80"::"r"(sleep):"memory");
-    }
-}
+        /*asm volatile("movl %0, %%eax; int $0x80"::"r"(sleep):"memory");*/
+    /*}*/
+/*}*/
 
 struct x86_task *x86_task_alloc(int flag) {
     struct x86_task *t = &s_taskStructs[s_lastThread++];
@@ -134,20 +135,48 @@ void x86_task_init(void) {
     for (int i = 0; i < 7; ++i) {
         task = x86_task_alloc(0);
 
+
         task->next = NULL;
         task->flag = 0;
         task->pid = x86_alloc_pid();
-        mm_pagedir_t cr3 = (uint32_t) &s_pagedirs[(s_lastPagedir++) * 1024];
-        memset((void *) cr3, 0, 4096);
-        ((uint32_t *) cr3)[768] = 0x87;
-        ((uint32_t *) cr3)[0]   = 0x87;
 
-        x86_task_setup_stack(task, task0, (void *) ((2 * i) | (('A' + i) << 8) | ((i * 20) << 16)), cr3, 0);
+        // THIS CODE IS A PRECURSOR TO ELF LOADING
+        mm_pagedir_t cr3 = &s_pagedirs[(s_lastPagedir++) * 1024];
+        memset((void *) cr3, 0, 4096);
+        cr3[768] = 0x87;
+        cr3[0] = 0x87;
+        uintptr_t page = mm_alloc_kernel_pages(cr3, 1, MM_AFLG_RW | MM_AFLG_US);    // Should be 769
+        // Get corresponding physical page and map it to current kernel space
+        uintptr_t phys_page = cr3[page >> 22] & -0x400000;
+        x86_mm_map(mm_kernel, page, phys_page, X86_MM_FLG_PS | X86_MM_FLG_RW);
+
+        // Copy the code!
+        extern void task0(void *);
+        extern void end_task0();
+        extern void task0_var();
+        extern void end_task0_var();
+        memcpy(page, task0, end_task0_var - task0);
+
+        // Replace video addr with some value
+        ((uint32_t *) page)[(task0_var - task0) / 4] = 0xC00B8000 + i * 2;
+        ((uint32_t *) page)[(task0_var - task0) / 4 + 1] = 'A' + i;
+        ((uint32_t *) page)[(task0_var - task0) / 4 + 2] = 0x0100 * (i + 1);
+
+        // TODO: add x86_mm_umap
+        // Unmap this page from kernel-space, we're done copying
+        mm_unmap_cont_region(mm_kernel, 769 << 22, 1, 0);
+
+        x86_task_setup_stack(task, page, NULL, cr3, 0);
+        /*x86_task_setup_stack(task, task0, (void *) ((2 * i) | (('A' + i) << 8) | ((i * 20) << 16)), cr3, 0);*/
 
         prev_task->next = task;
 
         prev_task = task;
     }
+
+    // Make sure kernel is not userspace-accessable
+    mm_kernel[768] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_PR;
+    mm_dump_pages(mm_kernel);
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {

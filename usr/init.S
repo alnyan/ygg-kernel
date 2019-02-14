@@ -2,8 +2,8 @@
 .global _start
 _start:
     movl 4(%esp), %edi
+    movl some_data, %edx
 
-    movl $(0x0700 | 'A'), %edx
     xorl %ecx, %ecx
 1:
     movl $10, %eax
@@ -24,3 +24,11 @@ _start:
 3:
     // Put this task into sleep for some time
     jmp 1b
+
+.section .data
+some_data:
+    .long 0x0700 | 'A'
+
+.section .bss
+some_bss_var:
+    .skip 4

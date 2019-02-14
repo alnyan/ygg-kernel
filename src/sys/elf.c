@@ -35,7 +35,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
         debug(" [%d] %s\n", i, name);
 
         // Load only program data
-        if (shdr->sh_type == SHT_PROGBITS) {
+        if (shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_NOBITS) {
             debug("\tLoading section %s\n", name);
 
             // Just alloc pages for the section
@@ -67,7 +67,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
             // 0x400000 is the base for write access
             x86_mm_map(mm_kernel, 0x400000, dst[page_start >> 22] & -0x400000, X86_MM_FLG_RW | X86_MM_FLG_PS);
 
-            memcpy(shdr->sh_addr - page_start + 0x400000, src_addr + shdr->sh_offset, shdr->sh_size);
+            if (shdr->sh_type == SHT_PROGBITS) {
+                memcpy(shdr->sh_addr - page_start + 0x400000, src_addr + shdr->sh_offset, shdr->sh_size);
+            } else {
+                memset(shdr->sh_addr - page_start + 0x400000, 0, shdr->sh_size);
+            }
 
             // Unmap page
             mm_unmap_cont_region(mm_kernel, 0x400000, 1, 0);

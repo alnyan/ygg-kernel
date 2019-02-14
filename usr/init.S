@@ -1,7 +1,8 @@
 .section .text
 .global _start
 _start:
-    movl $0xD00B8000, %edi
+    movl 4(%esp), %edi
+
     movl $(0x0700 | 'A'), %edx
     xorl %ecx, %ecx
 1:

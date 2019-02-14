@@ -17,7 +17,6 @@ static int s_lastThread = 0;
 static uint32_t s_lastPid = 0;
 static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
 static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
-static uint32_t s_userStacks[X86_USER_STACK * X86_TASK_MAX];
 static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
 static struct x86_task_ctl s_taskCtls[sizeof(struct x86_task_ctl) * X86_TASK_MAX];
 
@@ -64,14 +63,14 @@ int x86_alloc_pid(void) {
     return s_lastPid++;
 }
 
-int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, mm_pagedir_t pd, int flag) {
+int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, mm_pagedir_t pd, uint32_t ebp3, int flag) {
     uint32_t stackIndex = s_lastStack++;
     uint32_t cr3 = ((uintptr_t) pd) - KERNEL_VIRT_BASE;
     uint32_t *esp0;
     uint32_t *esp3;
 
     if (!(flag & X86_TASK_IDLE)) {
-        t->ebp3 = (uint32_t) &s_userStacks[stackIndex * X86_USER_STACK + X86_USER_STACK];
+        t->ebp3 = ebp3;
     }
     // Create kernel-space stack for state storage
     t->ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
@@ -86,10 +85,14 @@ int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, m
         *--esp0 = 0x08;             // CS
     } else {
         // Init userspace task
+        // Map stack page
+        x86_mm_map(mm_kernel, ebp3 - 0x400000, pd[(ebp3 - 0x400000) >> 22] & -0x400000, X86_MM_FLG_RW | X86_MM_FLG_PS);
         esp3 = (uint32_t *) t->ebp3;
 
         *--esp3 = (uint32_t) arg;   // Push thread arg
         *--esp3 = 0x12345678;       // Push some funny return address
+
+        mm_unmap_cont_region(mm_kernel, ebp3 - 0x400000, 1, 0);
 
         *--esp0 = 0x23;             // SS
         *--esp0 = (uint32_t) esp3;  // ESP
@@ -128,7 +131,7 @@ void x86_task_init(void) {
     task->next = NULL;
     task->flag = 0;
     task->pid = x86_alloc_pid();
-    x86_task_setup_stack(task, x86_task_idle_func, NULL, mm_kernel, X86_TASK_IDLE);
+    x86_task_setup_stack(task, x86_task_idle_func, NULL, mm_kernel, 0, X86_TASK_IDLE);
 
     x86_task_idle = task;
     x86_task_current = task;
@@ -162,6 +165,9 @@ void x86_task_init(void) {
 
     // For test, allow task to write video mem at 0xB8000 -> 0xD00B8000
     pd[(0xD0000000 >> 22)] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US | X86_MM_FLG_PR;
+    // Userspace stack
+    pd[(0x80000000 >> 22)] = (mm_alloc_phys_page() & -0x400000) | X86_MM_FLG_PR | X86_MM_FLG_US |
+                                                                  X86_MM_FLG_PS | X86_MM_FLG_RW;
 
     uint32_t entry_addr;
 
@@ -169,8 +175,9 @@ void x86_task_init(void) {
         panic("Failed to load ELF\n");
     }
 
+    mm_dump_pages(pd);
     // TODO: allocate an userspace stack for task
-    x86_task_setup_stack(task, entry_addr, NULL, pd, 0);
+    x86_task_setup_stack(task, entry_addr, (void *) 0xD00B8000, pd, 0x80000000 + 0x400000, 0);
 
     prev_task->next = task;
 }

@@ -37,7 +37,7 @@ SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
 }
 
 SYSCALL_DEFINE3(read, int fd, void *data, size_t len) {
-    x86_task_current->ctl->readc = 2;
+    x86_task_current->ctl->readc = len;
     x86_task_current->flag |= TASK_FLG_BUSY;
     return 0;
 }

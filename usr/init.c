@@ -16,7 +16,7 @@ int read(int fd, char *buf, size_t lim) {
 }
 
 void _start(void *arg) {
-    char buf[4096];
+    char buf[1];
 
     while (1) {
         int f = read(0, buf, sizeof(buf));

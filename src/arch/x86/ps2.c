@@ -9,18 +9,20 @@ void x86_ps2_init(void) {
 }
 
 int x86_irq_handler_1(x86_irq_regs_t *regs) {
-    char c = inb(0x60);
+    uint8_t c = inb(0x60);
     x86_irq_eoi(1);
 
     // Notify all tasks input is ready
     for (struct x86_task *t = x86_task_first; t; t = t->next) {
-        if ((t->flag & TASK_FLG_BUSY) && t->ctl->readc) {
-            // We've read one char
-            --t->ctl->readc;
+        if (c < 0x80) {
+            if ((t->flag & TASK_FLG_BUSY) && t->ctl->readc) {
+                // We've read one char
+                --t->ctl->readc;
 
-            // Read everything - task isn't busy
-            if (!t->ctl->readc) {
-                t->flag &= ~TASK_FLG_BUSY;
+                // Read everything - task isn't busy
+                if (!t->ctl->readc) {
+                    t->flag &= ~TASK_FLG_BUSY;
+                }
             }
         }
     }

@@ -3,6 +3,9 @@
 #include "ints.h"
 #include "timer.h"
 #include "task.h"
+#include "def.h"
+#include "hw.h"
+#include "sys/debug.h"
 #include "console.h"
 #include "ps2.h"
 #include "mm.h"
@@ -20,6 +23,16 @@ void hw_init(void) {
 
     x86_timer_init(100);
     x86_ps2_init();
+
+    // Add initrd device
+    struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
+    debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+
+    if (x86_multiboot_info->mods_count == 0) {
+        debug("Sorry, boot without initrd is not supported yet\n");
+
+        while (1) { asm volatile ("cli; hlt"); }
+    }
 
     x86_task_init();
 }

@@ -8,11 +8,13 @@ OBJS+=build/kernel.o \
 	  build/sys/string.o \
 	  build/sys/elf.o \
 	  build/dev/initrd.o \
-	  build/sys/panic.o
+	  build/sys/panic.o \
+	  build/dev/vfs.o
 HDRS+=src/util.h \
 	  src/sys/elf.h \
 	  src/dev/initrd.h \
-	  src/sys/panic.h
+	  src/sys/panic.h \
+	  src/dev/vfs.h
 
 DIRS+=build/sys \
 	  build/dev

@@ -4,6 +4,7 @@
 #include "mm.h"
 #include "sys/task.h"
 #include "sys/debug.h"
+#include "dev/vfs.h"
 #include "syscall.h"
 
 // The only code for syscall now: put current task to sleep for some time
@@ -37,7 +38,9 @@ SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
 }
 
 SYSCALL_DEFINE3(read, int fd, void *data, size_t len) {
-    x86_task_current->ctl->readc = len;
-    x86_task_current->flag |= TASK_FLG_BUSY;
-    return 0;
+    if (fd >= sizeof(x86_task_current->ctl->files) / sizeof(vfs_file_t *)) {
+        return -1;
+    }
+    vfs_file_t *f = x86_task_current->ctl->files[fd];
+    return vfs_read(f, data, len);
 }

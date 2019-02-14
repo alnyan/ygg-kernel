@@ -3,3 +3,4 @@
 
 size_t strlen(const char *s);
 int strncmp(const char *a, const char *b, size_t n);
+int strcmp(const char *a, const char *b);

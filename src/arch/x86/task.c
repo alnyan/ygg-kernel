@@ -10,6 +10,16 @@
 #include "sys/mm.h"
 #include "sys/mem.h"
 
+void task_busy(void *task) {
+    debug("%p becomes BUSY\n", task);
+    ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+}
+
+void task_nobusy(void *task) {
+    debug("%p becomes NOBUSY\n", task);
+    ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
+}
+
 // TODO: real allocator
 static int s_lastStack = 0;
 static int s_lastPagedir = 0;
@@ -157,6 +167,11 @@ void x86_task_init(void) {
     task->next = NULL;
     task->flag = 0;
     task->pid = x86_alloc_pid();
+
+    // Add keyboard access
+    task->ctl->files[0] = vfs_alloc();
+    vfs_open(task->ctl->files[0], "kb", 0);
+    task->ctl->files[0]->f_task = task;
 
     // Create a memory space
     mm_pagedir_t pd = &s_pagedirs[(s_lastPagedir++) * 1024];

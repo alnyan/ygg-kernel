@@ -20,6 +20,7 @@ void _start(void *arg) {
 
     while (1) {
         int f = read(0, buf, sizeof(buf));
-        write(0, "Hello\n", 6);
+        write(0, buf, 1);
+        write(0, "\n", 1);
     }
 }

@@ -17,3 +17,7 @@ int strncmp(const char *a, const char *b, size_t l) {
     }
     return 0;
 }
+
+int strcmp(const char *a, const char *b) {
+    return strncmp(a, b, 0xFFFFFFFF);
+}

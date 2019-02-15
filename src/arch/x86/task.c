@@ -11,12 +11,10 @@
 #include "sys/mem.h"
 
 void task_busy(void *task) {
-    debug("%p becomes BUSY\n", task);
     ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
 }
 
 void task_nobusy(void *task) {
-    debug("%p becomes NOBUSY\n", task);
     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
 }
 

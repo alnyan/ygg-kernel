@@ -58,6 +58,3 @@ SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
     }
     return len;
 }
-
-SYSCALL_DEFINE3(read, int fd, void *data, size_t len) {
-}

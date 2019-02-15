@@ -14,11 +14,33 @@ void x86_syscall(x86_irq_regs_t *regs) {
 
     switch (regs->gp.eax) {
     case SYSCALL_NR_READ:
-        if ((ret = sys_read(regs->gp.ebx, (void *) regs->gp.ecx, regs->gp.edx)) != 0) {
-            regs->gp.eax = ret;
-        } else {
-            // Task is now busy, switch to next one
-            x86_task_switch(regs);
+        {
+            int fd = regs->gp.ebx;
+            ssize_t res;
+
+            if (fd >= sizeof(x86_task_current->ctl->files) / sizeof(vfs_file_t *)) {
+                regs->gp.eax = -1;
+                break;
+            }
+
+            char *data = (char *) regs->gp.ecx;
+            size_t len = (size_t) regs->gp.edx;
+
+            vfs_file_t *f = x86_task_current->ctl->files[fd];
+
+            if (f->f_dev && (f->f_dev->flags & DEV_FLG_RDAS)) {
+                if ((res = vfs_read(f, data, len)) < 0) {
+                    // This means immediate error
+                    regs->gp.eax = res;
+                    break;
+                }
+
+                f->res = &regs->gp.eax;
+                regs->gp.eax = 0;
+                x86_task_switch(regs);
+            } else {
+                regs->gp.eax = vfs_read(f, data, len);
+            }
         }
         break;
     case SYSCALL_NR_WRITE:
@@ -38,9 +60,4 @@ SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
 }
 
 SYSCALL_DEFINE3(read, int fd, void *data, size_t len) {
-    if (fd >= sizeof(x86_task_current->ctl->files) / sizeof(vfs_file_t *)) {
-        return -1;
-    }
-    vfs_file_t *f = x86_task_current->ctl->files[fd];
-    return vfs_read(f, data, len);
 }

@@ -65,5 +65,6 @@ build/kernel.iso: all
 	mkdir -p isotmp/boot/grub
 	cp src/arch/x86/grub.cfg isotmp/boot/grub
 	cp build/kernel.elf isotmp/boot/kernel
+	cp build/usr/init.elf isotmp/boot/init
 	grub-mkrescue -o build/kernel.iso isotmp
 	rm -rf isotmp

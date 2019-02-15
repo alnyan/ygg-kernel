@@ -14,8 +14,8 @@ struct vfs_file {
 
     // Userspace-stored
     char *buf;
-    size_t reqw;
     size_t reqr;
+    size_t *res;
 };
 
 

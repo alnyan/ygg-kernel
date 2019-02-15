@@ -29,7 +29,7 @@ static int x86_ps2_read(dev_t *dev, void *f, void *buf, size_t sz) {
 }
 
 void x86_ps2_init(void) {
-    dev_keyboard->flags = DEV_FLG_READ;
+    dev_keyboard->flags = DEV_FLG_READ | DEV_FLG_RDAS;
     dev_keyboard->read = x86_ps2_read;
 }
 

@@ -11,7 +11,7 @@ $(O)/init.elf: $(O)/init.o $(O)/libusr.a
 	$(LD) -nostdlib -o $@ $(O)/init.o $(O)/libusr.a
 
 $(O)/init.o: init.c
-	$(CC) -nostdlib -ffreestanding -c -o $@ $<
+	$(CC) -ggdb -nostdlib -ffreestanding -c -o $@ $<
 
 $(O)/libusr.a: $(LIBUSR_OBJS)
 	$(AR) rcs $@ $(LIBUSR_OBJS)

@@ -71,6 +71,7 @@ vfs_file_t *io_pending_read_first(dev_t *dev, uintptr_t addr) {
 void io_pending_read_add(vfs_file_t *f, const void *data, size_t n) {
     size_t l = n > f->reqr ? f->reqr : n;
     f->reqr -= l;
+    *f->res += l;
 
     // Switch to the task's page dir and copy the data there
     // XXX: this is very plaform-specific

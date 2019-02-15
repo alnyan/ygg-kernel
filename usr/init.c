@@ -19,8 +19,10 @@ void _start(void *arg) {
     char buf[1];
 
     while (1) {
-        int f = read(0, buf, sizeof(buf));
+        char f = read(0, buf, sizeof(buf));
         write(0, buf, 1);
+        f += '0';
+        write(0, &f, 1);
         write(0, "\n", 1);
     }
 }

@@ -23,7 +23,6 @@ struct x86_ps2_device {
 dev_t *dev_keyboard = &x86_ps2_keyboard;
 
 static int x86_ps2_read(dev_t *dev, void *f, void *buf, size_t sz) {
-    debug("x86_ps2_read\n");
     io_pending_read_set(f, buf, sz);
     return 0;
 }

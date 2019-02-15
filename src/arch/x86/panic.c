@@ -37,3 +37,17 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
 
     panic_hlt();
 }
+
+void panicf_irq(const char *fmt, const x86_irq_regs_t *regs, ...) {
+    debug(PANIC_MSG_INTRO);
+    va_list args;
+    va_start(args, regs);
+    debugfv(fmt, args);
+    va_end(args);
+
+    debug("--- Register dump ---\n");
+    x86_dump_gp_regs(&regs->gp);
+    x86_dump_iret_regs(&regs->iret);
+
+    panic_hlt();
+}

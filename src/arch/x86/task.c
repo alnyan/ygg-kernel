@@ -201,9 +201,26 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         return;
     }
 
+    struct x86_task *tp = NULL;
     // Update tasks' flags and ctl
     for (struct x86_task *t = x86_task_first; t; t = t->next) {
         if (t == x86_task_idle) {
+            tp = t;
+            continue;
+        }
+        // Task stopped
+        if (t->flag & TASK_FLG_STOP) {
+            if (tp) {
+                tp->next = t->next;
+            }
+            debug("Task %d exited with status %d\n",
+                    t->pid,
+                    *((uint32_t *) (t->ebp0 - 8 * 4)));
+
+            // Attempted to kill root process
+            if (t->pid == 1) {
+                panic_irq("Attempted to kill init!\n", regs);
+            }
             continue;
         }
         // Decrease sleep counters
@@ -212,6 +229,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 t->flag &= ~TASK_FLG_WAIT;
             }
         }
+        tp = t;
     }
 
     struct x86_task *from = x86_task_current;

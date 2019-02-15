@@ -13,6 +13,12 @@ void x86_syscall(x86_irq_regs_t *regs) {
     int ret;
 
     switch (regs->gp.eax) {
+    case SYSCALL_NR_EXIT:
+        {
+            sys_exit(regs->gp.ebx);
+            x86_task_switch(regs);
+        }
+        break;
     case SYSCALL_NR_READ:
         {
             int fd = regs->gp.ebx;
@@ -57,4 +63,10 @@ SYSCALL_DEFINE3(write, int fd, const void *data, size_t len) {
         x86_con_putc(((const char *) data)[i]);
     }
     return len;
+}
+
+SYSCALL_DEFINE1(exit, int res) {
+    // Exit code is stored in %ebx on task's stack
+    x86_task_current->flag |= TASK_FLG_STOP;
+    return 0;
 }

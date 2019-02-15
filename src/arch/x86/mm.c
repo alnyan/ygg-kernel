@@ -6,6 +6,7 @@
 #include "def.h"
 #include "mm.h"
 #include "hw.h"
+#include "sys/heap.h"
 
 mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
@@ -221,4 +222,10 @@ void x86_mm_init(void) {
             x86_mm_dump_entry(mm_current, i);
         }
     }
+
+    // Add free space after the kernel to heap
+    heap_init();
+
+    extern void _kernel_end_virt();
+    heap_add_region((uintptr_t) _kernel_end_virt, KERNEL_VIRT_BASE + 0x400000);
 }

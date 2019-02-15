@@ -25,5 +25,5 @@ SECTIONS {
 		*(COMMON)
 		*(.bss)
 	}
-    _kernel_start_phys = .;
+    _kernel_end_virt = .;
 }

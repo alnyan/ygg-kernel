@@ -1,5 +1,7 @@
 #include "sys/debug.h"
 #include "arch/hw.h"
+#include "sys/panic.h"
+#include "sys/heap.h"
 #include "sys/mm.h"
 #include "util.h"
 

@@ -57,6 +57,7 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
          */
         if (it->size >= count && it->size < count + sizeof(struct heap_block)) {
             it->flags |= HEAP_FLG_USED;
+            it->size = count;
             return HEAP_DATA(it);
         }
 
@@ -130,6 +131,101 @@ void *heap_alloc(size_t count) {
     return NULL;
 }
 
+void *heap_realloc(void *ptr, size_t count) {
+    struct heap_block *it = (struct heap_block *) (ptr - sizeof(struct heap_block));
+
+    if (it->flags & HEAP_MAGIC != HEAP_MAGIC) {
+        panic("Heap: invalid pointer\n");
+    }
+
+    ssize_t diff = count - it->size;
+
+    if (diff < 0) {
+        // Shrinking
+        if (-diff >= sizeof(struct heap_block)) {
+            // Just create a new free block
+            debug("Shrinking!\n");
+
+            struct heap_block *newb = HEAP_DATA(it) + count;
+            newb->size = -diff - sizeof(struct heap_block);
+            newb->prev = it;
+            newb->flags = HEAP_MAGIC;
+            it->size = count;
+
+            if (it->next) {
+                newb->next = it->next;
+                it->next = newb;
+
+                if (newb->next) {
+                    newb->next->prev = newb;
+                }
+
+                // May join with next block
+                if (!(newb->next->flags & HEAP_FLG_USED)) {
+                    debug("Joining\n");
+                    struct heap_block *next = newb->next;
+                    debug("%p->next = %p\n", newb, next);
+
+                    newb->size += sizeof(struct heap_block) + next->size;
+                    newb->next = next->next;
+                    if (next->next) {
+                        next->next->prev = newb;
+                    }
+
+                    next->flags ^= HEAP_MAGIC;
+                }
+            } else {
+                newb->next = NULL;
+            }
+
+            return HEAP_DATA(it);
+        } else {
+            return HEAP_DATA(it);
+        }
+    } else {
+        // Expanding
+        // Check if we can expand using next free block
+        if (it->next && !(it->next->flags & HEAP_FLG_USED)) {
+            struct heap_block *next = it->next;
+
+            if (diff >= next->size && diff - sizeof(struct heap_block) <= next->size) {
+                // No need to insert new blocks
+                it->next = next->next;
+                if (it->next) {
+                    it->next->prev = it;
+                }
+                next->flags ^= HEAP_MAGIC;
+                it->size = count;
+
+                return HEAP_DATA(it);
+            }
+
+            if (diff < next->size) {
+                // Which means we can insert a block
+                struct heap_block *newb = HEAP_DATA(it) + count;
+                newb->prev = it;
+                newb->next = next->next;
+                if (newb->next) {
+                    newb->next->prev = newb;
+                }
+                it->next = newb;
+                next->flags ^= HEAP_MAGIC;
+                newb->size = next->size - diff;
+                it->size = count;
+                newb->flags = HEAP_MAGIC;
+
+                return HEAP_DATA(it);
+            }
+
+            // Otherwise, the block cannot fit our size
+            panic("NYI2\n");
+        } else {
+            // Need to deallocate the current block, then allocate a new one and copy the data
+            panic("NYI\n");
+        }
+    }
+}
+
 void heap_free(void *ptr) {
     debug("heap_free %p\n", ptr);
 
@@ -139,7 +235,7 @@ void heap_free(void *ptr) {
 
     for (int i = 0; i < HEAP_MAX; ++i) {
         if (!s_heap_regions[i]) {
-            panic("Heap: invalid free\n");
+            panic("Heap: invalid pointer\n");
         }
 
         if ((uintptr_t) ptr > (uintptr_t) s_heap_regions[i] && heap_free_single(s_heap_regions[i],
@@ -148,7 +244,7 @@ void heap_free(void *ptr) {
         }
     }
 
-    panic("Heap: invalid free\n");
+    panic("Heap: invalid pointer\n");
 }
 
 void heap_stat(struct heap_stat *st) {

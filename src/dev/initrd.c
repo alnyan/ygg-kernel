@@ -43,13 +43,13 @@ void initrd_init(dev_initrd_t *dev, uintptr_t addr, size_t len) {
     dev->device.flags = DEV_FLG_READ;
     dev->base = addr;
     dev->len = len;
+}
 
-    int files = 0;
+static uintptr_t initrd_find_file(const dev_initrd_t *dev, const char *name) {
+    size_t filesz;
     int zb = 0;
-    tar_t *it = (tar_t *) addr;
-    uint32_t filesz;
-    char siz_buf[11];
-    // Print out some stats
+    tar_t *it = (tar_t *) dev->base;
+
     while (1) {
         if (it->name[0] == 0) {
             if (zb) {
@@ -60,24 +60,20 @@ void initrd_init(dev_initrd_t *dev, uintptr_t addr, size_t len) {
             continue;
         }
         zb = 0;
-        ++files;
 
         int is_ustar = tar_is_ustar(it);
         tar_type_t type = tar_type(it, is_ustar);
         if (type == TAR_FILE) {
             filesz = tar_oct2u32(it->size, 12);
             size_t jmp = MM_ALIGN_UP(filesz, 512) / 512;
-            fmtsiz(filesz, siz_buf);
-
-            debug(" %10s %s\n", siz_buf, it->name);
+            if (!strncmp(it->name, name, sizeof(it->name))) {
+                return (uintptr_t) &it[1];
+            }
             it = &it[jmp + 1];
         } else {
-            debug("        DIR %s\n", it->name);
             it = &it[1];
         }
     }
-}
 
-uintptr_t initrd_find_file(const dev_initrd_t *dev, const char *name) {
-
+    return MM_NADDR;
 }

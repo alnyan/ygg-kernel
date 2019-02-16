@@ -1,6 +1,7 @@
 #include "debug.h"
 #include "string.h"
 #include <stdint.h>
+#include "sys/ctype.h"
 
 #if defined(ARCH_AARCH64)
 #include "arch/aarch64/uart.h"
@@ -219,6 +220,65 @@ void debugfv(const char *fmt, va_list args) {
 
         ++fmt;
     }
+}
+
+#define DEBUG_DUMP_LINE     16
+// TODO: move this to some kind of config
+#define DEBUG_DUMP_WORDS
+
+void debug_dump(const void *block, size_t len) {
+    debug("--- Memory dump at %p, %uB ---\n", block, len);
+
+    for (size_t i = 0; i < len; i += DEBUG_DUMP_LINE) {
+        debugf("%p: ", block + i);
+
+#if defined(DEBUG_DUMP_WORDS)
+        for (size_t j = i; j < i + DEBUG_DUMP_LINE; j += 2) {
+            if (j < len) {
+#if defined(ARCH_X86)
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
+#else
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
+#endif
+            } else {
+                debugc(' ');
+                debugc(' ');
+            }
+            debugc(' ');
+        }
+#else
+        for (size_t j = i; j < i + DEBUG_DUMP_LINE; ++j) {
+            if (j < len) {
+                debugc(s_debug_xs_set1[((((const uint8_t *) block)[j] >> 4) & 0xF)]);
+                debugc(s_debug_xs_set1[((((const uint8_t *) block)[j]) & 0xF)]);
+            } else {
+                debugc(' ');
+                debugc(' ');
+            }
+            debugc(' ');
+        }
+#endif
+        debugc(' ');
+
+        for (size_t j = i; j < i + DEBUG_DUMP_LINE && j < len; ++j) {
+            char c = ((const char *) block)[j];
+            if (isprint(c)) {
+                debugc(c);
+            } else {
+                debugc('.');
+            }
+        }
+
+        debugc('\n');
+    }
+
+    debug("--- End dump ---\n");
 }
 
 void debug_init(void) {

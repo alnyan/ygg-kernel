@@ -10,6 +10,8 @@ void kernel_main(void) {
     debug_init();
     hw_init();
 
+    heap_dump();
+
     irq_enable();
 
     while (1) {

@@ -1,21 +1,23 @@
 LIBUSR_OBJS=$(O)/lib/printf.o \
 			$(O)/lib/unistd.o \
 			$(O)/lib/string.o
+USR_PROGS=$(O)/bin/init
 
-DIRS=$(O)/lib
+DIRS=$(O)/lib \
+	 $(O)/bin
 
-all: mkdirs $(O)/init.elf
+all: mkdirs $(O)/lib/libusr.a $(O)/init.tar
 
 mkdirs:
 	mkdir -p $(DIRS)
 
-$(O)/init.elf: $(O)/init.o $(O)/libusr.a
-	$(LD) -static-libgcc -nostdlib -o $@ $(O)/init.o $(O)/libusr.a -lgcc
+$(O)/init.tar: $(USR_PROGS)
+	tar -C $(O) -cf $@ bin
 
-$(O)/init.o: init.c
-	$(CC) -Ilib -ggdb -nostdlib -ffreestanding -c -o $@ $<
+$(O)/bin/%: bin/%.c
+	$(CC) -Ilib -nostdlib -ffreestanding -o $@ $< $(O)/lib/libusr.a -lgcc
 
-$(O)/libusr.a: $(LIBUSR_OBJS)
+$(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	$(AR) rcs $@ $(LIBUSR_OBJS)
 
 $(O)/lib/%.o: lib/%.c

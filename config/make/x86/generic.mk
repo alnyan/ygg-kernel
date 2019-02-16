@@ -50,7 +50,7 @@ QEMU_BIN?=qemu-system-i386
 QEMU_CMD?=$(QEMU_BIN) \
 		  -serial mon:stdio \
 		  -kernel build/kernel.elf \
-		  -initrd build/usr/init.elf $(QEMU_ADD)
+		  -initrd build/usr/init.tar $(QEMU_ADD)
 ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
@@ -65,6 +65,6 @@ build/kernel.iso: all
 	mkdir -p isotmp/boot/grub
 	cp src/arch/x86/grub.cfg isotmp/boot/grub
 	cp build/kernel.elf isotmp/boot/kernel
-	cp build/usr/init.elf isotmp/boot/init
+	cp build/usr/init.tar isotmp/boot/init
 	grub-mkrescue -o build/kernel.iso isotmp
 	rm -rf isotmp

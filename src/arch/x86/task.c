@@ -147,52 +147,38 @@ void x86_task_init(void) {
 
     prev_task = task;
 
-    // TODO: create a user-space task here once I'm done with ELF loading and simple initrd
-    // Find an ELF to load
-    struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
-    debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+    /*task = x86_task_alloc(0);*/
+    /*task->next = NULL;*/
+    /*task->flag = 0;*/
+    /*task->pid = x86_alloc_pid();*/
 
-    if (x86_multiboot_info->mods_count != 1) {
-        panic("Kernel expected 1 module, but there're %d\n", x86_multiboot_info->mods_count);
-    }
+    /*// Add keyboard access*/
+    /*task->ctl->files[0] = vfs_alloc();*/
+    /*vfs_open(task->ctl->files[0], "kb", 0);*/
+    /*task->ctl->files[0]->f_task = task;*/
 
-    uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
-    size_t mod_size = mod_list->mod_end - mod_list->mod_start;
+    /*// Create a memory space*/
+    /*mm_pagedir_t pd = &s_pagedirs[(s_lastPagedir++) * 1024];*/
+    /*memset(pd, 0, 4096);*/
+    /*pd[768] = X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_RW;*/
 
-    debug("Init module of %uK\n", mod_size / 1024);
+    /*// For test, allow task to write video mem at 0xB8000 -> 0xD00B8000*/
+    /*pd[(0xD0000000 >> 22)] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US | X86_MM_FLG_PR;*/
+    /*// Userspace stack*/
+    /*pd[(0x80000000 >> 22)] = (mm_alloc_phys_page() & -0x400000) | X86_MM_FLG_PR | X86_MM_FLG_US |*/
+                                                                  /*X86_MM_FLG_PS | X86_MM_FLG_RW;*/
 
-    task = x86_task_alloc(0);
-    task->next = NULL;
-    task->flag = 0;
-    task->pid = x86_alloc_pid();
+    /*uint32_t entry_addr;*/
 
-    // Add keyboard access
-    task->ctl->files[0] = vfs_alloc();
-    vfs_open(task->ctl->files[0], "kb", 0);
-    task->ctl->files[0]->f_task = task;
+    /*if ((entry_addr = elf_load(pd, mod_base, mod_size)) == MM_NADDR) {*/
+        /*panic("Failed to load ELF\n");*/
+    /*}*/
 
-    // Create a memory space
-    mm_pagedir_t pd = &s_pagedirs[(s_lastPagedir++) * 1024];
-    memset(pd, 0, 4096);
-    pd[768] = X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_RW;
+    /*mm_dump_pages(pd);*/
+    /*// TODO: allocate an userspace stack for task*/
+    /*x86_task_setup_stack(task, entry_addr, (void *) 0xD00B8000, pd, 0x80000000 + 0x400000, 0);*/
 
-    // For test, allow task to write video mem at 0xB8000 -> 0xD00B8000
-    pd[(0xD0000000 >> 22)] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US | X86_MM_FLG_PR;
-    // Userspace stack
-    pd[(0x80000000 >> 22)] = (mm_alloc_phys_page() & -0x400000) | X86_MM_FLG_PR | X86_MM_FLG_US |
-                                                                  X86_MM_FLG_PS | X86_MM_FLG_RW;
-
-    uint32_t entry_addr;
-
-    if ((entry_addr = elf_load(pd, mod_base, mod_size)) == MM_NADDR) {
-        panic("Failed to load ELF\n");
-    }
-
-    mm_dump_pages(pd);
-    // TODO: allocate an userspace stack for task
-    x86_task_setup_stack(task, entry_addr, (void *) 0xD00B8000, pd, 0x80000000 + 0x400000, 0);
-
-    prev_task->next = task;
+    /*prev_task->next = task;*/
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {

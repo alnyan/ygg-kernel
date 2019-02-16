@@ -48,6 +48,7 @@ void initrd_init(dev_initrd_t *dev, uintptr_t addr, size_t len) {
     int zb = 0;
     tar_t *it = (tar_t *) addr;
     uint32_t filesz;
+    char siz_buf[11];
     // Print out some stats
     while (1) {
         if (it->name[0] == 0) {
@@ -66,11 +67,12 @@ void initrd_init(dev_initrd_t *dev, uintptr_t addr, size_t len) {
         if (type == TAR_FILE) {
             filesz = tar_oct2u32(it->size, 12);
             size_t jmp = MM_ALIGN_UP(filesz, 512) / 512;
+            fmtsiz(filesz, siz_buf);
 
-            debug(" %u\t%s\n", filesz, it->name);
+            debug(" %10s %s\n", siz_buf, it->name);
             it = &it[jmp + 1];
         } else {
-            debug(" DIR\t%s\n", it->name);
+            debug("        DIR %s\n", it->name);
             it = &it[1];
         }
     }

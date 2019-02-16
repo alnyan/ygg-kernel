@@ -28,10 +28,13 @@ void heap_add_region(uintptr_t a, uintptr_t b) {
     heap->flags = HEAP_MAGIC;
     heap->size = sz;
     heap->prev = NULL;
+    char siz_buf[12];
     for (int i = 0; i < HEAP_MAX; ++i) {
         if (!s_heap_regions[i]) {
             s_heap_regions[i] = heap;
-            debug("Added %uK to heap\n", sz / 1024);
+
+            fmtsiz(sz, siz_buf);
+            debug("Added %s to heap\n", siz_buf);
             return;
         }
     }

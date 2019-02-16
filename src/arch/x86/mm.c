@@ -177,6 +177,7 @@ void x86_mm_init(void) {
     size_t mmap_len = x86_multiboot_info->mmap_length;
     int index = 0;
     int claimed_pages = 0;
+    char siz_buf[11];
 
     debug("Memory map:\n");
 
@@ -184,7 +185,8 @@ void x86_mm_init(void) {
         uint32_t addr = (uint32_t) mmap->addr;
         uint32_t len = (uint32_t) mmap->len;
 
-        debug(" [%d] %c %p, %dK\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, len / 1024);
+        fmtsiz(len, siz_buf);
+        debug(" [%d] %c %p %10s\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, siz_buf);
 
         // Claim 4M physical pages
         if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
@@ -211,7 +213,8 @@ void x86_mm_init(void) {
         mmap = (struct multiboot_mmap_entry *) next_ptr;
     }
 
-    debug("Memory manager claimed %d pages (%uM) of physical memory\n", claimed_pages, claimed_pages * 4);
+    fmtsiz(claimed_pages * 0x400000, siz_buf);
+    debug("Memory manager claimed %d pages (%s) of physical memory\n", claimed_pages, siz_buf);
 
     extern uint32_t boot_page_directory[1024];
     mm_current = boot_page_directory;

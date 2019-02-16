@@ -42,12 +42,20 @@ static void debugspl(const char *s, char p, size_t c) {
 static void debugspr(const char *s, char p, size_t c) {
     size_t l = strlen(s);
     debugs(s);
-    for (size_t i = l; l < c; ++i) {
+    for (size_t i = l; i < c; ++i) {
         debugc(p);
     }
 }
 
-static void debug_ds(int64_t x, char *res, int s, int sz) {
+static void debugsp(const char *s, char padc, int padl) {
+    if (padl > 0) {
+        debugspl(s, padc, padl);
+    } else {
+        debugspr(s, padc, -padl);
+    }
+}
+
+void debug_ds(int64_t x, char *res, int s, int sz) {
     if (!x) {
         res[0] = '0';
         res[1] = 0;
@@ -135,11 +143,28 @@ void debugfv(const char *fmt, va_list args) {
         uintptr_t v_ptr;
     } value;
     char buf[64];
+    char padc;
+    int padn;
+    int padd;
 
     while ((c = *fmt)) {
         switch (c) {
             case '%':
                 c = *(++fmt);
+
+                padc = ' ';
+                padd = 1;
+                padn = 0;
+                if (c == '0') {
+                    padc = c;
+                }
+
+                while (c >= '0' && c <= '9') {
+                    padn *= padd * 10;
+                    padn += padd * (c - '0');
+                    c = *(++fmt);
+                }
+
                 switch (c) {
                     case 'l':
                         c = *(++fmt);
@@ -147,22 +172,22 @@ void debugfv(const char *fmt, va_list args) {
                             case 'd':
                                 value.v_int64 = va_arg(args, int64_t);
                                 debug_ds(value.v_int64, buf, 1, 1);
-                                debugs(buf);
+                                debugsp(buf, padc, padn);
                                 break;
                             case 'u':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_ds(value.v_uint64, buf, 0, 1);
-                                debugs(buf);
+                                debugsp(buf, padc, padn);
                                 break;
                             case 'x':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set0);
-                                debugs(buf);
+                                debugsp(buf, padc, padn);
                                 break;
                             case 'X':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set1);
-                                debugs(buf);
+                                debugsp(buf, padc, padn);
                                 break;
                             default:
                                 debugc('%');
@@ -179,22 +204,22 @@ void debugfv(const char *fmt, va_list args) {
                     case 'd':
                         value.v_int64 = va_arg(args, int32_t);
                         debug_ds(value.v_int64 & 0xFFFFFFFF, buf, 1, 0);
-                        debugs(buf);
+                        debugsp(buf, padc, padn);
                         break;
                     case 'u':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_ds(value.v_uint64 & 0xFFFFFFFF, buf, 0, 0);
-                        debugs(buf);
+                        debugsp(buf, padc, padn);
                         break;
                     case 'x':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_xs(value.v_uint64 & 0xFFFFFFFF, buf, s_debug_xs_set0);
-                        debugs(buf);
+                        debugsp(buf, padc, padn);
                         break;
                     case 'X':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_xs(value.v_uint64 & 0xFFFFFFFF, buf, s_debug_xs_set1);
-                        debugs(buf);
+                        debugsp(buf, padc, padn);
                         break;
                     case 'p':
                         value.v_ptr = va_arg(args, uintptr_t);
@@ -205,7 +230,7 @@ void debugfv(const char *fmt, va_list args) {
                         break;
                     case 's':
                         value.v_string = va_arg(args, const char *);
-                        debugs(value.v_string ? value.v_string : "(null)");
+                        debugsp(value.v_string ? value.v_string : "(null)", padc, padn);
                         break;
                     default:
                         debugc('%');

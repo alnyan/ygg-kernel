@@ -18,15 +18,18 @@ void task_nobusy(void *task) {
     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
 }
 
-// TODO: real allocator
+// Idle task (kernel-space) stuff
 static struct x86_task x86_task_idle;
 static uint32_t x86_task_idle_stack[X86_TASK_TOTAL_STACK];
 
+// Scheduling stuff
 struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
 
+// If set to 1, means we haven't entered multitasking yet
 static int x86_tasking_entry = 1;
 
+// Assembly function which uses no stack and just loops with sti; hlt;
 extern void x86_task_idle_func(void *arg);
 
 int x86_task_setup_stack(struct x86_task *t,
@@ -91,7 +94,6 @@ int x86_task_setup_stack(struct x86_task *t,
 void x86_task_init(void) {
     debug("Initializing multitasking\n");
 
-    // Create idle task (TODO: make it kernel space, so it can HLT)
     x86_task_idle.next = NULL;
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;

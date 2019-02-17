@@ -16,3 +16,4 @@ extern mm_pagedir_t mm_kernel;
 extern mm_pagedir_t mm_current;
 
 void x86_mm_init(void);
+int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags);

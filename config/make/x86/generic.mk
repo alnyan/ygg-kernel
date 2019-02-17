@@ -56,15 +56,18 @@ QEMU_CMD+= -s -S
 endif
 
 qemu: all
-	$(QEMU_CMD)
+	@$(QEMU_CMD)
 
-qemu-iso: build/kernel.iso
-	$(QEMU_BIN) -serial stdio -cdrom build/kernel.iso
+qemu-iso: iso
+	@$(QEMU_BIN) -serial stdio -cdrom build/dist.iso
 
-build/kernel.iso: all
-	mkdir -p isotmp/boot/grub
-	cp src/arch/x86/grub.cfg isotmp/boot/grub
-	cp build/kernel.elf isotmp/boot/kernel
-	cp build/usr/init.tar isotmp/boot/init
-	grub-mkrescue -o build/kernel.iso isotmp
-	rm -rf isotmp
+build/dist.iso: all
+	@printf " ISO\t%s\n" $@
+	@mkdir -p isotmp/boot/grub
+	@cp src/arch/x86/grub.cfg isotmp/boot/grub
+	@cp build/kernel.elf isotmp/boot/kernel
+	@cp build/usr/init.tar isotmp/boot/init
+	@grub-mkrescue -o $@ isotmp 2>/dev/null >/dev/null
+	@rm -rf isotmp
+
+iso: build/dist.iso

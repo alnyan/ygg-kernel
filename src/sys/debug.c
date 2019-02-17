@@ -108,7 +108,7 @@ void debug_xs(uint64_t v, char *res, const char *set) {
         return;
     }
 
-    int c = 0, x;
+    int c = 0;
 
     while (v) {
         res[c++] = set[v & 0xF];
@@ -255,7 +255,7 @@ void debug_dump(const void *block, size_t len) {
     debug("--- Memory dump at %p, %uB ---\n", block, len);
 
     for (size_t i = 0; i < len; i += DEBUG_DUMP_LINE) {
-        debugf("%p: ", block + i);
+        debugf("%p: ", (uintptr_t) block + i);
 
 #if defined(DEBUG_DUMP_WORDS)
         for (size_t j = i; j < i + DEBUG_DUMP_LINE; j += 2) {

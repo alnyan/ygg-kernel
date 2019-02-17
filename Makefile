@@ -8,7 +8,7 @@ HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 all: mkdirs build/kernel.bin userspace
-	HOSTCC=$(HOSTCC) make -C util $(UTILS)
+	@HOSTCC=$(HOSTCC) make -s -C util $(UTILS)
 
 include config/make/generic.mk
 
@@ -23,10 +23,10 @@ include config/make/$(ARCH)/generic.mk
 endif
 
 mkdirs:
-	mkdir -p $(DIRS)
+	@mkdir -p $(DIRS)
 
 clean:
-	rm -rf build
+	@rm -rf build
 
 build/%.o: src/%.s
 	@$(error "$<: We don't do that here. Please rename it to .S")
@@ -48,5 +48,4 @@ build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
 
 userspace:
-	echo "Building userspace"
-	AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -C usr all
+	@AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -s -C usr all

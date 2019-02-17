@@ -3,7 +3,6 @@
 #include "irq.h"
 #include "regs.h"
 #include "mm.h"
-#include "dev/vfs.h"
 
 // GP regs: 8
 // IRET regs: 5
@@ -22,7 +21,6 @@
 #define X86_TASK_IDLE           (1 << 1)
 
 struct x86_task_ctl {
-    vfs_file_t *files[4];
     uint32_t busyfd;
     uint32_t sleep;
 };

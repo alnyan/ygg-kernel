@@ -61,14 +61,14 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
         if (it->size >= count && it->size < count + sizeof(struct heap_block)) {
             it->flags |= HEAP_FLG_USED;
             it->size = count;
-            return HEAP_DATA(it);
+            return (void *) HEAP_DATA(it);
         }
 
         /*
          * Case 2: count >= it->size + sizeof(struct heap_block)
          * Can create next header
          */
-        struct heap_block *newb = HEAP_DATA(it) + count;
+        struct heap_block *newb = (struct heap_block *) (HEAP_DATA(it) + count);
 
         // Link
         newb->next = it->next;
@@ -81,7 +81,7 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
         it->flags |= HEAP_FLG_USED;
         newb->flags = HEAP_MAGIC;
 
-        return HEAP_DATA(it);
+        return (void *) HEAP_DATA(it);
     }
 
     return NULL;
@@ -90,7 +90,7 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
 static int heap_free_single(struct heap_block *begin, void *ptr) {
     struct heap_block *it = (struct heap_block *) (((uintptr_t) ptr) - sizeof(struct heap_block));
 
-    if (it->flags & HEAP_MAGIC == HEAP_MAGIC && (it->flags & HEAP_FLG_USED)) {
+    if ((it->flags & HEAP_MAGIC) == HEAP_MAGIC && (it->flags & HEAP_FLG_USED)) {
         it->flags ^= HEAP_FLG_USED;
 
         if (it->next && !(it->next->flags & HEAP_FLG_USED)) {
@@ -135,9 +135,9 @@ void *heap_alloc(size_t count) {
 }
 
 void *heap_realloc(void *ptr, size_t count) {
-    struct heap_block *it = (struct heap_block *) (ptr - sizeof(struct heap_block));
+    struct heap_block *it = (struct heap_block *) ((uintptr_t) ptr - sizeof(struct heap_block));
 
-    if (it->flags & HEAP_MAGIC != HEAP_MAGIC) {
+    if ((it->flags & HEAP_MAGIC) != HEAP_MAGIC) {
         panic("Heap: invalid pointer\n");
     }
 
@@ -149,7 +149,7 @@ void *heap_realloc(void *ptr, size_t count) {
             // Just create a new free block
             debug("Shrinking!\n");
 
-            struct heap_block *newb = HEAP_DATA(it) + count;
+            struct heap_block *newb = (struct heap_block *) (HEAP_DATA(it) + count);
             newb->size = -diff - sizeof(struct heap_block);
             newb->prev = it;
             newb->flags = HEAP_MAGIC;
@@ -181,9 +181,9 @@ void *heap_realloc(void *ptr, size_t count) {
                 newb->next = NULL;
             }
 
-            return HEAP_DATA(it);
+            return (void *) HEAP_DATA(it);
         } else {
-            return HEAP_DATA(it);
+            return (void *) HEAP_DATA(it);
         }
     } else {
         // Expanding
@@ -200,12 +200,12 @@ void *heap_realloc(void *ptr, size_t count) {
                 next->flags ^= HEAP_MAGIC;
                 it->size = count;
 
-                return HEAP_DATA(it);
+                return (void *) HEAP_DATA(it);
             }
 
             if (diff < next->size) {
                 // Which means we can insert a block
-                struct heap_block *newb = HEAP_DATA(it) + count;
+                struct heap_block *newb = (struct heap_block *) (HEAP_DATA(it) + count);
                 newb->prev = it;
                 newb->next = next->next;
                 if (newb->next) {
@@ -217,7 +217,7 @@ void *heap_realloc(void *ptr, size_t count) {
                 it->size = count;
                 newb->flags = HEAP_MAGIC;
 
-                return HEAP_DATA(it);
+                return (void *) HEAP_DATA(it);
             }
 
             // Otherwise, the block cannot fit our size
@@ -293,7 +293,7 @@ void heap_dump(void) {
                     (it->flags & HEAP_FLG_USED) ? 'a' : '-',
                     (it->prev) ? 'p' : '-',
                     (it->next) ? 'n' : '-',
-                    (it->flags & HEAP_MAGIC == HEAP_MAGIC) ? '-' : '!',
+                    ((it->flags & HEAP_MAGIC) == HEAP_MAGIC) ? '-' : '!',
                     it->size,
                     it->size + sizeof(struct heap_block));
         }

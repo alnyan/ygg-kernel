@@ -1,10 +1,8 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "dev/device.h"
 
 typedef struct {
-    dev_t device;
     uintptr_t base;
     size_t len;
 } dev_initrd_t;

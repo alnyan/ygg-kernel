@@ -1,4 +1,5 @@
 #include "initrd.h"
+#include "sys/string.h"
 #include "sys/debug.h"
 #include "sys/mm.h"
 
@@ -34,13 +35,13 @@ static tar_type_t tar_type(const tar_t *t, int is_ustar) {
             if (t->name[i] == '/' && (i == sizeof(t->name) - 1 || !t->name[i + 1])) {
                 return TAR_DIR;
             }
-            return TAR_FILE;
         }
+        return TAR_FILE;
     }
 }
 
 void initrd_init(dev_initrd_t *dev, uintptr_t addr, size_t len) {
-    dev->device.flags = DEV_FLG_READ;
+    /*dev->device.flags = DEV_FLG_READ;*/
     dev->base = addr;
     dev->len = len;
 }

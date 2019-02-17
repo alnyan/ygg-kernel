@@ -6,6 +6,13 @@
 #include "sys/mm.h"
 #include <stddef.h>
 
+// FIXME
+#ifdef ARCH_X86
+#include "arch/x86/mm.h"
+#else
+#error "Not yet implemented"
+#endif
+
 // Loads ELF file into memory space `dst'
 int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
     debug("Trying to load ELF from %p, %uB\n", src_addr, src_len);
@@ -17,7 +24,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
     uint32_t entry_addr = ehdr->e_entry;
 
     // Validate ident
-    if (strncmp(ehdr->e_ident, "\x7F" "ELF", 4)) {
+    if (strncmp((const char *) ehdr->e_ident, "\x7F" "ELF", 4)) {
         debug("\tError: identity doesn't match ELF ident\n");
         return -1;
     }
@@ -63,9 +70,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                 x86_mm_map(mm_kernel, 0x400000, dst[page_start >> 22] & -0x400000, X86_MM_FLG_RW | X86_MM_FLG_PS);
 
                 if (shdr->sh_type == SHT_PROGBITS) {
-                    memcpy(shdr->sh_addr - page_start + 0x400000, src_addr + shdr->sh_offset, shdr->sh_size);
+                    memcpy((void *) (shdr->sh_addr - page_start + 0x400000),
+                            (void *) (src_addr + shdr->sh_offset),
+                            shdr->sh_size);
                 } else {
-                    memset(shdr->sh_addr - page_start + 0x400000, 0, shdr->sh_size);
+                    memset((void *) (shdr->sh_addr - page_start + 0x400000), 0, shdr->sh_size);
                 }
 
                 // Unmap page

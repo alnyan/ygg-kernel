@@ -20,10 +20,8 @@ void task_nobusy(void *task) {
 
 // TODO: real allocator
 static int s_lastStack = 0;
-static int s_lastPagedir = 0;
 static int s_lastThread = 0;
 static uint32_t s_lastPid = 0;
-static uint32_t s_pagedirs[1024 * X86_TASK_MAX] __attribute__((aligned(4096)));
 static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
 static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
 static struct x86_task_ctl s_taskCtls[sizeof(struct x86_task_ctl) * X86_TASK_MAX];
@@ -131,7 +129,7 @@ void x86_task_init(void) {
 
     s_lastStack = 0;
 
-    struct x86_task *prev_task = NULL;
+    /*struct x86_task *prev_task = NULL;*/
     struct x86_task *task;
 
     // Create idle task (TODO: make it kernel space, so it can HLT)
@@ -145,7 +143,7 @@ void x86_task_init(void) {
     x86_task_current = task;
     x86_task_first = task;
 
-    prev_task = task;
+    /*prev_task = task;*/
 
     /*task = x86_task_alloc(0);*/
     /*task->next = NULL;*/

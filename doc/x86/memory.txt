@@ -1,0 +1,22 @@
+Memory map:
+Physical space:
+0x00000000 - 0x00100000 is unused by the kernel, as there reside some HW-specific memory regions
+0x00100000 - 0x00400000 is kernel memory page and is mapped to 0xC0000000
+Other memory is free for use by either the kernel or userspace applications.
+
+Virtual space:
+0xFFFFFFFF /-----------------------\
+    .      |                       |
+    .      |        Kernel         |
+    .      |                       |
+0xC0000000 +-----------------------+
+    .      |                       |
+    .      |       Userspace       |
+    .      |                       |
+0x00400000 +-----------------------+
+    .      |                       |
+    .      |  0th page is unmapped |
+    .      |                       |
+0x00000000 \-----------------------/
+
+The kernel page with IRQ and Exception handlers must ALWAYS reside in all page directories.

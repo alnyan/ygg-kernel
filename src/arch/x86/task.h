@@ -16,8 +16,6 @@
 
 #define X86_USER_STACK          256
 
-#define X86_TASK_MAX            8
-
 #define X86_TASK_IDLE           (1 << 1)
 
 struct x86_task_ctl {

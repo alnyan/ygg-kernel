@@ -19,58 +19,23 @@ void task_nobusy(void *task) {
 }
 
 // TODO: real allocator
-static int s_lastStack = 0;
-static int s_lastThread = 0;
-static uint32_t s_lastPid = 0;
-static uint32_t s_stacks[X86_TASK_TOTAL_STACK * X86_TASK_MAX];
-static struct x86_task s_taskStructs[sizeof(struct x86_task) * X86_TASK_MAX];
-static struct x86_task_ctl s_taskCtls[sizeof(struct x86_task_ctl) * X86_TASK_MAX];
+static struct x86_task x86_task_idle;
+static uint32_t x86_task_idle_stack[X86_TASK_TOTAL_STACK];
 
 struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
-static struct x86_task *x86_task_idle = NULL;
+
 static int x86_tasking_entry = 1;
 
 extern void x86_task_idle_func(void *arg);
 
-/*void task0(void *arg) {*/
-    /*uint32_t myarg = (uint32_t) arg;*/
-    /*uint16_t *myptr = (uint16_t *) (0xB8000 + (myarg & 0xFF));*/
-    /*uint32_t sleep = (myarg >> 16) & 0xFF;*/
-    /*int state = 1;*/
-
-    /*while (1) {*/
-        /*if (state) {*/
-            /**myptr = 0x2000 | (((myarg >> 8) & 0xFF) - 'A' + 'a');*/
-        /*} else {*/
-            /**myptr = 0x0200 | ((myarg >> 8) & 0xFF);*/
-        /*}*/
-
-        /*state = !state;*/
-
-        /*asm volatile("movl %0, %%eax; int $0x80"::"r"(sleep):"memory");*/
-    /*}*/
-/*}*/
-
-struct x86_task *x86_task_alloc(int flag) {
-    struct x86_task *t = &s_taskStructs[s_lastThread++];
-    if (flag & X86_TASK_IDLE) {
-        t->ctl = NULL;
-    } else {
-        t->ctl = &s_taskCtls[s_lastThread - 1];
-    }
-
-    t->flag = 0;
-    t->next = NULL;
-    return t;
-}
-
-int x86_alloc_pid(void) {
-    return s_lastPid++;
-}
-
-int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, mm_pagedir_t pd, uint32_t ebp3, int flag) {
-    uint32_t stackIndex = s_lastStack++;
+int x86_task_setup_stack(struct x86_task *t,
+        void (*entry)(void *),
+        void *arg,
+        mm_pagedir_t pd,
+        uint32_t ebp0,
+        uint32_t ebp3,
+        int flag) {
     uint32_t cr3 = ((uintptr_t) pd) - KERNEL_VIRT_BASE;
     uint32_t *esp0;
     uint32_t *esp3;
@@ -79,8 +44,7 @@ int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, m
         t->ebp3 = ebp3;
     }
     // Create kernel-space stack for state storage
-    t->ebp0 = (uint32_t) &s_stacks[stackIndex * X86_TASK_TOTAL_STACK + X86_TASK_TOTAL_STACK];
-
+    t->ebp0 = ebp0;
     esp0 = (uint32_t *) t->ebp0;
 
     if (flag & X86_TASK_IDLE) {
@@ -127,56 +91,21 @@ int x86_task_setup_stack(struct x86_task *t, void (*entry)(void *), void *arg, m
 void x86_task_init(void) {
     debug("Initializing multitasking\n");
 
-    s_lastStack = 0;
-
-    /*struct x86_task *prev_task = NULL;*/
-    struct x86_task *task;
-
     // Create idle task (TODO: make it kernel space, so it can HLT)
-    task = x86_task_alloc(X86_TASK_IDLE);
-    task->next = NULL;
-    task->flag = 0;
-    task->pid = x86_alloc_pid();
-    x86_task_setup_stack(task, x86_task_idle_func, NULL, mm_kernel, 0, X86_TASK_IDLE);
+    x86_task_idle.next = NULL;
+    x86_task_idle.ctl = NULL;
+    x86_task_idle.flag = 0;
+    x86_task_idle.pid = 0;
+    x86_task_setup_stack(&x86_task_idle,
+            x86_task_idle_func,
+            NULL,
+            mm_kernel,
+            (uint32_t) &x86_task_idle_stack[X86_TASK_TOTAL_STACK],
+            0,
+            X86_TASK_IDLE);
 
-    x86_task_idle = task;
-    x86_task_current = task;
-    x86_task_first = task;
-
-    /*prev_task = task;*/
-
-    /*task = x86_task_alloc(0);*/
-    /*task->next = NULL;*/
-    /*task->flag = 0;*/
-    /*task->pid = x86_alloc_pid();*/
-
-    /*// Add keyboard access*/
-    /*task->ctl->files[0] = vfs_alloc();*/
-    /*vfs_open(task->ctl->files[0], "kb", 0);*/
-    /*task->ctl->files[0]->f_task = task;*/
-
-    /*// Create a memory space*/
-    /*mm_pagedir_t pd = &s_pagedirs[(s_lastPagedir++) * 1024];*/
-    /*memset(pd, 0, 4096);*/
-    /*pd[768] = X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_RW;*/
-
-    /*// For test, allow task to write video mem at 0xB8000 -> 0xD00B8000*/
-    /*pd[(0xD0000000 >> 22)] = X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US | X86_MM_FLG_PR;*/
-    /*// Userspace stack*/
-    /*pd[(0x80000000 >> 22)] = (mm_alloc_phys_page() & -0x400000) | X86_MM_FLG_PR | X86_MM_FLG_US |*/
-                                                                  /*X86_MM_FLG_PS | X86_MM_FLG_RW;*/
-
-    /*uint32_t entry_addr;*/
-
-    /*if ((entry_addr = elf_load(pd, mod_base, mod_size)) == MM_NADDR) {*/
-        /*panic("Failed to load ELF\n");*/
-    /*}*/
-
-    /*mm_dump_pages(pd);*/
-    /*// TODO: allocate an userspace stack for task*/
-    /*x86_task_setup_stack(task, entry_addr, (void *) 0xD00B8000, pd, 0x80000000 + 0x400000, 0);*/
-
-    /*prev_task->next = task;*/
+    x86_task_current = &x86_task_idle;
+    x86_task_first = &x86_task_idle;
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {
@@ -188,7 +117,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
     struct x86_task *tp = NULL;
     // Update tasks' flags and ctl
     for (struct x86_task *t = x86_task_first; t; t = t->next) {
-        if (t == x86_task_idle) {
+        if (t == &x86_task_idle) {
             tp = t;
             continue;
         }
@@ -240,7 +169,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             ((x86_task_current->flag & TASK_FLG_WAIT) ||
              (x86_task_current->flag & TASK_FLG_BUSY))) {
         // If we couldn't find any non-waiting task
-        x86_task_current = x86_task_idle;
+        x86_task_current = &x86_task_idle;
         x86_task_current->flag |= TASK_FLG_RUNNING;
         return;
     }

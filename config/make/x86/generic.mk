@@ -27,6 +27,7 @@ DIRS+=build/arch/x86 \
 
 LD=$(CC)
 CFLAGS+=-DARCH_X86
+DEFS+=-DARCH_X86
 LDFLAGS+=-static-libgcc
 LDFLAGS_POST=-lgcc
 

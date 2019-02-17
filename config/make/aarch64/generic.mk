@@ -5,6 +5,7 @@ BOOT_OBJS+=build/arch/aarch64/boot.o
 DIRS+=build/arch/aarch64
 
 CFLAGS+=-DARCH_AARCH64
+DEFS+=-DARCH_AARCH64
 
 all:
 

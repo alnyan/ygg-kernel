@@ -50,4 +50,9 @@ build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
 
 userspace:
-	@AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -s -C usr all
+	@AR=$(AR) \
+	 CC=$(CC) \
+	 LD=$(LD) \
+	 O=../build/usr \
+	 DEFS=$(DEFS) \
+	 make -s -C usr all

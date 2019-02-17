@@ -19,20 +19,6 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/syscall.o \
 	  build/arch/x86/task_test.o \
 	  build/arch/x86/panic.o
-HDRS+=src/arch/x86/com.h \
-	  src/arch/x86/gdt.h \
-	  src/arch/x86/hw.h \
-	  src/arch/x86/ints.h \
-	  src/arch/x86/io.h \
-	  src/arch/x86/irq.h \
-	  src/arch/x86/mm.h \
-	  src/arch/x86/multiboot.h \
-	  src/arch/x86/ps2.h \
-	  src/arch/x86/regs.h \
-	  src/arch/x86/task.h \
-	  src/arch/x86/timer.h \
-	  src/arch/x86/console.h \
-	  src/arch/x86/syscall.h
 
 USR_LINKER=config/ld/x86/user.ld
 

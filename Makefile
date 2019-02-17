@@ -7,6 +7,8 @@ HOSTLD=ld
 HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
+HDRS=$(shell find src -name "*.h")
+
 all: mkdirs build/kernel.bin userspace
 	@HOSTCC=$(HOSTCC) make -s -C util $(UTILS)
 

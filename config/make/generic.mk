@@ -19,12 +19,6 @@ OBJS+=build/kernel.o \
 	  build/sys/panic.o \
 	  build/sys/heap.o \
 	  build/sys/ctype.o
-HDRS+=src/util.h \
-	  src/sys/elf.h \
-	  src/dev/initrd.h \
-	  src/sys/panic.h \
-	  src/sys/heap.h \
-	  src/sys/ctype.h
 
 DIRS+=build/sys \
 	  build/dev

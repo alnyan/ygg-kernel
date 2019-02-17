@@ -1,9 +1,11 @@
 #pragma once
 
 // Arch-specific utils
-#ifdef ARCH_AARCH64
+#if defined(ARCH_AARCH64)
+#include "arch/aarch64/irq.h"
 #define __idle() asm volatile("wfe")
-#else
+#define __idle_halt() asm volatile("msr daifset, #2")
+#elif defined(ARCH_X86)
 #define __idle() asm volatile("hlt")
 #define __idle_halt() asm volatile("cli; hlt")
 #endif

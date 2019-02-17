@@ -6,7 +6,8 @@ CFLAGS=-ffreestanding \
 	   -Wpedantic \
 	   -Werror \
 	   -Wno-unused-function \
-	   -Wno-unused-const-variable
+	   -Wno-unused-const-variable \
+	   -Wno-unused-variable
 LDFLAGS=-nostdlib -nostartfiles
 LDFLAGS_POST=
 

@@ -307,16 +307,4 @@ void debug_dump(const void *block, size_t len) {
 }
 
 void debug_init(void) {
-#if defined(ARCH_AARCH64)
-    if (!uart_state(0)) {
-        uart_default_config(0);
-        debug("Set up UART debugging\n");
-    } else {
-        debug("UART is already initialized, skipping\n");
-    }
-
-    if (!uart_state(0)) {
-        debug("Failed to setup UART for debugging\n");
-    }
-#endif
 }

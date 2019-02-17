@@ -14,6 +14,8 @@
 
 #if defined(ARCH_X86)
 #include "arch/x86/mm.h"
+#elif defined(ARCH_AARCH64)
+#include "arch/aarch64/mm.h"
 #endif
 
 uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t aflags);

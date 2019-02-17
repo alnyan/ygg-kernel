@@ -6,12 +6,9 @@
 #include "sys/mm.h"
 #include <stddef.h>
 
-// FIXME
+// TODO: aarch64
 #ifdef ARCH_X86
 #include "arch/x86/mm.h"
-#else
-#error "Not yet implemented"
-#endif
 
 // Loads ELF file into memory space `dst'
 int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
@@ -87,3 +84,5 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
     return (int) entry_addr;
 }
+
+#endif

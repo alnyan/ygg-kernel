@@ -3,6 +3,7 @@
 #include "irq.h"
 #include "regs.h"
 #include "mm.h"
+#include "sys/task.h"
 
 // GP regs: 8
 // IRET regs: 5
@@ -18,18 +19,13 @@
 
 #define X86_TASK_IDLE           (1 << 1)
 
-struct x86_task_ctl {
-    uint32_t busyfd;
-    uint32_t sleep;
-};
-
 struct x86_task {
     uint32_t esp0;
     uint32_t ebp0;
     uint32_t ebp3;
     uint32_t flag;
     uint32_t pid;
-    struct x86_task_ctl *ctl;
+    task_ctl_t *ctl;
     struct x86_task *next;
 };
 

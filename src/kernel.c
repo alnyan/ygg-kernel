@@ -2,6 +2,7 @@
 #include "sys/debug.h"
 #include "sys/panic.h"
 #include "dev/devfs.h"
+#include "sys/task.h"
 #include "dev/tty.h"
 #include "arch/hw.h"
 #include "sys/mm.h"
@@ -18,7 +19,6 @@ void kernel_main(void) {
     // Now the kernel-stuff kicks in
     devfs_init();
     tty_init();
-
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
 
     // This is where we're ready to accept the first interrupt and start multitasking mode

@@ -11,6 +11,14 @@
 mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
 
+// TODO: better allocator
+static uint32_t mm_pagedir_data[1024 * 3];
+static uint32_t mm_last_pagedir = 0;
+
+mm_pagedir_t mm_pagedir_alloc(void) {
+    return &mm_pagedir_data[1024 * (++mm_last_pagedir)];
+}
+
 // Physical page tracking
 #define X86_MM_PHYS_PAGE    0x400000
 #define X86_MM_PHYS_PAGES   1024

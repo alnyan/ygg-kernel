@@ -6,9 +6,22 @@
 #include "sys/panic.h"
 #include "sys/task.h"
 #include "sys/elf.h"
+#include "sys/heap.h"
 #include "sys/debug.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
+
+task_t *task_create(void) {
+    struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
+    memset(t, 0, sizeof(struct x86_task *));
+    t->ctl = task_ctl_create();
+
+    return (task_t *) t;
+}
+
+void task_destroy(task_t *t) {
+    debug("TODO: task_destroy\n");
+}
 
 void task_busy(void *task) {
     ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
@@ -25,6 +38,14 @@ static uint32_t x86_task_idle_stack[X86_TASK_TOTAL_STACK];
 // Scheduling stuff
 struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
+struct x86_task *x86_task_last = NULL;
+
+void task_enable(task_t *t) {
+    debug("Adding task %p to sched\n", t);
+
+    x86_task_last->next = t;
+    x86_task_last = t;
+}
 
 // If set to 1, means we haven't entered multitasking yet
 static int x86_tasking_entry = 1;
@@ -108,6 +129,7 @@ void x86_task_init(void) {
 
     x86_task_current = &x86_task_idle;
     x86_task_first = &x86_task_idle;
+    x86_task_last = &x86_task_idle;
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {

@@ -22,7 +22,8 @@ OBJS+=build/kernel.o \
 	  build/sys/vfs.o \
 	  build/dev/devfs.o \
 	  build/dev/tty.o \
-	  build/sys/dev.o
+	  build/sys/dev.o \
+	  build/sys/task.o
 
 DIRS+=build/sys \
 	  build/dev

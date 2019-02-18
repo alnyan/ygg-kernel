@@ -7,6 +7,7 @@ typedef int ssize_t;
 #define STDIN_FILENO        1
 #define STDERR_FILENO       2
 
+ssize_t read(int fd, void *data, size_t len);
 ssize_t write(int fd, const void *data, size_t len);
 
 void putc(char c);

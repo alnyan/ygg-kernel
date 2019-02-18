@@ -2,6 +2,17 @@
 #include "string.h"
 #include "syscall.h"
 
+ssize_t read(int fd, void *data, size_t len) {
+    ssize_t r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_READ),
+            "b"(fd),
+            "c"(data),
+            "d"(len));
+    return r;
+}
+
 ssize_t write(int fd, const void *data, size_t len) {
     ssize_t r;
     asm volatile ("int $0x80":

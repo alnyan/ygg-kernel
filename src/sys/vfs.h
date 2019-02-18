@@ -4,6 +4,10 @@
 
 #define VFS_FLG_RD      (1 << 0)
 #define VFS_FLG_WR      (1 << 1)
+#define VFS_TYPE_REG    0
+#define VFS_TYPE_BLK    1
+#define VFS_TYPE_CHR    2
+#define VFS_TYPE_SOCK   3
 
 typedef int ssize_t;
 

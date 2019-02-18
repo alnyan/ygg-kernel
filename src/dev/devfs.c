@@ -1,7 +1,9 @@
 #include "devfs.h"
 #include "sys/debug.h"
+#include "sys/dev.h"
 #include "sys/mem.h"
 #include "sys/string.h"
+#include "dev/tty.h"
 
 // /dev/zero:
 //  read - provides exactly len zero bytes
@@ -31,6 +33,10 @@ static int devfs_open(vfs_t *fs, vfs_file_t *f, const char *path, uint32_t flags
         f->dev_priv = NULL;
 
         return 0;
+    }
+
+    if (!strcmp(path, "tty0")) {
+        return dev_open(tty_get(0), f, flags);
     }
 
     return -1;

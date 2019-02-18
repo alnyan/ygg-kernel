@@ -1,4 +1,5 @@
 #include "vfs.h"
+#include "sys/dev.h"
 #include "sys/assert.h"
 #include "sys/mem.h"
 #include "sys/debug.h"
@@ -61,10 +62,23 @@ ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len) {
         return -1;
     }
 
-    assert(f->fs);
-    assert(f->fs->read);
+    switch ((f->flags >> 2) & 0x7) {
+    // FILE
+    case VFS_TYPE_REG:
+        assert(f->fs);
+        assert(f->fs->read);
 
-    return f->fs->read(f->fs, f, buf, len, 0);
+        return f->fs->read(f->fs, f, buf, len, 0);
+    // BLK & CHR
+    case VFS_TYPE_BLK:
+    case VFS_TYPE_CHR:
+        assert(f->dev);
+        assert(f->dev->read);
+
+        return f->dev->read(f->dev, f, buf, len, 0);
+    default:
+        panic("Unsupported descriptor type\n");
+    }
 }
 
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
@@ -74,10 +88,22 @@ ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
         return -1;
     }
 
-    assert(f->fs);
-    assert(f->fs->write);
+    switch ((f->flags >> 2) & 0x7) {
+    // FILE
+    case VFS_TYPE_REG:
+        assert(f->fs);
+        assert(f->fs->write);
 
-    return f->fs->write(f->fs, f, buf, len, 0);
+        return f->fs->write(f->fs, f, buf, len, 0);
+    case VFS_TYPE_BLK:
+    case VFS_TYPE_CHR:
+        assert(f->dev);
+        assert(f->dev->write);
+
+        return f->dev->write(f->dev, f, buf, len, 0);
+    default:
+        panic("Unsupported descriptor type\n");
+    }
 }
 
 ////

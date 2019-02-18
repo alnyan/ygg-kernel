@@ -43,3 +43,23 @@ char *strcpy(char *dst, const char *src) {
     dst[i] = 0;
     return dst;
 }
+
+char *strchr(const char *s, char c) {
+    for (size_t i = 0; s[i]; ++i) {
+        if (s[i] == c) {
+            return (char *) &s[i];
+        }
+    }
+    return NULL;
+}
+
+char *strchrnul(const char *s, char c) {
+    for (size_t i = 0;; ++i) {
+        if (!s[i]) {
+            return (char *) &s[i];
+        }
+        if (s[i] == c) {
+            return (char *) &s[i];
+        }
+    }
+}

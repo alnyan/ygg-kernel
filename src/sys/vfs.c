@@ -194,41 +194,69 @@ int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
 
 ////
 
+static int vfs_components_match(const char *p0, const char *p1) {
+    int match = 0;
+    const char *e0, *e1;
+
+    if (!strcmp(p1, "/")) {
+        return 1;
+    }
+
+    if (p0[0] == '/') {
+        ++p0;
+    }
+
+    if (p1[0] == '/') {
+        ++p1;
+    }
+
+    while (1) {
+        e0 = strchrnul(p0, '/');
+        e1 = strchrnul(p1, '/');
+        debug("try_match %s, %s\n", p0, p1);
+
+        if ((e1 - p1) == (e0 - p0) && !strncmp(p0, p1, e0 - p0)) {
+            ++match;
+            p0 = e0 + 1;
+            p1 = e1 + 1;
+        } else {
+            break;
+        }
+    }
+
+    return match;
+}
+
 // TODO: rewrite this to handle path components properly
 int vfs_lookup_file(const char *path, vfs_mount_t **mount, const char **rel) {
-    size_t lmatch = 0xFFFFFFFF;
-
-    // XXX
-    if (!strncmp(path, "/bin", 4)) {
-        *rel = path + 1;
-        *mount = &vfs_mounts[1];
-        return 0;
-    }
+    size_t lmatch = 0;
+    int ismatchs = 0;
 
     for (int i = 0; i < sizeof(vfs_mounts) / sizeof(vfs_mounts[0]); ++i) {
         if (vfs_mounts[i].dst[0]) {
-            // For example:
-            //  mount.dst = "/dev"
-            //  path = "/dev/some/path"
-            //  Then
-            //  *rel = "some/path"
-            //  *mount = { devfs, "/dev", ... }
-            size_t match = strncmn(vfs_mounts[i].dst, path, sizeof(vfs_mounts[i].dst));
-
-            // Full match
-            if (match == strlen(vfs_mounts[i].dst) && (path[match] == '/' || !path[match])) {
-                if (match <= lmatch) {
-                    *rel = &path[(path[match] == '/') ? (match + 1) : match];
-                    *mount = &vfs_mounts[i];
-                    lmatch = match;
+            int match = vfs_components_match(path, vfs_mounts[i].dst);
+            if (match > lmatch || (match >= lmatch && ismatchs)) {
+                const char *e = path + 1;
+                if (strcmp(vfs_mounts[i].dst, "/")) {
+                    for (int i = 0; i < match; ++i) {
+                        e = strchr(e, '/');
+                    }
+                    *rel = e + 1;
+                    ismatchs = 0;
+                } else {
+                    ismatchs = 1;
+                    *rel = e;
                 }
+
+                *mount = &vfs_mounts[i];
+                lmatch = match;
             }
         } else {
             break;
         }
     }
 
-    return lmatch == 0xFFFFFFFF ? -1 : 0;
+    return lmatch == 0 ? -1 : 0;
 }
 
 int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {

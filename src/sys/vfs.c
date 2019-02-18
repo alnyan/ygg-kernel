@@ -55,12 +55,24 @@ void vfs_close(vfs_file_t *f) {
 }
 
 // TODO: allow these operations to be done asynchronously via IRQs
-ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len) {
+ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len, ssize_t *res) {
     assert(f);
 
     if (!(f->flags & VFS_FLG_RD)) {
         return -1;
     }
+
+    if (f->op_buf) {
+        panic("The file is locked by some other operation\n");
+    }
+
+    f->op_buf = buf;
+    f->op_res = res;
+    *f->op_res = 0;
+    f->op_len = len;
+    f->op_type = (f->flags & 0x3);
+
+    ssize_t r = -1;
 
     switch ((f->flags >> 2) & 0x7) {
     // FILE
@@ -68,17 +80,26 @@ ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len) {
         assert(f->fs);
         assert(f->fs->read);
 
-        return f->fs->read(f->fs, f, buf, len, 0);
+        r = f->fs->read(f->fs, f, buf, len, 0);
+        break;
     // BLK & CHR
     case VFS_TYPE_BLK:
     case VFS_TYPE_CHR:
         assert(f->dev);
         assert(f->dev->read);
 
-        return f->dev->read(f->dev, f, buf, len, 0);
+        r = f->dev->read(f->dev, f, buf, len, 0);
+        break;
     default:
         panic("Unsupported descriptor type\n");
     }
+
+    // If the operation is already completed (does not require an IRQ) we can unlock the file
+    if (r != VFS_READ_ASYNC) {
+        f->op_buf = NULL;
+    }
+
+    return r;
 }
 
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
@@ -169,4 +190,29 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
     }
 
     return -1;
+}
+
+////
+
+int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
+    assert(f && f->op_buf && f->op_res);
+
+    if (*f->op_res == -1) {
+        // Buffer was broken by some error
+        return 1;
+    }
+
+    size_t sz = count > f->op_len ? f->op_len : count;
+
+    // TODO: handle cases when op_buf is not in kernel page dir
+    memcpy(f->op_buf, src, sz);
+    *f->op_res += sz;
+
+    // TODO: notify task on progress
+    if (*f->op_res == f->op_len) {
+        f->op_buf = NULL;
+        return 1;
+    }
+
+    return 0;
 }

@@ -2,6 +2,7 @@
 #include "irq.h"
 #include "sys/debug.h"
 #include "sys/task.h"
+#include "dev/tty.h"
 #include "task.h"
 
 static const char x86_ps2_scan[] = {
@@ -19,7 +20,12 @@ void x86_ps2_init(void) {
 }
 
 int x86_irq_handler_1(x86_irq_regs_t *regs) {
-    /* uint8_t c = */ inb(0x60);
+    uint8_t c = inb(0x60);
     x86_irq_eoi(1);
+
+    if (c < 0x80) {
+        tty_type(0, x86_ps2_scan[c]);
+    }
+
     return 0;
 }

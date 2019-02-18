@@ -21,12 +21,6 @@ void kernel_main(void) {
 
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
 
-    vfs_file_t *f;
-    assert(f = vfs_open("/dev/tty0", VFS_FLG_WR));
-    assert(vfs_write(f, "Hello!\n", 7) == 7);
-
-    vfs_close(f);
-
     // This is where we're ready to accept the first interrupt and start multitasking mode
     irq_enable();
     while (1) {

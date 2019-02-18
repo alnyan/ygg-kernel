@@ -9,6 +9,8 @@
 #define VFS_TYPE_CHR    2
 #define VFS_TYPE_SOCK   3
 
+#define VFS_READ_ASYNC  ((ssize_t) -2)
+
 typedef int ssize_t;
 
 typedef struct dev dev_t;
@@ -60,6 +62,12 @@ struct vfs_file {
     void *dev_priv;
     // FS-specific info
     void *fs_priv;
+
+    // Pending operation info
+    void *op_buf;
+    ssize_t *op_res;
+    size_t op_len;
+    int op_type;
 };
 
 struct vfs_mount {
@@ -78,7 +86,7 @@ void vfs_init(vfs_t *fs);
 
 vfs_file_t *vfs_open(const char *path, uint32_t flags);
 void vfs_close(vfs_file_t *f);
-ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len);
+ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len, ssize_t *res);
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len);
 
 ////
@@ -89,3 +97,7 @@ int vfs_umount(const char *dst, uint32_t flags);
 ////
 
 int vfs_lookup_file(const char *path, vfs_mount_t **fs, const char **relpath);
+
+////
+
+int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count);

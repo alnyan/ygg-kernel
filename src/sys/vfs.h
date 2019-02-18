@@ -2,6 +2,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define VFS_FLG_RD      (1 << 0)
+#define VFS_FLG_WR      (1 << 1)
+
 typedef int ssize_t;
 
 typedef struct dev dev_t;

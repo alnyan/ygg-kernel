@@ -16,6 +16,31 @@ void vfs_init(vfs_t *fs) {
 
 ////
 
+vfs_file_t *vfs_open(const char *path, uint32_t flags) {
+    vfs_file_t *ret = NULL;
+    const char *rel = NULL;
+    vfs_mount_t *mount = NULL;
+
+    if (vfs_lookup_file(path, &mount, &rel) != 0) {
+        return ret;
+    }
+
+    assert(mount->fs && mount->fs->open);
+
+    ret = heap_alloc(sizeof(vfs_file_t));
+    memset(ret, 0, sizeof(vfs_file_t));
+
+    ret->fs = mount->fs;
+    // Copy RD/WR flags
+    ret->flags |= (flags & 0x3);
+
+    if (mount->fs->open(mount->fs, ret, rel, flags) != 0) {
+        return NULL;
+    }
+
+    return ret;
+}
+
 void vfs_close(vfs_file_t *f) {
     if (f) {
         assert(f->fs);
@@ -31,6 +56,11 @@ void vfs_close(vfs_file_t *f) {
 // TODO: allow these operations to be done asynchronously via IRQs
 ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len) {
     assert(f);
+
+    if (!(f->flags & VFS_FLG_RD)) {
+        return -1;
+    }
+
     assert(f->fs);
     assert(f->fs->read);
 
@@ -39,6 +69,11 @@ ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len) {
 
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
     assert(f);
+
+    if (!(f->flags & VFS_FLG_WR)) {
+        return -1;
+    }
+
     assert(f->fs);
     assert(f->fs->write);
 

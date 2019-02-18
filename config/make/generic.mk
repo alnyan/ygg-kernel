@@ -18,7 +18,9 @@ OBJS+=build/kernel.o \
 	  build/dev/initrd.o \
 	  build/sys/panic.o \
 	  build/sys/heap.o \
-	  build/sys/ctype.o
+	  build/sys/ctype.o \
+	  build/sys/vfs.o \
+	  build/dev/devfs.o
 
 DIRS+=build/sys \
 	  build/dev

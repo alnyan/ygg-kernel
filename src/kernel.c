@@ -20,8 +20,22 @@ void kernel_main(void) {
     // Now the kernel-stuff kicks in
     devfs_init();
     tty_init();
+    // Will create basic device set
+    devfs_populate();
+
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+
+    vfs_dirent_t ent;
+    vfs_dir_t *dir;
+    assert(dir = vfs_opendir("/dev"));
+
+    while (vfs_readdir(dir, &ent) == 0) {
+        debug(" %16s %s\n",
+                ent.name,
+                (ent.flags >> 2) == VFS_TYPE_BLK ? "blk" : "chr");
+    }
+
     // This is where we're ready to accept the first interrupt and start multitasking mode
     irq_enable();
     while (1) {

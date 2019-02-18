@@ -213,8 +213,6 @@ static int vfs_components_match(const char *p0, const char *p1) {
     while (1) {
         e0 = strchrnul(p0, '/');
         e1 = strchrnul(p1, '/');
-        debug("try_match %s, %s\n", p0, p1);
-
         if ((e1 - p1) == (e0 - p0) && !strncmp(p0, p1, e0 - p0)) {
             ++match;
             p0 = e0 + 1;
@@ -234,6 +232,13 @@ int vfs_lookup_file(const char *path, vfs_mount_t **mount, const char **rel) {
 
     for (int i = 0; i < sizeof(vfs_mounts) / sizeof(vfs_mounts[0]); ++i) {
         if (vfs_mounts[i].dst[0]) {
+            if (!strcmp(vfs_mounts[i].dst, path)) {
+                *rel = path + strlen(path);
+                *mount = &vfs_mounts[i];
+                lmatch = 10000;
+                break;
+            }
+
             int match = vfs_components_match(path, vfs_mounts[i].dst);
             if (match > lmatch || (match >= lmatch && ismatchs)) {
                 const char *e = path + 1;
@@ -273,7 +278,6 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
             }
         } else {
             memset(&vfs_mounts[i], 0, sizeof(vfs_mount_t));
-
             if (src) {
                 dev_t *blkd = vfs_get_blkdev(src);
 

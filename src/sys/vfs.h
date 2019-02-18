@@ -80,6 +80,8 @@ struct vfs_file {
     // FS-specific info
     void *fs_priv;
 
+    uintptr_t pos0, pos1;
+
     // Pending operation info
     void *op_buf;
     ssize_t *op_res;

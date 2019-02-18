@@ -22,20 +22,6 @@ void kernel_main(void) {
     tty_init();
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
-    assert(vfs_mount("/dev/ram0", "/other", vfs_initramfs, 0) == 0);
-
-    vfs_file_t *f;
-    ssize_t bread;
-    char buf[4096];
-    assert(f = vfs_open("/other/bin/test.txt", VFS_FLG_RD));
-
-    while ((bread = vfs_read(f, buf, sizeof(buf), &bread)) > 0) {
-        debug("Read block\n");
-        debug_dump(buf, bread);
-    }
-
-    vfs_close(f);
-
     // This is where we're ready to accept the first interrupt and start multitasking mode
     irq_enable();
     while (1) {

@@ -8,8 +8,12 @@
 #define VFS_TYPE_BLK    1
 #define VFS_TYPE_CHR    2
 #define VFS_TYPE_SOCK   3
+#define VFS_TYPE_DIR    4
 
 #define VFS_READ_ASYNC  ((ssize_t) -2)
+
+#define VFS_FACT_STAT   1
+#define VFS_FACT_BLKDEV 2   // Get block device associated with path
 
 typedef int ssize_t;
 
@@ -20,19 +24,31 @@ typedef struct vfs_mount vfs_mount_t;
 typedef int (*vfs_mount_func)(vfs_t *, vfs_mount_t *, uint32_t);
 typedef int (*vfs_umount_func)(vfs_t *, vfs_mount_t *, uint32_t);
 
+// TODO: use vfs_mount_t instead of vfs_t, as it provides more context
 typedef struct vfs_file vfs_file_t;
 typedef int (*vfs_open_func)(vfs_t *, vfs_file_t *, const char *, uint32_t);
 typedef void (*vfs_close_func)(vfs_t *, vfs_file_t *, uint32_t);
 typedef ssize_t (*vfs_write_func)(vfs_t *, vfs_file_t *, const void *, size_t, uint32_t);
 typedef ssize_t (*vfs_read_func)(vfs_t *, vfs_file_t *, void *, size_t, uint32_t);
+// Combination of stat/link/etc.
+typedef int (*vfs_fact_func)(vfs_t *, vfs_mount_t *, const char *, uint32_t, ...);
 
 typedef struct vfs_dir vfs_dir_t;
 typedef struct vfs_dirent vfs_dirent_t;
-typedef int (*vfs_opendir_func)(vfs_t *, vfs_dir_t *, const char *, uint32_t);
+typedef int (*vfs_opendir_func)(vfs_t *, vfs_mount_t *, vfs_dir_t *, const char *, uint32_t);
 typedef void (*vfs_closedir_func)(vfs_t *, vfs_dir_t *, uint32_t);
 typedef int (*vfs_readdir_func)(vfs_t *, vfs_dir_t *, vfs_dirent_t *, uint32_t);
 // Combination of mkdir/rmdir/etc.
-typedef int (*vfs_diract_func)(vfs_t *, const char *, uint32_t);
+typedef int (*vfs_diract_func)(vfs_t *, const char *, uint32_t, ...);
+
+struct vfs_stat {
+    uint32_t flags;
+};
+
+struct vfs_dirent {
+    uint32_t flags;
+    char name[256];
+};
 
 struct vfs {
     uint32_t flags;
@@ -46,6 +62,7 @@ struct vfs {
     vfs_close_func close;
     vfs_read_func read;
     vfs_write_func write;
+    vfs_fact_func fact;
 
     // Dir ops
     vfs_opendir_func opendir;
@@ -70,9 +87,19 @@ struct vfs_file {
     int op_type;
 };
 
+struct vfs_dir {
+    uint32_t flags;
+    dev_t *dev;
+    vfs_t *fs;
+    char path[256];
+    void *dev_priv;
+    void *fs_priv;
+};
+
 struct vfs_mount {
     uint32_t flags;
     vfs_t *fs;
+    dev_t *srcdev;
     char src[256];
     char dst[256];
     void *fs_priv;
@@ -88,6 +115,12 @@ vfs_file_t *vfs_open(const char *path, uint32_t flags);
 void vfs_close(vfs_file_t *f);
 ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len, ssize_t *res);
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len);
+
+int vfs_stat(const char *path, struct vfs_stat *st);
+dev_t *vfs_get_blkdev(const char *path);
+
+vfs_dir_t *vfs_opendir(const char *path);
+int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent);
 
 ////
 

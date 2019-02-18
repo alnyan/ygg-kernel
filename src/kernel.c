@@ -1,4 +1,5 @@
 #include "sys/assert.h"
+#include "dev/initrd.h"
 #include "sys/debug.h"
 #include "sys/panic.h"
 #include "dev/devfs.h"
@@ -20,6 +21,16 @@ void kernel_main(void) {
     devfs_init();
     tty_init();
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
+    assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+
+    vfs_dir_t *dir;
+    vfs_dirent_t ent;
+    assert(dir = vfs_opendir("/"));
+
+    debug("ls \"/\" shows:\n");
+    while (vfs_readdir(dir, &ent) == 0) {
+        debug("* %s\n", ent.name);
+    }
 
     // This is where we're ready to accept the first interrupt and start multitasking mode
     irq_enable();

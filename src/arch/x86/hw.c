@@ -13,8 +13,6 @@
 #include "mm.h"
 #include "dev/initrd.h"
 
-static dev_initrd_t x86_initrd;
-
 void hw_early_init(void) {
     com_init(X86_COM0);
     x86_con_init();
@@ -33,7 +31,7 @@ static void x86_initrd_init(void) {
 
     debug("Init module of %uK\n", mod_size / 1024);
 
-    initrd_init(&x86_initrd, mod_base, mod_size);
+    initrd_init(mod_base, mod_size);
 }
 
 void hw_init(void) {

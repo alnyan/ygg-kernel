@@ -127,6 +127,70 @@ ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
     }
 }
 
+int vfs_stat(const char *path, struct vfs_stat *st) {
+    vfs_mount_t *mnt;
+    const char *rel;
+
+    if (vfs_lookup_file(path, &mnt, &rel) != 0) {
+        return -1;
+    }
+
+    assert(mnt->fs && mnt->fs->fact);
+
+    return mnt->fs->fact(mnt->fs, mnt, rel, VFS_FACT_STAT, st);
+}
+
+dev_t *vfs_get_blkdev(const char *path) {
+    vfs_mount_t *mnt;
+    const char *rel;
+
+    if (vfs_lookup_file(path, &mnt, &rel) != 0) {
+        return NULL;
+    }
+
+    assert(mnt->fs && mnt->fs->fact);
+
+    dev_t *dev;
+    if (mnt->fs->fact(mnt->fs, mnt, rel, VFS_FACT_BLKDEV, &dev) != 0) {
+        return NULL;
+    }
+    return dev;
+}
+
+vfs_dir_t *vfs_opendir(const char *path) {
+    vfs_mount_t *mnt;
+    const char *rel;
+
+    if (vfs_lookup_file(path, &mnt, &rel) != 0) {
+        return NULL;
+    }
+
+    assert(mnt->fs && mnt->fs->opendir);
+
+    vfs_dir_t *dir = (vfs_dir_t *) heap_alloc(sizeof(vfs_dir_t));
+
+    strcpy(dir->path, rel);
+    dir->dev = mnt->srcdev;
+    dir->fs = mnt->fs;
+
+    if (mnt->fs->opendir(mnt->fs, mnt, dir, rel, 0) != 0) {
+        heap_free(dir);
+        return NULL;
+    }
+
+    return dir;
+}
+
+int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
+    assert(dir && dir->fs);
+
+    if (!dir->fs->readdir) {
+        return -1;
+    }
+
+    return dir->fs->readdir(dir->fs, dir, ent, 0);
+}
+
 ////
 
 int vfs_lookup_file(const char *path, vfs_mount_t **mount, const char **rel) {
@@ -167,11 +231,21 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
     for (int i = 0; i < sizeof(vfs_mounts) / sizeof(vfs_mounts[0]); ++i) {
         if (vfs_mounts[i].dst[0]) {
             if (!strcmp(vfs_mounts[i].dst, dst)) {
+                debug("Mountpoint already exists\n");
                 return -1;
             }
         } else {
             memset(&vfs_mounts[i], 0, sizeof(vfs_mount_t));
+
             if (src) {
+                dev_t *blkd = vfs_get_blkdev(src);
+
+                if (!blkd) {
+                    debug("%s is not a block device\n", src);
+                    return -1;
+                }
+
+                vfs_mounts[i].srcdev = blkd;
                 strcpy(vfs_mounts[i].src, src);
             }
             strcpy(vfs_mounts[i].dst, dst);

@@ -1,8 +1,14 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include "sys/dev.h"
+#include "sys/vfs.h"
+
+extern dev_t *dev_initrd;
+extern vfs_t *vfs_initramfs;
 
 typedef struct {
+    dev_t dev;
     uintptr_t base;
     size_t len;
 } dev_initrd_t;
@@ -38,4 +44,4 @@ typedef struct {
     char padding[12];
 } tar_t;
 
-void initrd_init(dev_initrd_t *dev, uintptr_t base, size_t size);
+void initrd_init(uintptr_t addr, size_t len);

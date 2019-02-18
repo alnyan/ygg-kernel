@@ -4,6 +4,7 @@
 #include "sys/mem.h"
 #include "sys/string.h"
 #include "dev/tty.h"
+#include "dev/initrd.h"
 
 // /dev/zero:
 //  read - provides exactly len zero bytes
@@ -64,12 +65,33 @@ static ssize_t devfs_write(vfs_t *fs, vfs_file_t *f, const void *buf, size_t len
     }
 }
 
+static int devfs_fact(vfs_t *fs, vfs_mount_t *mnt, const char *path, uint32_t act, ...) {
+    va_list args;
+    va_start(args, act);
+    int res = -1;
+
+    switch (act) {
+    case VFS_FACT_BLKDEV:
+        if (!strcmp(path, "ram0")) {
+            dev_t **dpp = va_arg(args, dev_t **);
+            *dpp = dev_initrd;
+            res = 0;
+        }
+        break;
+    }
+
+    va_end(args);
+
+    return res;
+}
+
 void devfs_init(void) {
     vfs_init(&devfs.fs);
 
     devfs.fs.open = devfs_open;
     devfs.fs.read = devfs_read;
     devfs.fs.write = devfs_write;
+    devfs.fs.fact = devfs_fact;
 
     vfs_devfs = (vfs_t *) &devfs;
 }

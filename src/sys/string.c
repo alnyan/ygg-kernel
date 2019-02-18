@@ -15,7 +15,7 @@ int strncmp(const char *a, const char *b, size_t l) {
             return 1;
         }
     }
-    if (*a != *b) {
+    if (*a != *b && p != l) {
         return 1;
     }
     return 0;

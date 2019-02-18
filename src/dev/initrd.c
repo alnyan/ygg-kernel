@@ -2,6 +2,7 @@
 #include "sys/string.h"
 #include "sys/assert.h"
 #include "sys/debug.h"
+#include "sys/mem.h"
 #include "sys/mm.h"
 
 static uint32_t tar_oct2u32(const char *oct, size_t len) {
@@ -41,10 +42,11 @@ static tar_type_t tar_type(const tar_t *t, int is_ustar) {
     }
 }
 
-static uintptr_t initrd_find_file(const dev_initrd_t *dev, const char *name) {
+static uintptr_t initrd_find_file(uintptr_t base, const char *name) {
     size_t filesz;
     int zb = 0;
-    tar_t *it = (tar_t *) dev->base;
+    tar_t *it = (tar_t *) base;
+    debug("find file %s\n", name);
 
     while (1) {
         if (it->name[0] == 0) {
@@ -63,7 +65,7 @@ static uintptr_t initrd_find_file(const dev_initrd_t *dev, const char *name) {
             filesz = tar_oct2u32(it->size, 12);
             size_t jmp = MM_ALIGN_UP(filesz, 512) / 512;
             if (!strncmp(it->name, name, sizeof(it->name))) {
-                return (uintptr_t) &it[1];
+                return (uintptr_t) it;
             }
             it = &it[jmp + 1];
         } else {
@@ -136,6 +138,33 @@ static int initramfs_readdir(vfs_t *fs, vfs_dir_t *dir, vfs_dirent_t *ent, uint3
     return 0;
 }
 
+static int initramfs_open(vfs_t *fs, vfs_file_t *f, const char *path, uint32_t flags) {
+    // Lookup the file
+    // TODO: rewrite using mount instead of fs
+    uintptr_t file_loc = initrd_find_file(initrd.base, path);
+
+    if (file_loc == MM_NADDR) {
+        return -1;
+    }
+
+    tar_t *tar = (tar_t *) file_loc;
+
+    // Setup tracking
+    f->pos0 = (uintptr_t) &tar[1];
+    f->pos1 = tar_oct2u32(tar->size, 12);
+
+    return 0;
+}
+
+static ssize_t initramfs_read(vfs_t *fs, vfs_file_t *f, void *data, size_t len, uint32_t flags) {
+    size_t l = len > f->pos1 ? f->pos1 : len;
+    memcpy(data, (const void *) f->pos0, l);
+    f->pos1 -= l;
+    f->pos0 += l;
+
+    return l;
+}
+
 ////
 
 void initrd_init(uintptr_t addr, size_t len) {
@@ -150,6 +179,8 @@ void initrd_init(uintptr_t addr, size_t len) {
 
     initramfs.opendir = initramfs_opendir;
     initramfs.readdir = initramfs_readdir;
+    initramfs.read = initramfs_read;
+    initramfs.open = initramfs_open;
 
     vfs_initramfs = &initramfs;
 }

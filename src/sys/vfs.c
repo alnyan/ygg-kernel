@@ -36,6 +36,7 @@ vfs_file_t *vfs_open(const char *path, uint32_t flags) {
     ret->flags |= (flags & 0x3);
 
     if (mount->fs->open(mount->fs, ret, rel, flags) != 0) {
+        heap_free(ret);
         return NULL;
     }
 
@@ -193,8 +194,16 @@ int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
 
 ////
 
+// TODO: rewrite this to handle path components properly
 int vfs_lookup_file(const char *path, vfs_mount_t **mount, const char **rel) {
     size_t lmatch = 0xFFFFFFFF;
+
+    // XXX
+    if (!strncmp(path, "/bin", 4)) {
+        *rel = path + 1;
+        *mount = &vfs_mounts[1];
+        return 0;
+    }
 
     for (int i = 0; i < sizeof(vfs_mounts) / sizeof(vfs_mounts[0]); ++i) {
         if (vfs_mounts[i].dst[0]) {
@@ -208,7 +217,7 @@ int vfs_lookup_file(const char *path, vfs_mount_t **mount, const char **rel) {
 
             // Full match
             if (match == strlen(vfs_mounts[i].dst) && (path[match] == '/' || !path[match])) {
-                if (match < lmatch) {
+                if (match <= lmatch) {
                     *rel = &path[(path[match] == '/') ? (match + 1) : match];
                     *mount = &vfs_mounts[i];
                     lmatch = match;

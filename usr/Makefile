@@ -12,6 +12,7 @@ mkdirs:
 	mkdir -p $(DIRS)
 
 $(O)/init.tar: $(USR_PROGS)
+	echo Hello! > $(O)/bin/test.txt
 	tar -C $(O) -cf $@ bin
 
 $(O)/bin/%: bin/%.c

@@ -1,4 +1,5 @@
 #include "elf.h"
+#include "linux/elf.h"
 #include "sys/string.h"
 #include "sys/panic.h"
 #include "sys/debug.h"

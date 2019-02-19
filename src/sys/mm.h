@@ -23,3 +23,4 @@ void mm_dump_pages(mm_pagedir_t pd);
 
 mm_pagedir_t mm_pagedir_alloc(void);
 void mm_pagedir_free(mm_pagedir_t pd);
+void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src);

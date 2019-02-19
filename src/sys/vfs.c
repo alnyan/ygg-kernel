@@ -202,6 +202,31 @@ void vfs_closedir(vfs_dir_t *dir) {
     heap_free(dir);
 }
 
+void vfs_dirent_dump(const vfs_dirent_t *ent) {
+    char siz_buf[12];
+    const char *p;
+    int type = (ent->flags >> 2) & 0x7;
+    switch (type) {
+    case VFS_TYPE_CHR:
+        p = "chr";
+        break;
+    case VFS_TYPE_BLK:
+        p = "blk";
+        break;
+    case VFS_TYPE_DIR:
+        p = "dir";
+        break;
+    case VFS_TYPE_SOCK:
+        p = "sck";
+        break;
+    case VFS_TYPE_REG:
+        p = siz_buf;
+        fmtsiz(ent->size, siz_buf);
+        break;
+    }
+    debug(" %12s %-16s\n", p, ent->name);
+}
+
 ////
 
 static int vfs_components_match(const char *p0, const char *p1) {

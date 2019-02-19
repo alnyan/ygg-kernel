@@ -48,6 +48,7 @@ struct vfs_stat {
 struct vfs_dirent {
     uint32_t flags;
     char name[256];
+    size_t size;
 };
 
 struct vfs {
@@ -124,6 +125,8 @@ dev_t *vfs_get_blkdev(const char *path);
 vfs_dir_t *vfs_opendir(const char *path);
 int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent);
 void vfs_closedir(vfs_dir_t *dir);
+
+void vfs_dirent_dump(const vfs_dirent_t *ent);
 
 ////
 

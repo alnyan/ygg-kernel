@@ -28,12 +28,10 @@ void kernel_main(void) {
 
     vfs_dirent_t ent;
     vfs_dir_t *dir;
-    assert(dir = vfs_opendir("/dev"));
+    assert(dir = vfs_opendir("/"));
 
     while (vfs_readdir(dir, &ent) == 0) {
-        debug(" %-16s %s\n",
-                ent.name,
-                (ent.flags >> 2) == VFS_TYPE_BLK ? "blk" : "chr");
+        vfs_dirent_dump(&ent);
     }
 
     vfs_closedir(dir);

@@ -119,6 +119,7 @@ static int initramfs_readdir(vfs_t *fs, vfs_dir_t *dir, vfs_dirent_t *ent, uint3
         ent->flags = VFS_TYPE_REG << 2;
 
         size_t entsiz = tar_oct2u32(hdr->size, 12);
+        ent->size = entsiz;
         hdr = &hdr[1 + MM_ALIGN_UP(entsiz, 512) / 512];
 
         if (!hdr->name[0]) {

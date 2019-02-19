@@ -52,8 +52,15 @@ struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
 struct x86_task *x86_task_last = NULL;
 
+static int x86_last_pid = 0;
+
 void task_enable(task_t *t) {
     debug("Adding task %p to sched\n", t);
+
+    struct x86_task *task = (struct x86_task *) t;
+
+    // FIXME: move to platform-generic
+    task->ctl->pid = ++x86_last_pid;
 
     x86_task_last->next = t;
     x86_task_last = t;
@@ -130,7 +137,6 @@ void x86_task_init(void) {
     x86_task_idle.next = NULL;
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;
-    x86_task_idle.pid = 0;
     x86_task_setup_stack(&x86_task_idle,
             x86_task_idle_func,
             NULL,
@@ -163,11 +169,11 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 tp->next = t->next;
             }
             debug("Task %d exited with status %d\n",
-                    t->pid,
+                    t->ctl->pid,
                     *((uint32_t *) (t->ebp0 - 8 * 4)));
 
             // Attempted to kill root process
-            if (t->pid == 1) {
+            if (t->ctl->pid == 1) {
                 panic_irq("Attempted to kill init!\n", regs);
             }
             continue;

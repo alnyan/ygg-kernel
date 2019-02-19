@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 void _start(void *arg) {
@@ -31,6 +32,10 @@ void _start(void *arg) {
         }
 
         printf("You've typed: \"%s\"\n", line);
+
+        if (!strcmp(line, "crashme") || !strcmp(line, "exit")) {
+            exit(1234);
+        }
     }
 
     exit(-1);

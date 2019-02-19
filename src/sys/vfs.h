@@ -80,9 +80,6 @@ struct vfs_file {
     vfs_t *fs;
     // Device-specific info
     void *dev_priv;
-    // FS-specific info
-    void *fs_priv;
-
     uintptr_t pos0, pos1;
 
     // Pending operation info
@@ -90,6 +87,7 @@ struct vfs_file {
     ssize_t *op_res;
     size_t op_len;
     int op_type;
+    void *task;
 };
 
 struct vfs_dir {

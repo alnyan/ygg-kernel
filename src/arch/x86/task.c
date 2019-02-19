@@ -8,6 +8,7 @@
 #include "sys/elf.h"
 #include "sys/heap.h"
 #include "sys/debug.h"
+#include "sys/assert.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
 
@@ -29,6 +30,17 @@ void task_busy(void *task) {
 
 void task_nobusy(void *task) {
     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
+}
+
+void task_copy_to_user(task_t *task, void *dst, const void *src, size_t sz) {
+    assert(task);
+    struct x86_task *t = (struct x86_task *) task;
+    uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
+    uint32_t old_cr3 = (uintptr_t) mm_current - KERNEL_VIRT_BASE;
+    // Khujak-khujak
+    asm volatile ("mov %0, %%cr3"::"a"(cr3):"memory");
+    memcpy(dst, src, sz);
+    asm volatile ("mov %0, %%cr3"::"a"(old_cr3):"memory");
 }
 
 // Idle task (kernel-space) stuff

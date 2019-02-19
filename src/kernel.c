@@ -32,7 +32,7 @@ void kernel_main(void) {
 
     vfs_dirent_t ent;
     vfs_dir_t *dir;
-    assert(dir = vfs_opendir("/"));
+    assert(dir = vfs_opendir("/dev"));
 
     while (vfs_readdir(dir, &ent) == 0) {
         vfs_dirent_dump(&ent);
@@ -58,6 +58,10 @@ void kernel_main(void) {
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
     uint32_t ebp3 = 0x80000000 + 0x400000;
 
+    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD | VFS_FLG_WR);
+    fd_tty_rd->task = task;
+    assert(fd_tty_rd);
+    ((struct x86_task *) task)->ctl->fds[0] = fd_tty_rd;
     x86_mm_map(pd, 0x80000000, 0x800000, X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
 
     assert(x86_task_setup_stack(

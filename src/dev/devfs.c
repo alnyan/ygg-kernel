@@ -26,14 +26,11 @@ static struct devfs {
 vfs_t *vfs_devfs;
 
 static int devfs_open(vfs_t *fs, vfs_file_t *f, const char *path, uint32_t flags) {
-    return -1;
-}
-
-static ssize_t devfs_read(vfs_t *fs, vfs_file_t *f, void *buf, size_t len, uint32_t flags) {
-    return -1;
-}
-
-static ssize_t devfs_write(vfs_t *fs, vfs_file_t *f, const void *buf, size_t len, uint32_t flags) {
+    for (struct devfs_node *node = devfs.nodes; node; node = node->next) {
+        if (!strcmp(node->name, path)) {
+            return dev_open(node->dev, f, flags);
+        }
+    }
     return -1;
 }
 
@@ -97,8 +94,6 @@ void devfs_init(void) {
     vfs_init(&devfs.fs);
 
     devfs.fs.open = devfs_open;
-    devfs.fs.read = devfs_read;
-    devfs.fs.write = devfs_write;
     devfs.fs.fact = devfs_fact;
 
     devfs.fs.opendir = devfs_opendir;

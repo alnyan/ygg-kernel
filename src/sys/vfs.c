@@ -6,6 +6,7 @@
 #include "sys/string.h"
 #include "sys/heap.h"
 #include "sys/mm.h"
+#include "sys/task.h"
 
 // TODO: better data structure
 static vfs_mount_t vfs_mounts[16];
@@ -370,18 +371,24 @@ int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
 
     if (*f->op_res == -1) {
         // Buffer was broken by some error
+        f->op_buf = NULL;
         return 1;
     }
 
     size_t sz = count > f->op_len ? f->op_len : count;
 
-    // TODO: handle cases when op_buf is not in kernel page dir
-    memcpy(f->op_buf, src, sz);
+    if (f->task) {
+        task_copy_to_user(f->task, (void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
+    } else {
+        memcpy((void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
+    }
     *f->op_res += sz;
 
-    // TODO: notify task on progress
     if (*f->op_res == f->op_len) {
         f->op_buf = NULL;
+        if (f->task) {
+            task_nobusy(f->task);
+        }
         return 1;
     }
 

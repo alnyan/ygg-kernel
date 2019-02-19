@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "sys/vfs.h"
 
 typedef void task_t;
 typedef void *(*task_entry_func)(void *);
@@ -7,7 +8,7 @@ typedef int pid_t;
 
 // Platform-agnostic task control struct
 typedef struct {
-    // TODO: file descriptor table
+    vfs_file_t *fds[4];
     uint32_t sleep;
     pid_t pid;
 } task_ctl_t;
@@ -26,6 +27,8 @@ void task_nobusy(task_t *task);
 task_t *task_create(void);
 int task_init(task_t *t, task_entry_func entry, void *arg, uint32_t flags);
 void task_destroy(task_t *t);
+
+void task_copy_to_user(task_t *t, void *dst, const void *src, size_t siz);
 
 // TODO: move this to sched.h?
 void task_enable();

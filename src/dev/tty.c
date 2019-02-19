@@ -9,8 +9,8 @@
 #define TTY_COUNT   8
 
 #ifdef ARCH_X86
-#include "arch/x86/com.h"
-#include "arch/x86/console.h"
+#include "arch/x86/hw/com.h"
+#include "arch/x86/hw/console.h"
 #endif
 
 static struct tty {

@@ -5,7 +5,7 @@
 #include "sys/ctype.h"
 #include "sys/task.h"
 #include "dev/tty.h"
-#include "task.h"
+#include "../task/task.h"
 #include "ps2cs.h"
 
 #define PS2_FLG_RAW     (1 << 0)

@@ -2,15 +2,15 @@
 #include "gdt.h"
 #include "ints.h"
 #include "timer.h"
-#include "task.h"
-#include "def.h"
+#include "../task/task.h"
+#include "../def.h"
 #include "hw.h"
 #include "sys/debug.h"
 #include "sys/panic.h"
 #include <stddef.h>
 #include "console.h"
 #include "ps2.h"
-#include "mm.h"
+#include "../mm.h"
 #include "dev/initrd.h"
 
 void hw_early_init(void) {

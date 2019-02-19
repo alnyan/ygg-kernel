@@ -5,7 +5,7 @@
 #include "sys/mm.h"
 #include "def.h"
 #include "mm.h"
-#include "hw.h"
+#include "hw/hw.h"
 #include "sys/heap.h"
 
 mm_pagedir_t mm_current;   // Currently used page directory

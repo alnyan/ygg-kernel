@@ -10,7 +10,7 @@
 #include "sys/mm.h"
 #include "util.h"
 
-#include "arch/x86/task.h"
+#include "arch/x86/task/task.h"
 #include "sys/heap.h"
 
 void kernel_main(void) {

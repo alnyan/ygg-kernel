@@ -1,5 +1,5 @@
 #pragma once
-#include "regs.h"
+#include "../regs.h"
 
 typedef struct {
     x86_gp_regs_t gp;

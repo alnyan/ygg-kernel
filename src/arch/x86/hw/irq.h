@@ -1,5 +1,5 @@
 #pragma once
-#include "regs.h"
+#include "../regs.h"
 #include "io.h"
 
 #define irq_enable() asm volatile("sti")

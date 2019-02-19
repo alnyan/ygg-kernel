@@ -1,8 +1,8 @@
 #include "task.h"
 #include "arch/hw.h"
 #include <stddef.h>
-#include "hw.h"
-#include "multiboot.h"
+#include "../hw/hw.h"
+#include "../multiboot.h"
 #include "sys/panic.h"
 #include "sys/task.h"
 #include "sys/elf.h"

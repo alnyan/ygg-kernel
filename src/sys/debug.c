@@ -7,8 +7,8 @@
 #include "arch/aarch64/uart.h"
 #endif
 #if defined(ARCH_X86)
-#include "arch/x86/com.h"
-#include "arch/x86/console.h"
+#include "arch/x86/hw/com.h"
+#include "arch/x86/hw/console.h"
 #endif
 
 static const char *s_debug_xs_set0 = "0123456789abcdef";

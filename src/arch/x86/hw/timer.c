@@ -1,6 +1,6 @@
 #include "sys/debug.h"
 #include "timer.h"
-#include "regs.h"
+#include "../regs.h"
 #include "io.h"
 
 #define PIT_BASE_FRQ    1193182

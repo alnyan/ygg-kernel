@@ -1,8 +1,8 @@
 #pragma once
 #include <stdint.h>
-#include "irq.h"
-#include "regs.h"
-#include "mm.h"
+#include "../hw/irq.h"
+#include "../regs.h"
+#include "../mm.h"
 #include "sys/task.h"
 
 // GP regs: 8

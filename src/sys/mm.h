@@ -1,6 +1,13 @@
 #pragma once
+#include <stdint.h>
+#include <stddef.h>
 
 #define MM_ALIGN_UP(p, a)   (((p) + (a) - 1) & ~((a) - 1))
+
+#define MM_MFLG_RW   (1 << 0)
+#define MM_MFLG_US   (1 << 1)
+#define MM_MFLG_SIZ0 (0 << 2)
+#define MM_MFLG_SIZ1 (1 << 2)
 
 // Alloc flags
 // 0x01: writable
@@ -20,6 +27,8 @@ uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t aflags);
 uintptr_t mm_alloc_phys_page(void);
 void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t addr, int count, uint32_t uflags);
 void mm_dump_pages(mm_pagedir_t pd);
+
+void mm_map_page(mm_pagedir_t pd, uintptr_t vaddr, uintptr_t paddr, uint32_t flags);
 
 mm_pagedir_t mm_pagedir_alloc(void);
 void mm_pagedir_free(mm_pagedir_t pd);

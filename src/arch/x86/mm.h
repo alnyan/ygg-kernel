@@ -1,6 +1,7 @@
 #pragma once
 
 #define MM_NADDR    ((uintptr_t) 0xFFFFFFFF)
+#define MM_PAGESZ0  0x400000
 #define MM_PAGESZ   0x400000
 
 #define X86_MM_FLG_PS   (1 << 7)

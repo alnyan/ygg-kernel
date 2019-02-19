@@ -12,11 +12,18 @@ mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
 
 // TODO: better allocator
-static uint32_t mm_pagedir_data[1024 * 3];
+// TODO: support for 4K-pages
+static uint32_t mm_pagedir_data[1024 * 3] __attribute__((aligned(0x1000)));
 static uint32_t mm_last_pagedir = 0;
 
 mm_pagedir_t mm_pagedir_alloc(void) {
-    return &mm_pagedir_data[1024 * (++mm_last_pagedir)];
+    mm_pagedir_t pd = &mm_pagedir_data[1024 * (mm_last_pagedir++)];
+    memset(pd, 0, 4096);
+    return pd;
+}
+
+void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
+    memcpy(dst, src, 4096);
 }
 
 // Physical page tracking

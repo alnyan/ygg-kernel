@@ -166,6 +166,31 @@ static ssize_t initramfs_read(vfs_t *fs, vfs_file_t *f, void *data, size_t len, 
     return l;
 }
 
+static int initramfs_fact(vfs_t *fs, vfs_mount_t *mnt, const char *path, uint32_t action, ...) {
+    int res = -1;
+    va_list args;
+    va_start(args, action);
+
+    switch (action) {
+    case VFS_FACT_GETM:
+        {
+            uintptr_t f = initrd_find_file(initrd.base, path);
+
+            if (f == MM_NADDR) {
+                debug("Not found\n");
+                break;
+            }
+
+            *va_arg(args, uintptr_t *) = f + 512;
+            res = 0;
+        }
+        break;
+    }
+
+    va_end(args);
+    return res;
+}
+
 ////
 
 void initrd_init(uintptr_t addr, size_t len) {
@@ -180,6 +205,7 @@ void initrd_init(uintptr_t addr, size_t len) {
 
     initramfs.opendir = initramfs_opendir;
     initramfs.readdir = initramfs_readdir;
+    initramfs.fact = initramfs_fact;
     initramfs.read = initramfs_read;
     initramfs.open = initramfs_open;
 

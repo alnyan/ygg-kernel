@@ -5,6 +5,7 @@
 #include "sys/debug.h"
 #include "sys/string.h"
 #include "sys/heap.h"
+#include "sys/mm.h"
 
 // TODO: better data structure
 static vfs_mount_t vfs_mounts[16];
@@ -126,6 +127,26 @@ ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len) {
     default:
         panic("Unsupported descriptor type\n");
     }
+}
+
+//// fact
+
+uintptr_t vfs_getm(const char *path) {
+    vfs_mount_t *mnt;
+    const char *rel;
+    uintptr_t res;
+
+    if (vfs_lookup_file(path, &mnt, &rel) != 0) {
+        return MM_NADDR;
+    }
+
+    assert(mnt->fs && mnt->fs->fact);
+
+    if (mnt->fs->fact(mnt->fs, mnt, rel, VFS_FACT_GETM, &res) != 0) {
+        return MM_NADDR;
+    }
+
+    return res;
 }
 
 int vfs_stat(const char *path, struct vfs_stat *st) {

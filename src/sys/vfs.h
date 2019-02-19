@@ -14,6 +14,8 @@
 
 #define VFS_FACT_STAT   1
 #define VFS_FACT_BLKDEV 2   // Get block device associated with path
+#define VFS_FACT_GETM   3   // Returns pointer to memory storage, if the file is linear and stored
+                            //  in memory
 
 typedef int ssize_t;
 
@@ -121,6 +123,7 @@ ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len);
 
 int vfs_stat(const char *path, struct vfs_stat *st);
 dev_t *vfs_get_blkdev(const char *path);
+uintptr_t vfs_getm(const char *path);
 
 vfs_dir_t *vfs_opendir(const char *path);
 int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent);

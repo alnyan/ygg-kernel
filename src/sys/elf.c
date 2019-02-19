@@ -47,9 +47,9 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
             if (shdr->sh_flags & SHF_ALLOC) {
                 // Just alloc pages for the section
                 // TODO: This is platform-specific code and needs to be moved somewhere
-                uintptr_t page_start = shdr->sh_addr & -0x400000;
-                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, 0x400000);
-                size_t page_count = (page_end - page_start) / 0x400000;
+                uintptr_t page_start = shdr->sh_addr & -MM_PAGESZ;
+                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ0);
+                size_t page_count = (page_end - page_start) / MM_PAGESZ0;
 
                 if (page_count != 1) {
                     panic("NYI\n");

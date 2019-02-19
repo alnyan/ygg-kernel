@@ -2,31 +2,36 @@
 #include <unistd.h>
 
 void _start(void *arg) {
-    char buf[5];
-
-    int fd = open("/bin/test.txt", 0, O_RDONLY);
-
-    printf("fd is %d\n", fd);
-
-    if (fd != -1) {
-        ssize_t bread;
-        printf("--- File data ---\n");
-        while ((bread = read(fd, buf, sizeof(buf))) > 0) {
-            write(0, buf, bread);
-        }
-        printf("\n--- End data ---\n");
-    }
-
-    close(fd);
+    char keybuf;
+    char line[256];
+    size_t pos = 0;
 
     while (1) {
-        if (read(0, buf, 5) != 5) {
-            exit(1234);
+        printf("> ");
+
+        while (1) {
+            if (read(0, &keybuf, 1) != 1) {
+                exit(-1);
+            }
+
+            if (keybuf >= ' ') {
+                line[pos++] = keybuf;
+                write(0, &keybuf, 1);
+            } else if (keybuf == '\b') {
+                if (pos) {
+                    line[pos--] = 0;
+                    write(0, &keybuf, 1);
+                }
+            } else if (keybuf == '\n') {
+                write(0, &keybuf, 1);
+                line[pos] = 0;
+                pos = 0;
+                break;
+            }
         }
 
-        write(0, "Test: ", 6);
-        write(0, buf, 5);
-        write(0, "\n", 1);
+        printf("You've typed: \"%s\"\n", line);
     }
-    exit(0);
+
+    exit(-1);
 }

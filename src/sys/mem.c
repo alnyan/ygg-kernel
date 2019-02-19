@@ -9,6 +9,13 @@ void *memset(void *block, int v, size_t len) {
     return block;
 }
 
+void *memsetw(void *block, int v, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        ((uint16_t *) block)[i] = v;
+    }
+    return block;
+}
+
 void *memcpy(void *dst, const void *src, size_t len) {
     for (size_t i = 0; i < len; ++i) {
         ((char *) dst)[i] = ((const char *) src)[i];

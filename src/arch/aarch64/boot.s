@@ -1,4 +1,5 @@
-/*
+/* vi:syntax=arm
+ *
  * After passing the firmware stage, we're running at
  *  EL2 in multi-core mode.
  */

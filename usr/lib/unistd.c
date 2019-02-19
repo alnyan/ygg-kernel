@@ -35,6 +35,10 @@ int open(const char *path, int flags, uint32_t mode) {
     return r;
 }
 
+void close(int fd) {
+    asm volatile ("int $0x80"::"a"(SYSCALL_NR_CLOSE), "b"(fd));
+}
+
 void exit(int r) {
     asm volatile ("int $0x80"::
             "a"(SYSCALL_NR_EXIT),

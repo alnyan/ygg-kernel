@@ -16,6 +16,7 @@ SYSCALL_DECL1(exit, int);
 #define SYSCALL_NR_READ     0x03
 #define SYSCALL_NR_WRITE    0x04
 #define SYSCALL_NR_OPEN     0x05
+#define SYSCALL_NR_CLOSE    0x06
 // sys_write/sys_read are special and are defined specially
 SYSCALL_DECL3(open, const char *, int, uint32_t);
-
+SYSCALL_DECL1(close, int);

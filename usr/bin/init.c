@@ -17,6 +17,8 @@ void _start(void *arg) {
         printf("\n--- End data ---\n");
     }
 
+    close(fd);
+
     while (1) {
         if (read(0, buf, 5) != 5) {
             exit(1234);

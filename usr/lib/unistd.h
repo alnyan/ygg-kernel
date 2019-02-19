@@ -16,6 +16,7 @@ ssize_t read(int fd, void *data, size_t len);
 ssize_t write(int fd, const void *data, size_t len);
 
 int open(const char *path, int flags, uint32_t mode);
+void close(int fd);
 
 void putc(char c);
 void puts(const char *s);

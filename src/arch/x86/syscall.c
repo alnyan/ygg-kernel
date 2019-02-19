@@ -64,6 +64,9 @@ void x86_syscall(x86_irq_regs_t *regs) {
     case SYSCALL_NR_OPEN:
         regs->gp.eax = sys_open((const char *) regs->gp.ebx, (int) regs->gp.ecx, regs->gp.edx);
         break;
+    case SYSCALL_NR_CLOSE:
+        sys_close((int) regs->gp.ebx);
+        break;
 
     default:
         regs->gp.eax = -1;
@@ -107,4 +110,20 @@ SYSCALL_DEFINE3(open, const char *path, int flags, uint32_t mode) {
     t->ctl->fds[free_fd] = f;
 
     return free_fd;
+}
+
+SYSCALL_DEFINE1(close, int fd) {
+    struct x86_task *t = x86_task_current;
+    if (fd < 0 || fd > 3) {
+        return -1;
+    }
+
+    vfs_file_t *f;
+
+    if ((f = t->ctl->fds[fd])) {
+        vfs_close(f);
+        t->ctl->fds[fd] = NULL;
+    }
+
+    return 0;
 }

@@ -123,6 +123,7 @@ dev_t *vfs_get_blkdev(const char *path);
 
 vfs_dir_t *vfs_opendir(const char *path);
 int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent);
+void vfs_closedir(vfs_dir_t *dir);
 
 ////
 

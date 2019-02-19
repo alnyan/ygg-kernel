@@ -36,6 +36,8 @@ void kernel_main(void) {
                 (ent.flags >> 2) == VFS_TYPE_BLK ? "blk" : "chr");
     }
 
+    vfs_closedir(dir);
+
     // This is where we're ready to accept the first interrupt and start multitasking mode
     irq_enable();
     while (1) {

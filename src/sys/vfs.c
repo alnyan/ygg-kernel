@@ -192,6 +192,16 @@ int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
     return dir->fs->readdir(dir->fs, dir, ent, 0);
 }
 
+void vfs_closedir(vfs_dir_t *dir) {
+    assert(dir && dir->fs);
+
+    if (dir->fs->closedir) {
+        dir->fs->closedir(dir->fs, dir, 0);
+    }
+
+    heap_free(dir);
+}
+
 ////
 
 static int vfs_components_match(const char *p0, const char *p1) {

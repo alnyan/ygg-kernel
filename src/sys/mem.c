@@ -41,6 +41,5 @@ void fmtsiz(size_t sz, char *out) {
         out[l++] = s_fmtsiz_pwrs[pwr - 1];
     }
 
-    out[l++] = 'B';
     out[l++] = 0;
 }

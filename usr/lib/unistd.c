@@ -46,6 +46,14 @@ void exit(int r) {
     while (1);
 }
 
+int fork(void) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_FORK));
+    return r;
+}
+
 void puts(const char *s) {
     size_t l = strlen(s);
     write(STDOUT_FILENO, s, l);

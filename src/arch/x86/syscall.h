@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define SYSCALL_DECL0(name)      int sys_##name(void)
+#define SYSCALL_DEFINE0(name)    int sys_##name(void)
 #define SYSCALL_DECL1(name, x)   int sys_##name(x)
 #define SYSCALL_DEFINE1(name, x) int sys_##name(x)
 #define SYSCALL_DECL3(name, x, y, z)   int sys_##name(x, y, z)
@@ -11,7 +13,9 @@
 #define SYSOP_SYNC          0x00
 
 #define SYSCALL_NR_EXIT     0x01
+#define SYSCALL_NR_FORK     0x02
 SYSCALL_DECL1(exit, int);
+SYSCALL_DECL0(fork);
 
 #define SYSCALL_NR_READ     0x03
 #define SYSCALL_NR_WRITE    0x04

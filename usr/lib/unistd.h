@@ -21,4 +21,5 @@ void close(int fd);
 void putc(char c);
 void puts(const char *s);
 
+int fork(void);
 void exit(int r);

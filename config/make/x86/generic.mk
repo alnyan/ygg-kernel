@@ -18,7 +18,8 @@ OBJS+=build/arch/x86/hw.o \
 	  build/arch/x86/console.o \
 	  build/arch/x86/syscall.o \
 	  build/arch/x86/panic.o \
-	  build/arch/x86/task_s.o
+	  build/arch/x86/task_s.o \
+	  build/arch/x86/fork.o
 
 USR_LINKER=config/ld/x86/user.ld
 

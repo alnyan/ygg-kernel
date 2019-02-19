@@ -21,6 +21,10 @@ void x86_syscall(x86_irq_regs_t *regs) {
             x86_task_switch(regs);
         }
         break;
+    case SYSCALL_NR_FORK:
+        regs->gp.eax = sys_fork();
+        break;
+
     case SYSCALL_NR_WRITE:
         {
             int fd = (int) regs->gp.ebx;
@@ -78,6 +82,12 @@ SYSCALL_DEFINE1(exit, int res) {
     // Exit code is stored in %ebx on task's stack
     x86_task_current->flag |= TASK_FLG_STOP;
     return 0;
+}
+
+SYSCALL_DEFINE0(fork) {
+    task_t *res = task_fork(x86_task_current);
+
+    return res ? ((struct x86_task *) res)->ctl->pid : -1;
 }
 
 SYSCALL_DEFINE3(open, const char *path, int flags, uint32_t mode) {

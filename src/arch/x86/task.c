@@ -52,7 +52,7 @@ struct x86_task *x86_task_current = NULL;
 struct x86_task *x86_task_first = NULL;
 struct x86_task *x86_task_last = NULL;
 
-static int x86_last_pid = 0;
+int x86_last_pid = 0;
 
 void task_enable(task_t *t) {
     debug("Adding task %p to sched\n", t);

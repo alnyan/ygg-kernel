@@ -18,6 +18,8 @@ typedef struct {
 #define TASK_FLG_WAIT           (1 << 2)
 #define TASK_FLG_BUSY           (1 << 3)
 
+task_t *task_fork(task_t *src);
+
 task_ctl_t *task_ctl_create(void);
 void task_ctl_free(task_ctl_t *ctl);
 

@@ -62,7 +62,7 @@ void kernel_main(void) {
     fd_tty_rd->task = task;
     assert(fd_tty_rd);
     ((struct x86_task *) task)->ctl->fds[0] = fd_tty_rd;
-    x86_mm_map(pd, 0x80000000, 0x800000, X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
+    x86_mm_map(pd, 0x80000000, mm_alloc_phys_page(), X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
 
     assert(x86_task_setup_stack(
         (struct x86_task *) task,

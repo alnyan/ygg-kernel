@@ -31,7 +31,7 @@ void kernel_main(void) {
     assert(dir = vfs_opendir("/dev"));
 
     while (vfs_readdir(dir, &ent) == 0) {
-        debug(" %16s %s\n",
+        debug(" %-16s %s\n",
                 ent.name,
                 (ent.flags >> 2) == VFS_TYPE_BLK ? "blk" : "chr");
     }

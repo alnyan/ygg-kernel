@@ -159,9 +159,14 @@ void debugfv(const char *fmt, va_list args) {
                     padc = c;
                 }
 
+                if (c == '-') {
+                    padd = -1;
+                    c = *(++fmt);
+                }
+
                 while (c >= '0' && c <= '9') {
-                    padn *= padd * 10;
-                    padn += padd * (c - '0');
+                    padn *= 10;
+                    padn += padd * (int) (c - '0');
                     c = *(++fmt);
                 }
 

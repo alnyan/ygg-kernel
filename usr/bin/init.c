@@ -7,8 +7,6 @@ void _start(void *arg) {
     char line[256];
     size_t pos = 0;
 
-    fexecve("/bin/hello", NULL, NULL);
-
     while (1) {
         printf("> ");
 
@@ -37,6 +35,10 @@ void _start(void *arg) {
 
         if (!strcmp(line, "crashme") || !strcmp(line, "exit")) {
             exit(1234);
+        }
+
+        if (!strcmp(line, "hello")) {
+            fexecve("/bin/hello", NULL, NULL);
         }
     }
 

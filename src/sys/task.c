@@ -7,3 +7,7 @@ task_ctl_t *task_ctl_create(void) {
     memset(ctl, 0, sizeof(task_ctl_t));
     return ctl;
 }
+
+void task_ctl_free(task_ctl_t *ctl) {
+    heap_free(ctl);
+}

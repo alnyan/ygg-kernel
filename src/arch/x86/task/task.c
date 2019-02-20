@@ -21,7 +21,29 @@ task_t *task_create(void) {
 }
 
 void task_destroy(task_t *t) {
-    debug("TODO: task_destroy\n");
+    struct x86_task *task = (struct x86_task *) t;
+
+    // Unmapping sub-kernel pages
+    mm_pagedir_t task_pd;
+    uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
+    task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+
+    for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
+        if (task_pd[i] & 1) {
+            mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF);
+        }
+    }
+
+    // Close file descriptors
+    for (int i = 0; i < 4; ++i) {
+        if (task->ctl->fds[i]) {
+            vfs_close(task->ctl->fds[i]);
+        }
+    }
+
+    // Free data structures
+    task_ctl_free(task->ctl);
+    heap_free(task);
 }
 
 void task_busy(void *task) {
@@ -168,6 +190,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             if (tp) {
                 tp->next = t->next;
             }
+
             debug("Task %d exited with status %d\n",
                     t->ctl->pid,
                     *((uint32_t *) (t->ebp0 - 8 * 4)));
@@ -176,6 +199,9 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             if (t->ctl->pid == 1) {
                 panic_irq("Attempted to kill init!\n", regs);
             }
+
+            task_destroy(t);
+
             continue;
         }
         // Decrease sleep counters

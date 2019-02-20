@@ -1,7 +1,8 @@
 LIBUSR_OBJS=$(O)/lib/printf.o \
 			$(O)/lib/unistd.o \
 			$(O)/lib/string.o
-USR_PROGS=$(O)/bin/init
+USR_PROGS=$(O)/bin/init \
+		  $(O)/bin/hello
 
 DIRS=$(O)/lib \
 	 $(O)/bin

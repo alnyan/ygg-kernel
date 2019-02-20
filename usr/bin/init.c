@@ -7,6 +7,8 @@ void _start(void *arg) {
     char line[256];
     size_t pos = 0;
 
+    fexecve("/bin/hello", NULL, NULL);
+
     while (1) {
         printf("> ");
 

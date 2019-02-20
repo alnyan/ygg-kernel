@@ -72,6 +72,13 @@ void x86_syscall(x86_irq_regs_t *regs) {
         sys_close((int) regs->gp.ebx);
         break;
 
+    // Non-standard fork() + execve() syscall
+    case SYSCALL_NRX_FEXECVE:
+        regs->gp.eax = sys_fexecve((const char *) regs->gp.ebx,
+                                   (const char **) regs->gp.ecx,
+                                   (const char **) regs->gp.edx);
+        break;
+
     default:
         regs->gp.eax = -1;
         break;
@@ -136,4 +143,11 @@ SYSCALL_DEFINE1(close, int fd) {
     }
 
     return 0;
+}
+
+SYSCALL_DEFINE3(fexecve, const char *path, const char **argp, const char **envp) {
+    // Not supported yet
+    assert(!argp || !envp);
+    task_t *res = task_fexecve(path, argp, envp);
+    return res ? 0 : -1;
 }

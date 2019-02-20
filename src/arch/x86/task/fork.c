@@ -3,6 +3,7 @@
 #include "sys/assert.h"
 #include "sys/heap.h"
 #include "sys/mem.h"
+#include "sys/elf.h"
 #include "sys/mm.h"
 #include "arch/hw.h"
 #include "sys/task.h"
@@ -82,4 +83,51 @@ task_t *task_fork(task_t *t) {
     task_enable(dst);
 
     return dst;
+}
+
+task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
+    // TODO: allow loading from sources other than ramdisk
+    uintptr_t file_mem = vfs_getm(path);
+    assert(file_mem != MM_NADDR);
+
+    uint32_t kernel_cr3 = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
+    asm volatile ("mov %0, %%cr3"::"a"(kernel_cr3));
+
+    // Load the ELF
+    mm_pagedir_t pd = mm_pagedir_alloc();
+    mm_clone(pd, mm_kernel);
+
+    uintptr_t entry = elf_load(pd, file_mem, 0);
+
+    // Create and setup the task
+    task_t *task = task_create();
+    extern int x86_task_setup_stack(struct x86_task *t,
+        void (*entry)(void *),
+        void *arg,
+        mm_pagedir_t pd,
+        uint32_t ebp0,
+        uint32_t ebp3,
+        int flag);
+    uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
+    uint32_t ebp3 = 0x80000000 + 0x400000;
+
+    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD | VFS_FLG_WR);
+    fd_tty_rd->task = task;
+    assert(fd_tty_rd);
+    ((struct x86_task *) task)->ctl->fds[0] = fd_tty_rd;
+    x86_mm_map(pd, 0x80000000, mm_alloc_phys_page(), X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
+
+    assert(x86_task_setup_stack(
+        (struct x86_task *) task,
+        (void(*)(void *)) entry,
+        NULL,
+        pd,
+        ebp0,
+        ebp3,
+        0
+    ) == 0);
+
+    task_enable(task);
+
+    return task;
 }

@@ -54,6 +54,17 @@ int fork(void) {
     return r;
 }
 
+int fexecve(const char *path, const char **argp, const char **envp) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NRX_FEXECVE),
+            "b"(path),
+            "c"(argp),
+            "d"(envp));
+    return r;
+}
+
 void puts(const char *s) {
     size_t l = strlen(s);
     write(STDOUT_FILENO, s, l);

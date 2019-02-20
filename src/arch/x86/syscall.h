@@ -24,3 +24,6 @@ SYSCALL_DECL0(fork);
 // sys_write/sys_read are special and are defined specially
 SYSCALL_DECL3(open, const char *, int, uint32_t);
 SYSCALL_DECL1(close, int);
+
+#define SYSCALL_NRX_FEXECVE 0x11
+SYSCALL_DECL3(fexecve, const char *, const char **, const char **);

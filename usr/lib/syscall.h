@@ -7,3 +7,5 @@
 #define SYSCALL_NR_WRITE    0x04
 #define SYSCALL_NR_OPEN     0x05
 #define SYSCALL_NR_CLOSE    0x06
+
+#define SYSCALL_NRX_FEXECVE 0x11

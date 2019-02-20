@@ -1,0 +1,7 @@
+Planned (and very desired and useful) features:
+
+    * Add page markers to tell .text pages from .data/.bss ones
+    * Sanitize userspace-kernel interaction in syscalls
+    * Sanitize VFS userspace interaction
+    * 4K-page support for userspace
+    * Reference counting on page directories/tables + COW

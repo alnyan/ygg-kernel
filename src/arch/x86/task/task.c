@@ -23,7 +23,6 @@ task_t *task_create(void) {
 
 void task_destroy(task_t *t) {
     struct x86_task *task = (struct x86_task *) t;
-
     uint32_t cr3_kernel = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
     asm volatile ("mov %0, %%cr3"::"a"(cr3_kernel));
 
@@ -39,7 +38,6 @@ void task_destroy(task_t *t) {
     }
 
     // TODO: mm_pagedir_free()
-
     // Close file descriptors
     for (int i = 0; i < 4; ++i) {
         if (task->ctl->fds[i]) {
@@ -64,7 +62,6 @@ void task_nobusy(void *task) {
 }
 
 void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
-    debug("task_copy_to_user\n");
     // Temp: just check we're entering here from kernel
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
@@ -85,7 +82,6 @@ void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_
 }
 
 void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
-    debug("task_copy_from_user\n");
     // Temp: just check we're entering here from kernel
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));

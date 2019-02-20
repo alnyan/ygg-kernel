@@ -21,7 +21,6 @@ void x86_syscall(x86_irq_regs_t *regs) {
     switch (regs->gp.eax) {
     case SYSCALL_NR_EXIT:
         {
-            debug("EXIT FROM %d\n", task->ctl->pid);
             sys_exit(regs->gp.ebx);
             x86_task_switch(regs);
         }
@@ -42,7 +41,6 @@ void x86_syscall(x86_irq_regs_t *regs) {
             assert(file);
 
             // TODO: async write
-            debug("WRITE FROM %d\n", task->ctl->pid);
             regs->gp.eax = vfs_write(file, (const void *) regs->gp.ecx, regs->gp.edx);
         }
         break;

@@ -20,7 +20,6 @@ static void debugc(char c) {
 #endif
 #ifdef ARCH_X86
 	com_send(X86_COM0, c);
-    x86_con_putc(c);
 #endif
 }
 

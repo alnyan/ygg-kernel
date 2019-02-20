@@ -9,6 +9,7 @@
 #include "sys/heap.h"
 #include "sys/debug.h"
 #include "sys/assert.h"
+#include "sys/attr.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
 
@@ -23,6 +24,9 @@ task_t *task_create(void) {
 void task_destroy(task_t *t) {
     struct x86_task *task = (struct x86_task *) t;
 
+    uint32_t cr3_kernel = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
+    asm volatile ("mov %0, %%cr3"::"a"(cr3_kernel));
+
     // Unmapping sub-kernel pages
     mm_pagedir_t task_pd;
     uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
@@ -34,12 +38,17 @@ void task_destroy(task_t *t) {
         }
     }
 
+    // TODO: mm_pagedir_free()
+
     // Close file descriptors
     for (int i = 0; i < 4; ++i) {
         if (task->ctl->fds[i]) {
             vfs_close(task->ctl->fds[i]);
         }
     }
+
+    // Free stacks
+    heap_free((void *) (task->ebp0 - 18 * 4));
 
     // Free data structures
     task_ctl_free(task->ctl);
@@ -54,15 +63,55 @@ void task_nobusy(void *task) {
     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
 }
 
-void task_copy_to_user(task_t *task, void *dst, const void *src, size_t sz) {
+void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
+    debug("task_copy_to_user\n");
+    // Temp: just check we're entering here from kernel
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
     assert(task);
     struct x86_task *t = (struct x86_task *) task;
     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-    uint32_t old_cr3 = (uintptr_t) mm_current - KERNEL_VIRT_BASE;
-    // Khujak-khujak
-    asm volatile ("mov %0, %%cr3"::"a"(cr3):"memory");
+    mm_pagedir_t task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+
+    uint32_t dst_page_base = ((uint32_t) dst) & -0x400000;
+
+    // TODO: handle multiple-page copies
+    // TODO: make standard define for "transition page"
+    x86_mm_map(mm_kernel, dst_page_base, task_pd[dst_page_base >> 22], X86_MM_FLG_PS | X86_MM_FLG_RW);
     memcpy(dst, src, sz);
-    asm volatile ("mov %0, %%cr3"::"a"(old_cr3):"memory");
+    mm_unmap_cont_region(mm_kernel, dst_page_base, 1, 0);
+}
+
+void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
+    debug("task_copy_from_user\n");
+    // Temp: just check we're entering here from kernel
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
+    assert(task);
+    struct x86_task *t = (struct x86_task *) task;
+    uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
+    mm_pagedir_t task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+
+    uint32_t src_page_base = ((uint32_t) src) & -0x400000;
+
+    // TODO: handle multiple-page copies
+    // TODO: make standard define for "transition page"
+    x86_mm_map(mm_kernel, src_page_base, task_pd[src_page_base >> 22], X86_MM_FLG_PS);
+    if (sz != MM_NADDR) {
+        memcpy(dst, src, sz);
+    } else {
+        const char *src_str = (const char *) src;
+        char *dst_str = (char *) dst;
+
+        for (; *src_str; ++src_str, ++dst_str) {
+            *dst_str = *src_str;
+        }
+    }
+    mm_unmap_cont_region(mm_kernel, src_page_base, 1, 0);
 }
 
 // Idle task (kernel-space) stuff
@@ -83,6 +132,7 @@ void task_enable(task_t *t) {
 
     // FIXME: move to platform-generic
     task->ctl->pid = ++x86_last_pid;
+    task->flag = 0;
 
     x86_task_last->next = t;
     x86_task_last = t;
@@ -173,6 +223,8 @@ void x86_task_init(void) {
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {
+    mm_set_kernel();
+
     if (x86_tasking_entry) {
         x86_tasking_entry = 0;
         return;
@@ -187,8 +239,12 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         }
         // Task stopped
         if (t->flag & TASK_FLG_STOP) {
-            if (tp) {
-                tp->next = t->next;
+            // Remove task from sched here
+            assert(tp);
+
+            tp->next = t->next;
+            if (t == x86_task_last) {
+                x86_task_last = tp;
             }
 
             debug("Task %d exited with status %d\n",

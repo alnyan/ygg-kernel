@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include "sys/attr.h"
 
 #define SYSCALL_DECL0(name)      int sys_##name(void)
 #define SYSCALL_DEFINE0(name)    int sys_##name(void)
@@ -22,8 +23,8 @@ SYSCALL_DECL0(fork);
 #define SYSCALL_NR_OPEN     0x05
 #define SYSCALL_NR_CLOSE    0x06
 // sys_write/sys_read are special and are defined specially
-SYSCALL_DECL3(open, const char *, int, uint32_t);
+SYSCALL_DECL3(open, const userspace char *, int, uint32_t);
 SYSCALL_DECL1(close, int);
 
 #define SYSCALL_NRX_FEXECVE 0x11
-SYSCALL_DECL3(fexecve, const char *, const char **, const char **);
+SYSCALL_DECL3(fexecve, const userspace char *, const userspace char **, const userspace char **);

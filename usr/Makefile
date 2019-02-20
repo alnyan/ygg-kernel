@@ -17,7 +17,7 @@ $(O)/init.tar: $(USR_PROGS)
 	tar -C $(O) -cf $@ bin
 
 $(O)/bin/%: bin/%.c
-	$(CC) -Ilib -nostdlib -ffreestanding -o $@ $< $(O)/lib/libusr.a -lgcc
+	$(CC) -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
 
 $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	$(AR) rcs $@ $(LIBUSR_OBJS)

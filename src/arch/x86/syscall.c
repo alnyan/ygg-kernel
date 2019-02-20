@@ -8,15 +8,20 @@
 #include "sys/debug.h"
 #include "sys/assert.h"
 #include "sys/panic.h"
+#include "sys/mm.h"
 #include "syscall.h"
 
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
+    if (regs->gp.eax != SYSCALL_NR_WRITE && regs->gp.eax != SYSCALL_NR_READ) {
+        mm_set_kernel();
+    }
     struct x86_task *task = x86_task_current;
 
     switch (regs->gp.eax) {
     case SYSCALL_NR_EXIT:
         {
+            debug("EXIT FROM %d\n", task->ctl->pid);
             sys_exit(regs->gp.ebx);
             x86_task_switch(regs);
         }
@@ -37,6 +42,7 @@ void x86_syscall(x86_irq_regs_t *regs) {
             assert(file);
 
             // TODO: async write
+            debug("WRITE FROM %d\n", task->ctl->pid);
             regs->gp.eax = vfs_write(file, (const void *) regs->gp.ecx, regs->gp.edx);
         }
         break;
@@ -66,7 +72,7 @@ void x86_syscall(x86_irq_regs_t *regs) {
         }
         break;
     case SYSCALL_NR_OPEN:
-        regs->gp.eax = sys_open((const char *) regs->gp.ebx, (int) regs->gp.ecx, regs->gp.edx);
+        regs->gp.eax = sys_open((const userspace char *) regs->gp.ebx, (int) regs->gp.ecx, regs->gp.edx);
         break;
     case SYSCALL_NR_CLOSE:
         sys_close((int) regs->gp.ebx);
@@ -74,9 +80,9 @@ void x86_syscall(x86_irq_regs_t *regs) {
 
     // Non-standard fork() + execve() syscall
     case SYSCALL_NRX_FEXECVE:
-        regs->gp.eax = sys_fexecve((const char *) regs->gp.ebx,
-                                   (const char **) regs->gp.ecx,
-                                   (const char **) regs->gp.edx);
+        regs->gp.eax = sys_fexecve((const userspace char *) regs->gp.ebx,
+                                   (const userspace char **) regs->gp.ecx,
+                                   (const userspace char **) regs->gp.edx);
         break;
 
     default:
@@ -97,7 +103,7 @@ SYSCALL_DEFINE0(fork) {
     return res ? ((struct x86_task *) res)->ctl->pid : -1;
 }
 
-SYSCALL_DEFINE3(open, const char *path, int flags, uint32_t mode) {
+SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
     struct x86_task *t = x86_task_current;
     int free_fd = -1;
     for (int i = 0; i < 4; ++i) {
@@ -145,9 +151,11 @@ SYSCALL_DEFINE1(close, int fd) {
     return 0;
 }
 
-SYSCALL_DEFINE3(fexecve, const char *path, const char **argp, const char **envp) {
+SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
     // Not supported yet
     assert(!argp || !envp);
+    char path_tmp[256];
+    task_copy_from_user(x86_task_current, path_tmp, path, MM_NADDR);
     task_t *res = task_fexecve(path, argp, envp);
     return res ? 0 : -1;
 }

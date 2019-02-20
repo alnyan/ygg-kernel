@@ -128,6 +128,7 @@ void *heap_alloc(size_t count) {
         }
 
         if ((res = heap_alloc_single(s_heap_regions[i], count))) {
+            debug("\t = %p\n", res);
             return res;
         }
     }
@@ -238,6 +239,7 @@ void heap_free(void *ptr) {
 
     for (int i = 0; i < HEAP_MAX; ++i) {
         if (!s_heap_regions[i]) {
+            heap_dump();
             panic("Heap: invalid pointer\n");
         }
 

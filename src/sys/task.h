@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "sys/vfs.h"
+#include "sys/attr.h"
 
 typedef void task_t;
 typedef void *(*task_entry_func)(void *);
@@ -31,7 +32,8 @@ task_t *task_create(void);
 int task_init(task_t *t, task_entry_func entry, void *arg, uint32_t flags);
 void task_destroy(task_t *t);
 
-void task_copy_to_user(task_t *t, void *dst, const void *src, size_t siz);
+void task_copy_to_user(task_t *t, userspace void *dst, const void *src, size_t siz);
+void task_copy_from_user(task_t *t, void *dst, const userspace void *src, size_t siz);
 
 // TODO: move this to sched.h?
 void task_enable();

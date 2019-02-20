@@ -86,15 +86,24 @@ task_t *task_fork(task_t *t) {
 }
 
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
+    debug("------ FEXECVE -------\n");
+
+    struct heap_stat st;
+    heap_stat(&st);
+
+    debug("------- HEAP FREE %u -------\n", st.free);
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
     // TODO: allow loading from sources other than ramdisk
     uintptr_t file_mem = vfs_getm(path);
     assert(file_mem != MM_NADDR);
 
-    uint32_t kernel_cr3 = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
-    asm volatile ("mov %0, %%cr3"::"a"(kernel_cr3));
-
     // Load the ELF
     mm_pagedir_t pd = mm_pagedir_alloc();
+    assert(pd);
+
     mm_clone(pd, mm_kernel);
 
     uintptr_t entry = elf_load(pd, file_mem, 0);

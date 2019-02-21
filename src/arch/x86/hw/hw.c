@@ -13,6 +13,7 @@
 #include "../mm.h"
 #include "dev/initrd.h"
 #include "sys/heap.h"
+#include "cpuid.h"
 
 void hw_early_init(void) {
     com_init(X86_COM0);
@@ -38,6 +39,7 @@ static void x86_initrd_init(void) {
 
 void hw_init(void) {
     x86_mm_init();
+    x86_cpuid_init();
 
     gdt_init();
     ints_init();

@@ -28,7 +28,6 @@ mm_pagedir_t mm_pagedir_alloc(void) {
         }
 
         s_mm_alloc_track[i >> 5] |= 1 << (i & 0x1F);
-        debug("Allocated %p", i * 0x1000 + KERNEL_VIRT_BASE + 0x400000);
         return (mm_pagedir_t) (i * 0x1000 + KERNEL_VIRT_BASE + 0x400000);
     }
     return NULL;
@@ -38,13 +37,10 @@ void mm_pagedir_free(mm_pagedir_t pd) {
     uint32_t cr3;
     asm volatile ("mov %%cr3, %0":"=a"(cr3));
     assert(cr3 != (uint32_t) pd - KERNEL_VIRT_BASE);
-
-    uint32_t idx = (uint32_t) pd >> 5;
-    uint32_t bit = 1 << ((uint32_t) pd & 0x1F);
-
-    if (!(s_mm_alloc_track[idx] & bit)) {
+    uint32_t i = ((uint32_t) pd - KERNEL_VIRT_BASE - 0x400000) >> 12;
+    if (!(s_mm_alloc_track[i >> 5] & (1 << (i & 0x1F)))) {
         panic("Invalid pagedir free\n");
     }
 
-    s_mm_alloc_track[idx] &= ~bit;
+    s_mm_alloc_track[i >> 5] &= ~(1 << (i & 0x1F));
 }

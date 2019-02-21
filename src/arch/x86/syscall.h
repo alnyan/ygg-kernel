@@ -26,5 +26,7 @@ SYSCALL_DECL0(fork);
 SYSCALL_DECL3(open, const userspace char *, int, uint32_t);
 SYSCALL_DECL1(close, int);
 
+#define SYSCALL_NR_EXECVE   0x0B
+SYSCALL_DECL3(execve, const userspace char *, const userspace char **, const userspace char **);
 #define SYSCALL_NRX_FEXECVE 0x11
 SYSCALL_DECL3(fexecve, const userspace char *, const userspace char **, const userspace char **);

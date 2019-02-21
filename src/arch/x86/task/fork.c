@@ -10,6 +10,13 @@
 #include "task.h"
 
 extern int x86_last_pid;
+extern int x86_task_setup_stack(struct x86_task *t,
+    void (*entry)(void *),
+    void *arg,
+    mm_pagedir_t pd,
+    uint32_t ebp0,
+    uint32_t ebp3,
+    int flag);
 
 static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
     mm_clone(dst, mm_kernel);
@@ -20,29 +27,30 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
             uint32_t src_phys = src[i] & -0x400000;
             uint32_t dst_phys = mm_alloc_phys_page();
 
-            dst[i] = dst_phys | (src[i] & 0x3FFFFF);
-
             assert(dst_phys != MM_NADDR);
-
-            if (mm_current != mm_kernel) {
-                debug("mm_current == mm_kernel, that's probably not a good idea\n");
-            }
+            dst[i] = dst_phys | (src[i] & 0x3FFFFF);
 
             debug("Physically copying %p -> %p\n", src_phys, dst_phys);
 
             // Map both of them somewhere
-            x86_mm_map(mm_current, 0xF0000000, dst_phys, X86_MM_FLG_PS | X86_MM_FLG_RW);
-            x86_mm_map(mm_current, 0xF0400000, src_phys, X86_MM_FLG_PS);
+            x86_mm_map(mm_kernel, 0xF0000000, dst_phys, X86_MM_FLG_PS | X86_MM_FLG_RW);
+            x86_mm_map(mm_kernel, 0xF0400000, src_phys, X86_MM_FLG_PS);
 
             memcpy((void *) 0xF0000000, (const void *) 0xF0400000, 0x400000);
 
-            mm_unmap_cont_region(mm_current, 0xF0000000, 2, 0);
+            mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
+
+            debug("Copy done\n");
         }
     }
 }
 
 task_t *task_fork(task_t *t) {
     struct x86_task *src = (struct x86_task *) t;
+
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
 
     // TODO: smarter cloning, don't just blindly clone all sub-kernel pages
     //  * Probably use COW
@@ -86,6 +94,50 @@ task_t *task_fork(task_t *t) {
     return dst;
 }
 
+int task_execve(task_t *dst, const char *path, const char **argp, const char **envp) {
+    assert(!argp && !envp);     // These are not supported yet
+    debug("------ EXECVE -------\n");
+
+    struct heap_stat st;
+    heap_stat(&st);
+
+    debug("------- HEAP FREE %u -------\n", st.free);
+
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
+    // Task stack
+    uint32_t ebp0 = ((struct x86_task *) dst)->ebp0;
+    uint32_t ebp3 = ((struct x86_task *) dst)->ebp3;
+
+    debug("DST EBP3 = %p\n", ebp3);
+
+    // TODO: allow loading from sources other than ramdisk
+    uintptr_t file_mem = vfs_getm(path);
+    assert(file_mem != MM_NADDR);
+
+    // Pagedir
+    mm_pagedir_t task_pd = (mm_pagedir_t) ((*(uint32_t *) (ebp0 - 14 * 4)) + KERNEL_VIRT_BASE);
+
+    // TODO: cleanup unused pages
+    uintptr_t entry = elf_load(task_pd, file_mem, 0);
+
+    assert(entry != MM_NADDR);
+
+    assert(x86_task_setup_stack(
+        (struct x86_task *) dst,
+        (void(*)(void *)) entry,
+        NULL,
+        task_pd,
+        ebp0,
+        ebp3,
+        0
+    ) == 0);
+
+    return -1;
+}
+
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     debug("------ FEXECVE -------\n");
 
@@ -111,13 +163,6 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
 
     // Create and setup the task
     task_t *task = task_create();
-    extern int x86_task_setup_stack(struct x86_task *t,
-        void (*entry)(void *),
-        void *arg,
-        mm_pagedir_t pd,
-        uint32_t ebp0,
-        uint32_t ebp3,
-        int flag);
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
     uint32_t ebp3 = 0x80000000 + 0x400000;
 

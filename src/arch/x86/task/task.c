@@ -7,6 +7,7 @@
 #include "sys/task.h"
 #include "sys/elf.h"
 #include "sys/heap.h"
+#include "sys/string.h"
 #include "sys/debug.h"
 #include "sys/assert.h"
 #include "sys/attr.h"
@@ -105,10 +106,7 @@ void task_copy_from_user(task_t *task, void *dst, const userspace void *src, siz
     } else {
         const char *src_str = (const char *) src;
         char *dst_str = (char *) dst;
-
-        for (; *src_str; ++src_str, ++dst_str) {
-            *dst_str = *src_str;
-        }
+        strcpy(dst_str, src_str);
     }
     mm_unmap_cont_region(mm_kernel, src_page_base, 1, 0);
 }

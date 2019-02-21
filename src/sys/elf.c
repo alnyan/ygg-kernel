@@ -1,6 +1,7 @@
 #include "elf.h"
 #include "linux/elf.h"
 #include "sys/string.h"
+#include "sys/task.h"
 #include "sys/panic.h"
 #include "sys/debug.h"
 #include "sys/mem.h"
@@ -55,8 +56,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                     panic("NYI\n");
                 }
 
+                debug("DST IS %p\n", dst);
+
                 if (!(dst[(page_start) >> 22] & 1)) {
                     // Allocate a physical page
+                    debug("Destination page is not allocated\n");
                     uintptr_t page = mm_alloc_phys_page();
 
                     if (page == MM_NADDR) {
@@ -64,6 +68,8 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                     }
 
                     x86_mm_map(dst, page_start, page, X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US);
+                } else {
+                    debug("No need to allocate page: %p\n", dst[page_start >> 22] & -0x400000);
                 }
 
                 // Map the page into kernel space
@@ -72,8 +78,8 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
                 if (shdr->sh_type == SHT_PROGBITS) {
                     memcpy((void *) (shdr->sh_addr - page_start + 0x400000),
-                            (void *) (src_addr + shdr->sh_offset),
-                            shdr->sh_size);
+                           (void *) (src_addr + shdr->sh_offset),
+                           shdr->sh_size);
                 } else {
                     memset((void *) (shdr->sh_addr - page_start + 0x400000), 0, shdr->sh_size);
                 }

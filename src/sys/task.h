@@ -21,6 +21,7 @@ typedef struct {
 
 task_t *task_fork(task_t *src);
 task_t *task_fexecve(const char *path, const char **argp, const char **envp);
+int task_execve(task_t *dst, const char *path, const char **argp, const char **envp);
 
 task_ctl_t *task_ctl_create(void);
 void task_ctl_free(task_ctl_t *ctl);

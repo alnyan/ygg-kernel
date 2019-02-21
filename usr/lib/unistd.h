@@ -23,4 +23,5 @@ void puts(const char *s);
 
 int fork(void);
 void exit(int r);
+int execve(const char *path, const char **argp, const char **envp);
 int fexecve(const char *path, const char **argp, const char **envp);

@@ -76,6 +76,11 @@ void x86_syscall(x86_irq_regs_t *regs) {
         sys_close((int) regs->gp.ebx);
         break;
 
+    case SYSCALL_NR_EXECVE:
+        regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
+                                  (const userspace char **) regs->gp.ecx,
+                                  (const userspace char **) regs->gp.edx);
+        break;
     // Non-standard fork() + execve() syscall
     case SYSCALL_NRX_FEXECVE:
         regs->gp.eax = sys_fexecve((const userspace char *) regs->gp.ebx,
@@ -154,6 +159,14 @@ SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp
     assert(!argp || !envp);
     char path_tmp[256];
     task_copy_from_user(x86_task_current, path_tmp, path, MM_NADDR);
-    task_t *res = task_fexecve(path, argp, envp);
+    task_t *res = task_fexecve(path_tmp, argp, envp);
     return res ? 0 : -1;
+}
+
+SYSCALL_DEFINE3(execve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
+    // Not supported yet
+    assert(!argp || !envp);
+    char path_tmp[256];
+    task_copy_from_user(x86_task_current, path_tmp, path, MM_NADDR);
+    return task_execve(x86_task_current, path_tmp, argp, envp);
 }

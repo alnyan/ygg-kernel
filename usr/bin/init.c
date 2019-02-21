@@ -38,7 +38,19 @@ void _start(void *arg) {
         }
 
         if (!strcmp(line, "hello")) {
-            fexecve("/bin/hello", NULL, NULL);
+            // fexecve("/bin/hello", NULL, NULL);
+            switch (fork()) {
+            case 0:
+                write(STDOUT_FILENO, "Hello!\n", 6);
+                execve("/bin/hello", NULL, NULL);
+                exit(1);
+            case -1:
+                printf("fork() failed\n");
+                exit(4321);
+            default:
+                printf("fork() succeeded\n");
+                break;
+            }
         }
     }
 

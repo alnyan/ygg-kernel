@@ -49,7 +49,6 @@ void task_destroy(task_t *t) {
     heap_free((void *) (task->ebp0 - 18 * 4));
 
     // Free pagedir
-    //memset(task_pd, 0, 4096);
     mm_pagedir_free(task_pd);
 
     // Free data structures

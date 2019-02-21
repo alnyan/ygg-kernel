@@ -59,7 +59,6 @@ task_t *task_fork(task_t *t) {
     //  * Use some markers to tell, for example, .text-pages from .data ones, as fork()s may share
     //   the same code
     uint32_t src_cr3 = *((uint32_t *) (src->ebp0 - 14 * 4));
-    //mm_pagedir_t src_pd = (mm_pagedir_t) (src_cr3 + KERNEL_VIRT_BASE);
     mm_pagedir_t src_pd = (mm_pagedir_t) x86_mm_reverse_lookup(src_cr3);
     assert((uintptr_t) src_pd != MM_NADDR);
     mm_pagedir_t dst_pd = mm_pagedir_alloc();
@@ -122,7 +121,6 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
     assert(file_mem != MM_NADDR);
 
     // Pagedir
-    // mm_pagedir_t task_pd = (mm_pagedir_t) ((*(uint32_t *) (ebp0 - 14 * 4)) + KERNEL_VIRT_BASE);
     uint32_t cr3 = *((uint32_t *) (((struct x86_task *) dst)->ebp0 - 14 * 4));
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);

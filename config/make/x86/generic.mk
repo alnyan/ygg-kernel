@@ -20,7 +20,8 @@ OBJS+=build/arch/x86/hw/hw.o \
 	  build/arch/x86/panic.o \
 	  build/arch/x86/task/task_s.o \
 	  build/arch/x86/task/fork.o \
-	  build/arch/x86/mmalloc.o
+	  build/arch/x86/mmalloc.o \
+	  build/arch/x86/pm.o
 
 USR_LINKER=config/ld/x86/user.ld
 

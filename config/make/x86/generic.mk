@@ -23,7 +23,8 @@ OBJS+=build/arch/x86/hw/hw.o \
 	  build/arch/x86/mmalloc.o \
 	  build/arch/x86/pm.o \
 	  build/arch/x86/hw/cpuid.o \
-	  build/arch/x86/hw/cpuid_s.o
+	  build/arch/x86/hw/cpuid_s.o \
+	  build/arch/x86/hw/rtc.o
 
 USR_LINKER=config/ld/x86/user.ld
 

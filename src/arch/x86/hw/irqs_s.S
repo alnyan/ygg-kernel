@@ -62,6 +62,7 @@ x86_irq_\n:
 .endm
 
 irq_handler 1
+irq_handler 8
 
 .global x86_irq_syscall
 x86_irq_syscall:

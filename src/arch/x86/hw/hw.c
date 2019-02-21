@@ -14,6 +14,7 @@
 #include "dev/initrd.h"
 #include "sys/heap.h"
 #include "cpuid.h"
+#include "rtc.h"
 
 void hw_early_init(void) {
     com_init(X86_COM0);
@@ -44,6 +45,7 @@ void hw_init(void) {
     gdt_init();
     ints_init();
 
+    x86_rtc_init();
     x86_timer_init(100);
     x86_ps2_init();
 

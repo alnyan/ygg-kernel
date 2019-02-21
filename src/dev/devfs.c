@@ -133,4 +133,5 @@ void devfs_populate(void) {
     devfs_add(dev_zero, "zero", 0);
 
     devfs_add(tty_get(0), "tty0", 0);
+    devfs_add(tty_get(TTY_FLG_SER), "ttyS0", 0);
 }

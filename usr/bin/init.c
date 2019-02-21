@@ -11,20 +11,20 @@ void _start(void *arg) {
         printf("> ");
 
         while (1) {
-            if (read(0, &keybuf, 1) != 1) {
+            if (read(STDIN_FILENO, &keybuf, 1) != 1) {
                 exit(-1);
             }
 
             if (keybuf >= ' ') {
                 line[pos++] = keybuf;
-                write(0, &keybuf, 1);
+                write(STDOUT_FILENO, &keybuf, 1);
             } else if (keybuf == '\b') {
                 if (pos) {
                     line[pos--] = 0;
-                    write(0, &keybuf, 1);
+                    write(STDOUT_FILENO, &keybuf, 1);
                 }
             } else if (keybuf == '\n') {
-                write(0, &keybuf, 1);
+                write(STDOUT_FILENO, &keybuf, 1);
                 line[pos] = 0;
                 pos = 0;
                 break;

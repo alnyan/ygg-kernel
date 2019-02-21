@@ -20,13 +20,17 @@ static struct tty {
 } ttys[TTY_COUNT];
 
 static void tty_write_char(struct tty *tty, char c) {
-    if (tty->ttyparam == 0) {
+    switch (tty->ttyparam) {
 #ifdef ARCH_X86
-        x86_con_putc(c);
+    // ttyS0
+    case TTY_FLG_SER:
         com_send(X86_COM0, c);
+        break;
+    // tty0
+    case 0:
+        x86_con_putc(c);
+        break;
 #endif
-    } else {
-        panic("Write to unsupported tty\n");
     }
 }
 
@@ -52,23 +56,33 @@ static int tty_read(dev_t *dev, vfs_file_t *f, void *data, size_t len, uint32_t 
 void tty_init(void) {
     memset(ttys, 0, sizeof(ttys));
 
-    for (int i = 0; i < TTY_COUNT; ++i) {
+#ifdef ARCH_X86
+    for (int i = 0; i < 2; ++i) {
         dev_init(&ttys[i].dev, DEV_FLG_CHR | DEV_FLG_WR);
-
         ttys[i].dev.write = tty_write;
         ttys[i].dev.read = tty_read;
-
-        ttys[i].ttyparam = i;
     }
+
+    ttys[0].ttyparam = 0;
+    ttys[1].ttyparam = 0xF0000000;
+#endif
 }
 
 dev_t *tty_get(int n) {
-    return (dev_t *) &ttys[n];
+#ifdef ARCH_X86
+    if (n == 0xF0000000) {
+        return (dev_t *) &ttys[1];
+    }
+    if (n == 0) {
+        return (dev_t *) ttys;
+    }
+#endif
+    return NULL;
 }
 
 void tty_type(int n, char c) {
     assert(n == 0);
-    struct tty *tty = &ttys[n];
+    struct tty *tty = (struct tty *) tty_get(n);
 
     // I know this is not how that actually should work,
     // but for not just let it work without buffering

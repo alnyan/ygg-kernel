@@ -77,7 +77,8 @@ task_t *task_fork(task_t *t) {
     // Give the task a new PID
     dst->ctl->pid = ++x86_last_pid;
     // TODO: actually clone open descriptors
-    dst->ctl->fds[0] = vfs_open("/dev/tty0", VFS_FLG_WR | VFS_FLG_RD);
+    dst->ctl->fds[0] = vfs_open("/dev/tty0", VFS_FLG_WR);
+    dst->ctl->fds[1] = vfs_open("/dev/tty0", VFS_FLG_RD);
 
     // Add it to sched
     task_enable(dst);
@@ -120,10 +121,17 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
     uint32_t ebp3 = 0x80000000 + 0x400000;
 
-    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD | VFS_FLG_WR);
-    fd_tty_rd->task = task;
+    vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
+    assert(fd_tty_wr);
+    fd_tty_wr->task = task;
+    ((struct x86_task *) task)->ctl->fds[0] = fd_tty_wr;
+
+    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
     assert(fd_tty_rd);
-    ((struct x86_task *) task)->ctl->fds[0] = fd_tty_rd;
+    fd_tty_rd->task = task;
+    ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
+
+
     x86_mm_map(pd, 0x80000000, mm_alloc_phys_page(), X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
 
     assert(x86_task_setup_stack(

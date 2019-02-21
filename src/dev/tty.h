@@ -1,5 +1,6 @@
 #pragma once
 #include "sys/dev.h"
+#define TTY_FLG_SER     0xF0000000
 
 dev_t *tty_get(int n);
 

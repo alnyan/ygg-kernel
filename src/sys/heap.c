@@ -42,6 +42,86 @@ void heap_add_region(uintptr_t a, uintptr_t b) {
     panic("No free heap regions left to allocate\n");
 }
 
+#define MIN(a, b) ((a) > (b) ? (b) : (a))
+
+static int region_get_intersect(uintptr_t a, size_t sa, uintptr_t b, size_t sb, uintptr_t *start, size_t *size) {
+    if (a > b) {
+        *size = MIN(sa, sb - (a - b));
+        *start = a;
+        return (a - b) < sb;
+    } else {
+        *size = MIN(sb, sa - (b - a));
+        *start = b;
+        return (b - a) < sa;
+    }
+}
+
+void heap_remove_region(uintptr_t start, size_t sz) {
+    // Align down to 8-byte boundary
+    start &= -8;
+    sz = MM_ALIGN_UP(sz, 16);
+    int match = 0;
+
+    for (int i = 0; i < HEAP_MAX; ++i) {
+        if (!s_heap_regions[i]) {
+            break;
+        }
+
+        if (s_heap_regions[i]->next) {
+            continue;
+        }
+
+        uintptr_t is;
+        size_t il;
+        uintptr_t base = (uintptr_t) s_heap_regions[i];
+
+        if (region_get_intersect(base,
+                                 sizeof(struct heap_block) + s_heap_regions[i]->size,
+                                 start,
+                                 sz,
+                                 &is,
+                                 &il)) {
+            if (start - base < sizeof(struct heap_block)) {
+                // Just shift the base to the end of interval
+                s_heap_regions[i] = (struct heap_block *) (start + sz + sizeof(struct heap_block));
+                match = 1;
+                continue;
+            } else {
+                uintptr_t end = start + sz;
+                start -= sizeof(struct heap_block);
+                struct heap_block *alloced = (struct heap_block *) start;
+                struct heap_block *new_free = (struct heap_block *) end;
+
+                alloced->prev = s_heap_regions[i];
+                alloced->flags = HEAP_FLG_USED | HEAP_MAGIC;
+                alloced->size = sz;
+                alloced->next = new_free;
+
+                new_free->size = s_heap_regions[i]->size - (end - base) - sizeof(struct heap_block);
+                new_free->flags = HEAP_MAGIC;
+                new_free->next = NULL;
+                new_free->prev = alloced;
+
+                // It's somewhere in the middle of the heap
+                size_t new_first_size = start - base - sizeof(struct heap_block);
+
+                s_heap_regions[i]->size = new_first_size;
+                s_heap_regions[i]->next = alloced;
+
+                match = 1;
+
+                continue;
+            }
+        }
+    }
+
+    heap_dump();
+
+    if (!match) {
+        panic("Region %p .. %p does not belong to any heap\n", start, start + sz);
+    }
+}
+
 static void *heap_alloc_single(struct heap_block *begin, size_t count) {
     struct heap_block *it;
 

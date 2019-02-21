@@ -20,3 +20,14 @@ Virtual space:
 0x00000000 \-----------------------/
 
 The kernel page with IRQ and Exception handlers must ALWAYS reside in all page directories.
+
+
+DETAILS:
+
+In kernel and user:
+0xC0000000 -> 0x00000000
+0xC0400000 -> 0x00400000
+0xF0000000, 0xF0400000 - transition pages for copying data
+
+In user:
+0x80000000 -> phys_alloc() - stack

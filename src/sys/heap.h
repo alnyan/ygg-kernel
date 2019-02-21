@@ -17,6 +17,7 @@ struct heap_stat {
 
 void heap_init(void);
 void heap_add_region(uintptr_t start, uintptr_t end);
+void heap_remove_region(uintptr_t start, size_t size);
 
 void heap_stat(struct heap_stat *st);
 void heap_dump(void);

@@ -12,6 +12,7 @@
 #include "ps2.h"
 #include "../mm.h"
 #include "dev/initrd.h"
+#include "sys/heap.h"
 
 void hw_early_init(void) {
     com_init(X86_COM0);
@@ -29,7 +30,8 @@ static void x86_initrd_init(void) {
     uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
     size_t mod_size = mod_list->mod_end - mod_list->mod_start;
 
-    debug("Init module of %uK\n", mod_size / 1024);
+    debug("Init module: %p .. %p\n", mod_base, mod_base + mod_size);
+    heap_remove_region(mod_base, mod_size);
 
     initrd_init(mod_base, mod_size);
 }

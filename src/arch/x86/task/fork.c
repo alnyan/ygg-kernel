@@ -19,11 +19,13 @@ extern int x86_task_setup_stack(struct x86_task *t,
     int flag);
 
 static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
+    debug("dst = %p\n", dst);
     mm_clone(dst, mm_kernel);
 
     // XXX: The following method is reeeeaaaaalllyyy stupid
     for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
         if (src[i] & 1) {
+
             uint32_t src_phys = src[i] & -0x400000;
             uint32_t dst_phys = mm_alloc_phys_page();
 
@@ -57,7 +59,9 @@ task_t *task_fork(task_t *t) {
     //  * Use some markers to tell, for example, .text-pages from .data ones, as fork()s may share
     //   the same code
     uint32_t src_cr3 = *((uint32_t *) (src->ebp0 - 14 * 4));
-    mm_pagedir_t src_pd = (mm_pagedir_t) (src_cr3 + KERNEL_VIRT_BASE);
+    //mm_pagedir_t src_pd = (mm_pagedir_t) (src_cr3 + KERNEL_VIRT_BASE);
+    mm_pagedir_t src_pd = (mm_pagedir_t) x86_mm_reverse_lookup(src_cr3);
+    assert((uintptr_t) src_pd != MM_NADDR);
     mm_pagedir_t dst_pd = mm_pagedir_alloc();
     assert(dst_pd);
 
@@ -69,7 +73,7 @@ task_t *task_fork(task_t *t) {
     memcpy((void *) (dst_ebp0 - 18 * 4), (const void *) (src->ebp0 - 18 * 4), 18 * 4);
 
     // However, we need to replace cr3
-    *((uint32_t *) (dst_ebp0 - 14 * 4)) = (uintptr_t) dst_pd - KERNEL_VIRT_BASE;
+    *((uint32_t *) (dst_ebp0 - 14 * 4)) = (mm_kernel[(uintptr_t) dst_pd >> 22] & -0x400000) | ((uintptr_t) dst_pd & 0x3FFFFF);
     // Fork returns 0
     *((uint32_t *) (dst_ebp0 - 6 * 4)) = 0;
 
@@ -118,7 +122,10 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
     assert(file_mem != MM_NADDR);
 
     // Pagedir
-    mm_pagedir_t task_pd = (mm_pagedir_t) ((*(uint32_t *) (ebp0 - 14 * 4)) + KERNEL_VIRT_BASE);
+    // mm_pagedir_t task_pd = (mm_pagedir_t) ((*(uint32_t *) (ebp0 - 14 * 4)) + KERNEL_VIRT_BASE);
+    uint32_t cr3 = *((uint32_t *) (((struct x86_task *) dst)->ebp0 - 14 * 4));
+    mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+    assert((uintptr_t) task_pd != MM_NADDR);
 
     // TODO: cleanup unused pages
     uintptr_t entry = elf_load(task_pd, file_mem, 0);

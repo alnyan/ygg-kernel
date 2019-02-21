@@ -23,14 +23,14 @@ task_t *task_create(void) {
 }
 
 void task_destroy(task_t *t) {
+    mm_set(mm_kernel);
     struct x86_task *task = (struct x86_task *) t;
-    uint32_t cr3_kernel = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
-    asm volatile ("mov %0, %%cr3"::"a"(cr3_kernel));
 
     // Unmapping sub-kernel pages
     mm_pagedir_t task_pd;
     uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
-    task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+    task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+    assert((uintptr_t) task_pd != MM_NADDR);
 
     for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
         if (task_pd[i] & 1) {
@@ -74,7 +74,8 @@ void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_
     assert(task);
     struct x86_task *t = (struct x86_task *) task;
     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-    mm_pagedir_t task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+    mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+    assert((uintptr_t) task_pd != MM_NADDR);
 
     uint32_t dst_page_base = ((uint32_t) dst) & -0x400000;
 
@@ -94,7 +95,8 @@ void task_copy_from_user(task_t *task, void *dst, const userspace void *src, siz
     assert(task);
     struct x86_task *t = (struct x86_task *) task;
     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-    mm_pagedir_t task_pd = (mm_pagedir_t) (cr3 + KERNEL_VIRT_BASE);
+    mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+    assert((uintptr_t) task_pd != MM_NADDR);
 
     uint32_t src_page_base = ((uint32_t) src) & -0x400000;
 
@@ -148,7 +150,11 @@ int x86_task_setup_stack(struct x86_task *t,
         uint32_t ebp0,
         uint32_t ebp3,
         int flag) {
-    uint32_t cr3 = ((uintptr_t) pd) - KERNEL_VIRT_BASE;
+    uint32_t cr3;
+
+    assert(mm_kernel[(uintptr_t) pd >> 22] & 1);
+    cr3 = (mm_kernel[(uintptr_t) pd >> 22] & -0x400000) | (((uintptr_t) pd) & 0x3FFFFF);
+
     uint32_t *esp0;
     uint32_t *esp3;
 
@@ -220,7 +226,7 @@ void x86_task_init(void) {
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {
-    mm_set_kernel();
+    mm_set(mm_kernel);
 
     if (x86_tasking_entry) {
         x86_tasking_entry = 0;

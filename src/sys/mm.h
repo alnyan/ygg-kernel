@@ -34,4 +34,5 @@ mm_pagedir_t mm_pagedir_alloc(void);
 void mm_pagedir_free(mm_pagedir_t pd);
 void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src);
 
-void mm_set_kernel(void);
+// void mm_set_kernel(void);
+void mm_set(mm_pagedir_t pd);

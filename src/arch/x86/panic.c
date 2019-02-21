@@ -1,5 +1,7 @@
 #include "sys/panic.h"
 #include "sys/debug.h"
+#include "mm.h"
+#include "arch/hw.h"
 
 #define X86_PF_FLG_PR   (1 << 0)
 #define X86_PF_FLG_RW   (1 << 1)
@@ -29,6 +31,21 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
                 (regs->err_code & X86_PF_FLG_US) ? 'U' : '-',
                 (regs->err_code & X86_PF_FLG_ID) ? 'I' : 'D');
         debug("CR2 = %p\n", cr2);
+
+        uint32_t cr3;
+        asm volatile ("movl %%cr3, %0":"=a"(cr3));
+
+        debug("CR3 = %p\n", cr3);
+        if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
+            debug("\t(Is kernel)\n");
+
+            uint32_t pde = mm_kernel[cr2 >> 22];
+            if (pde & 1) {
+                debug("\tEntry for CR2 is present in PD\n");
+            } else {
+                debug("\tEntry is not mapped in kernel PD\n");
+            }
+        }
     }
 
     debug("--- Register dump ---\n");

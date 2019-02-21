@@ -14,7 +14,10 @@
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
     if (regs->gp.eax != SYSCALL_NR_WRITE && regs->gp.eax != SYSCALL_NR_READ) {
-        mm_set_kernel();
+        // mm_set_kernel();
+        mm_set(mm_kernel);
+    } else {
+        // TODO: set mm_current to actual PD
     }
     struct x86_task *task = x86_task_current;
 

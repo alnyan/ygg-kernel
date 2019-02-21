@@ -77,9 +77,9 @@ x86_irq_0:
     movl %edx, x86_tss + TSS_ESP0
 
     // Write "mm_current"
-    movl 16(%eax), %edx
-    addl $KERNEL_VIRT_BASE, %edx
-    movl %edx, mm_current
+    // movl 16(%eax), %edx
+    // addl $KERNEL_VIRT_BASE, %edx
+    // movl %edx, mm_current
 
     // Now, esp should be TO task's esp0
     movl %eax, %esp

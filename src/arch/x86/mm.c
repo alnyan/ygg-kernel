@@ -13,10 +13,23 @@
 mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
 
-void mm_set_kernel(void) {
-    uint32_t addr = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
-    mm_current = mm_kernel;
-    asm volatile ("mov %0, %%cr3"::"a"(addr));
+void mm_set(mm_pagedir_t pd) {
+    mm_current = pd;
+
+    if (pd == mm_kernel) {
+        uint32_t addr = (uint32_t) pd - KERNEL_VIRT_BASE;
+        asm volatile ("mov %0, %%cr3"::"a"(addr));
+        return;
+    }
+
+    // Lookup physical address
+    if (mm_kernel[(uintptr_t) pd >> 22] & 1) {
+        uint32_t phys = mm_kernel[(uintptr_t) pd >> 22] & -0x400000;
+
+        asm volatile ("mov %0, %%cr3"::"a"(phys));
+    } else {
+        panic("Trying to bind non-existent PD\n");
+    }
 }
 
 void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
@@ -120,7 +133,7 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
 }
 
 uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
-    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0x400000, -0x400000, count);
+    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0xC00000, -0x400000, count);
 
     if (vaddr == MM_NADDR) {
         return MM_NADDR;

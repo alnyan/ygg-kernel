@@ -23,3 +23,5 @@ void x86_mm_alloc_init(void);
 
 void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index);
 int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index);
+
+uintptr_t x86_mm_reverse_lookup(uintptr_t cr3);

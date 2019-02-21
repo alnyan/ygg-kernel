@@ -37,7 +37,6 @@ void task_destroy(task_t *t) {
         }
     }
 
-    // TODO: mm_pagedir_free()
     // Close file descriptors
     for (int i = 0; i < 4; ++i) {
         if (task->ctl->fds[i]) {
@@ -47,6 +46,10 @@ void task_destroy(task_t *t) {
 
     // Free stacks
     heap_free((void *) (task->ebp0 - 18 * 4));
+
+    // Free pagedir
+    //memset(task_pd, 0, 4096);
+    mm_pagedir_free(task_pd);
 
     // Free data structures
     task_ctl_free(task->ctl);

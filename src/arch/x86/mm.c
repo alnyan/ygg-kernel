@@ -11,24 +11,6 @@
 mm_pagedir_t mm_current;   // Currently used page directory
 mm_pagedir_t mm_kernel;    // Kernel global page dir
 
-// TODO: better allocator
-// TODO: support for 4K-pages
-static uint32_t mm_pagedir_data[1024 * 6] __attribute__((aligned(0x1000)));
-static uint32_t mm_last_pagedir = 0;
-
-mm_pagedir_t mm_pagedir_alloc(void) {
-    mm_pagedir_t pd = &mm_pagedir_data[1024 * (mm_last_pagedir++)];
-    if (mm_last_pagedir == 6) {
-        return NULL;
-    }
-    memset(pd, 0, 4096);
-    return pd;
-}
-
-void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
-    memcpy(dst, src, 4096);
-}
-
 void mm_set_kernel(void) {
     uint32_t addr = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
     asm volatile ("mov %0, %%cr3"::"a"(addr));
@@ -254,4 +236,7 @@ void x86_mm_init(void) {
 
     extern void _kernel_end_virt();
     heap_add_region((uintptr_t) _kernel_end_virt, KERNEL_VIRT_BASE + 0x400000);
+
+    // Setup page directory allocator
+    x86_mm_alloc_init();
 }

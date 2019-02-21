@@ -15,6 +15,7 @@
 #include "sys/heap.h"
 #include "cpuid.h"
 #include "rtc.h"
+#include "acpi.h"
 
 void hw_early_init(void) {
     com_init(X86_COM0);
@@ -41,11 +42,13 @@ static void x86_initrd_init(void) {
 void hw_init(void) {
     x86_mm_init();
     x86_cpuid_init();
+    x86_acpi_init();
 
     gdt_init();
     ints_init();
 
     x86_rtc_init();
+    x86_rtc_reload();
     x86_timer_init(100);
     x86_ps2_init();
 

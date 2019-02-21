@@ -7,14 +7,7 @@
 #include "sys/panic.h"
 #include "hw/hw.h"
 
-// Physical page tracking
-// #define X86_MM_PHYS_PAGE    0x400000
-// #define X86_MM_PHYS_PAGES   1024
-// #define X86_MM_PTRACK_I(a)  ((a) / (X86_MM_PHYS_PAGE << 5))
-// #define X86_MM_PTRACK_N(a)  (((a) / X86_MM_PHYS_PAGE) & 0x1F)
-// static uint32_t s_ptrack[X86_MM_PHYS_PAGES >> 5];
-
-#define PSTACK_SIZE     64
+#define PSTACK_SIZE     256
 
 static uint32_t s_pstack[PSTACK_SIZE];
 static uint32_t *s_psp = s_pstack + PSTACK_SIZE;
@@ -23,7 +16,6 @@ void x86_mm_claim_page(uintptr_t page) {
     if (s_psp == s_pstack) {
         panic("No free pages left\n");
     }
-    // s_ptrack[X86_MM_PTRACK_I(page)] &= ~(1 << X86_MM_PTRACK_N(page));
     *(--s_psp) = page;
 }
 
@@ -33,19 +25,6 @@ static uintptr_t x86_mm_alloc_phys_page(uintptr_t start, uintptr_t end) {
     }
 
     return *s_psp++;
-//    debug("alloc phys page =\n");
-//    for (uintptr_t addr = start; addr < end - 0x400000; addr += 0x400000) {
-//        uint32_t bit = (1 << X86_MM_PTRACK_N(addr));
-//        uint32_t index = X86_MM_PTRACK_I(addr);
-//
-//        if (!(s_ptrack[index] & bit)) {
-//            s_ptrack[index] |= bit;
-//            debug(" %p\n", addr);
-//            return addr;
-//        }
-//    }
-//    debug(" MM_NADDR\n");
-//    return MM_NADDR;
 }
 
 uintptr_t mm_alloc_phys_page(void) {
@@ -53,9 +32,6 @@ uintptr_t mm_alloc_phys_page(void) {
 }
 
 void x86_pm_init(void) {
-    // Set allocation mask on all physical pages
-    // memset(s_ptrack, 0xFF, sizeof(s_ptrack));
-
     // Add all physical memory entries
     struct multiboot_mmap_entry *mmap_first = (struct multiboot_mmap_entry *) (x86_multiboot_info->mmap_addr + KERNEL_VIRT_BASE);
     struct multiboot_mmap_entry *mmap = mmap_first;
@@ -81,7 +57,7 @@ void x86_pm_init(void) {
             if (len > diff && len > 0x400000) {
                 len -= diff;
 
-                for (int i = 0; i < (len / 0x400000) - 1; ++i) {
+                for (int i = 0; i < (len / 0x400000); ++i) {
                     debug("Claim %p\n", aligned_addr + i * 0x400000);
                     x86_mm_claim_page(aligned_addr + i * 0x400000);
                     ++claimed_pages;

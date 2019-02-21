@@ -20,3 +20,6 @@ void x86_mm_init(void);
 int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags);
 
 void x86_mm_alloc_init(void);
+
+void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index);
+int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index);

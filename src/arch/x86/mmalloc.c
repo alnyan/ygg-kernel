@@ -18,7 +18,8 @@ void x86_mm_alloc_init(void) {
 }
 
 void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
-    memcpy(dst, src, 4096);
+    // TODO: support pagedir nesting
+    memcpy(dst, src, 1023 * 4);
 }
 
 mm_pagedir_t mm_pagedir_alloc(void) {
@@ -28,7 +29,10 @@ mm_pagedir_t mm_pagedir_alloc(void) {
         }
 
         s_mm_alloc_track[i >> 5] |= 1 << (i & 0x1F);
-        return (mm_pagedir_t) (i * 0x1000 + KERNEL_VIRT_BASE + 0x400000);
+        mm_pagedir_t pd = (mm_pagedir_t) (i * 0x1000 + KERNEL_VIRT_BASE + 0x400000);
+        pd[1023] = 0;
+        x86_mm_pdincr(pd, 1023);
+        return pd;
     }
     return NULL;
 }
@@ -42,5 +46,7 @@ void mm_pagedir_free(mm_pagedir_t pd) {
         panic("Invalid pagedir free\n");
     }
 
-    s_mm_alloc_track[i >> 5] &= ~(1 << (i & 0x1F));
+    if (x86_mm_pddecr(pd, 1023)) {
+        s_mm_alloc_track[i >> 5] &= ~(1 << (i & 0x1F));
+    }
 }

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "sys/debug.h"
+#include "sys/assert.h"
 #include "sys/mem.h"
 #include "sys/mm.h"
 #include "def.h"
@@ -13,6 +14,7 @@ mm_pagedir_t mm_kernel;    // Kernel global page dir
 
 void mm_set_kernel(void) {
     uint32_t addr = (uint32_t) mm_kernel - KERNEL_VIRT_BASE;
+    mm_current = mm_kernel;
     asm volatile ("mov %0, %%cr3"::"a"(addr));
 }
 
@@ -23,17 +25,35 @@ void mm_set_kernel(void) {
 #define X86_MM_PTRACK_N(a)  (((a) / X86_MM_PHYS_PAGE) & 0x1F)
 static uint32_t s_ptrack[X86_MM_PHYS_PAGES >> 5];
 
+void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
+    debug("increase refcount for %p\n", pd);
+    if (index != 1023) {
+        // Increase pagetable refcount (NYI)
+        panic("4K-pages are not supported yet\n");
+    }
+
+    ++pd[1023];
+}
+
+int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
+    debug("decrease refcount for %p\nb", pd);
+    if (index != 1023) {
+        panic("4K-pages are not supported yet\n");
+    }
+
+    return --pd[1023] == 0;
+}
+
 int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
     debug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
             (flags & X86_MM_FLG_RW) ? 'w' : 'o',
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
+    // Last page is used for refcounts
+    assert((virt_page >> 22) != 1023);
 
     if (!(flags & X86_MM_FLG_PS)) {
         // TODO: panic!
-        debug("PANIC: Non-large pages are not supported yet\n");
-        while (1) {
-            asm volatile ("cli; hlt");
-        }
+        panic("4K-pages are not supported yet\n");
     }
 
     uint32_t pdi = virt_page >> 22;

@@ -38,11 +38,36 @@ static void pci_scan_func(pci_addr_t addr) {
     uint32_t class_code = (pci_config_getl(addr, PCI_CONF_REVCLS) >> 8) & 0xFFFFFF;
     uint8_t class = (class_code >> 16) & 0xFF;
     uint8_t subclass = (class_code >> 8) & 0xFF;
+    uint16_t vendor = pci_config_getw(addr, PCI_CONF_VENDOR);
+    uint16_t device = pci_config_getw(addr, PCI_CONF_DEVICE);
 
     if (class == 0x06 && subclass == 0x04) {
-        debug("TODO: scan secondary bus\n");
+        // TODO: scan secondary bus
     } else {
+        // TODO: call appropriate initializers bound by device drivers
         debug("PCI %d:%d:%d: %s (%02x:%02x)\n", PCI_TRIPLET(addr), pci_classes[class], class, subclass);
+        debug("Vendor: 0x%04x, Device: 0x%04x\n", vendor, device);
+
+        switch (class) {
+        case PCI_CLASS_DISPLAY:
+            if (subclass == 0x00) {
+                // TODO: VGA display support
+                debug(" * VGA-compatible display controller\n");
+            }
+            break;
+        case PCI_CLASS_STORAGE:
+            if (subclass == 0x01) {
+                // TODO: IDE device support
+                debug(" * IDE drive controller\n");
+            }
+            break;
+        case PCI_CLASS_NETWORK:
+            if (subclass == 0x00) {
+                // TODO: Ethernet controller support
+                debug(" * Ethernet controller\n");
+            }
+            break;
+        }
     }
 }
 

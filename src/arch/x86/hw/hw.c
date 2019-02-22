@@ -17,6 +17,7 @@
 #include "rtc.h"
 #include "acpi.h"
 #include "hpet.h"
+#include "pci.h"
 
 void (*x86_timer_func) (void);
 
@@ -50,6 +51,8 @@ void hw_init(void) {
 
     gdt_init();
     ints_init();
+
+    x86_pci_init();
 
     if (!hpet_available() || hpet_init() != 0) {
         x86_rtc_init();

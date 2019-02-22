@@ -26,7 +26,8 @@ OBJS+=build/arch/x86/hw/hw.o \
 	  build/arch/x86/hw/cpuid_s.o \
 	  build/arch/x86/hw/rtc.o \
 	  build/arch/x86/hw/acpi.o \
-	  build/arch/x86/hw/hpet.o
+	  build/arch/x86/hw/hpet.o \
+	  build/arch/x86/hw/pci.o
 
 USR_LINKER=config/ld/x86/user.ld
 

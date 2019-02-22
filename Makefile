@@ -24,6 +24,8 @@ else
 include config/make/$(ARCH)/generic.mk
 endif
 
+include config/make/driver.mk
+
 mkdirs:
 	@mkdir -p $(DIRS)
 

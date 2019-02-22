@@ -66,7 +66,7 @@ x86_irq_0:
     movl x86_timer_func, %eax
     test %eax, %eax
     jz 1f
-    call %eax
+    call *%eax
 1:
 
     pushl %esi

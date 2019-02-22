@@ -10,6 +10,7 @@
 .extern x86_task_current
 .extern x86_task_first
 .extern x86_task_switch
+.extern x86_timer_func
 .extern x86_int_stack
 
 .extern x86_tss
@@ -60,6 +61,13 @@ x86_irq_0:
     // Setup kernel interrupt stack pointer and store FROM stack in %esi
     movl %esp, %esi
     movl $x86_int_stack, %esp
+
+    // Call timer service
+    movl x86_timer_func, %eax
+    test %eax, %eax
+    jz 1f
+    call %eax
+1:
 
     pushl %esi
     call x86_task_switch

@@ -16,8 +16,12 @@
 #include "cpuid.h"
 #include "rtc.h"
 #include "acpi.h"
+#include "hpet.h"
+
+void (*x86_timer_func) (void);
 
 void hw_early_init(void) {
+    x86_timer_func = NULL;
     com_init(X86_COM0);
     x86_con_init();
 }
@@ -47,9 +51,14 @@ void hw_init(void) {
     gdt_init();
     ints_init();
 
-    x86_rtc_init();
-    x86_rtc_reload();
-    x86_timer_init(100);
+    if (!hpet_available() || hpet_init() != 0) {
+        x86_rtc_init();
+        x86_rtc_reload();
+        x86_timer_init(100);
+    } else {
+        x86_timer_func = hpet_timer_func;
+    }
+
     x86_ps2_init();
 
     x86_initrd_init();

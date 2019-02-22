@@ -8,8 +8,10 @@
 #include "sys/panic.h"
 #include "sys/mm.h"
 #include "rtc.h"
+#include "hpet.h"
 
 #define ACPI_MAP_VIRT       0xFF000000
+#define HPET_MAP_VIRT       0xFE000000
 
 struct acpi_rsdp {
     char signature[8];
@@ -31,6 +33,14 @@ struct acpi_table_header {
     uint32_t oemrev;
     uint32_t creatid;
     uint32_t creatrev;
+};
+
+struct acpi_gas {
+    uint8_t space;
+    uint8_t bit_width;
+    uint8_t bit_offset;
+    uint8_t res;
+    uint64_t addr;
 };
 
 struct acpi_rsdt {
@@ -77,10 +87,28 @@ struct acpi_fadt {
     uint16_t iapc_boot_arch;
     uint8_t res1;
     uint32_t flags;
-    char reset_reg[12];
+    struct acpi_gas reset_reg;
     uint8_t reset_value;
     char res2[3];
 } __attribute__((packed));
+
+struct acpi_facs {
+    char signature[4];
+    uint32_t length;
+    uint32_t hw_signature;
+    uint32_t fw_waking_vec;
+    uint32_t global_lock;
+    uint32_t flags;
+};
+
+struct acpi_hpet {
+    struct acpi_table_header hdr;
+    uint32_t evt_timer_blk_id;
+    struct acpi_gas base_addr;
+    uint8_t hpet_number;
+    uint16_t min_clock_tick;
+    uint8_t oemattr;
+};
 
 static int acpi_validate_rsdp(uintptr_t addr) {
     size_t len = ((struct acpi_rsdp *) addr)->length;
@@ -154,6 +182,7 @@ int x86_acpi_init(void) {
     uintptr_t hpet = MM_NADDR;
     uintptr_t fadt = MM_NADDR;
     uintptr_t apic = MM_NADDR;
+    uintptr_t facs = MM_NADDR;
 
     // For now, just look up everything
     for (int i = 0; i < (rsdt_s->hdr.length - sizeof(struct acpi_rsdt)) / 4; ++i) {
@@ -195,6 +224,36 @@ int x86_acpi_init(void) {
             debug(" * RTC supports Century register\n");
             x86_rtc_set_century_addr(fadt_s->century);
         }
+
+        if ((facs = fadt_s->firmware_ctrl)) {
+            if ((facs & -0x400000) != (rsdt_p & -0x400000)) {
+                panic("Unhandled case\n");
+            }
+
+            facs = (facs & 0x3FFFFF) | ACPI_MAP_VIRT;
+
+            if (strncmp((const char *) facs, "FACS", 4)) {
+                panic("FACS table is missing a signature\n");
+            }
+        }
+    }
+
+    if (hpet != MM_NADDR) {
+        struct acpi_hpet *hpet_s = (struct acpi_hpet *) hpet;
+        debug("HPET summary:\n");
+        debug(" * Base addr: %c:%lp\n", hpet_s->base_addr.space ? 'I' : 'M', hpet_s->base_addr.addr);
+        assert(hpet_s->base_addr.space == 0 /* Non-memory mappings not supported yet */);
+
+        uint32_t hpet_addr = hpet_s->base_addr.addr;
+
+        assert(!(mm_kernel[HPET_MAP_VIRT >> 22] & 1));
+        x86_mm_map(mm_kernel, HPET_MAP_VIRT, hpet_addr & -0x400000, X86_MM_FLG_PS | X86_MM_FLG_RW);
+
+        hpet_addr = (hpet_addr & 0x3FFFFF) | HPET_MAP_VIRT;
+
+        debug(" * HPET virtual mapped addr: %p\n", hpet_addr);
+
+        hpet_set_base(hpet_addr);
     }
 
     return -1;

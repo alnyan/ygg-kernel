@@ -193,6 +193,13 @@ void debugfv(const char *fmt, va_list args) {
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set1);
                                 debugsp(buf, padc, padn);
                                 break;
+                            case 'p':
+                                value.v_uint64 = va_arg(args, uint64_t);
+                                debugc('0');
+                                debugc('x');
+                                debug_xs(value.v_uint64, buf, s_debug_xs_set0);
+                                debugspl(buf, '0', sizeof(uint64_t) * 2);
+                                break;
                             default:
                                 debugc('%');
                                 debugc('l');

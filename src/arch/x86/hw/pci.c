@@ -2,27 +2,13 @@
 #include <stdint.h>
 #include "sys/debug.h"
 #include "pciclass.h"
+#include "dev/pci/pci.h"
 #include "io.h"
 
 #define PCI_CONFIG_CMD  0x0CF8
 #define PCI_CONFIG_DAT  0x0CFC
 
-typedef uint32_t pci_addr_t;
-
-#define PCI_ADDRESS(x, y, z)    ((((x) & 0xFF) << 16) | (((y) & 0xFF) << 8) | ((z) & 0xFF))
-#define PCI_TRIPLET(a)          (((a) >> 16) & 0xFF), (((a) >> 8) & 0xFF), ((a) & 0xFF)
-#define PCI_BUS(a)              (((a) >> 16) & 0xFF)
-#define PCI_SLOT(a)             (((a) >> 8) & 0xFF)
-#define PCI_FUNC(a)             ((a) & 0xFF)
-
-#define PCI_CONF_VENDOR     0x00
-#define PCI_CONF_DEVICE     0x02
-#define PCI_CONF_COMMAND    0x04
-#define PCI_CONF_STATUS     0x06
-#define PCI_CONF_REVCLS     0x08
-#define PCI_CONF_HEADER     0x0E
-
-static uint16_t pci_config_getw(pci_addr_t addr, uint8_t off) {
+uint16_t pci_config_getw(pci_addr_t addr, uint8_t off) {
     uint32_t address;
     address = (uint32_t)((((uint32_t) PCI_BUS(addr)) << 16) | (((uint32_t) PCI_SLOT(addr)) << 11) |
               (((uint32_t) PCI_FUNC(addr)) << 8) | (off & 0xfc) | ((uint32_t) 0x80000000));
@@ -30,7 +16,7 @@ static uint16_t pci_config_getw(pci_addr_t addr, uint8_t off) {
     return (uint16_t) ((inl(0xCFC) >> ((off & 2) * 8)) & 0xFFFF);
 }
 
-static uint32_t pci_config_getl(pci_addr_t addr, uint8_t off) {
+uint32_t pci_config_getl(pci_addr_t addr, uint8_t off) {
     return pci_config_getw(addr, off) | ((uint32_t) pci_config_getw(addr, off + 2) << 16);
 }
 

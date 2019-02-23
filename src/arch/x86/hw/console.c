@@ -11,6 +11,7 @@
 #include "../mm.h"
 
 #include "vesa/font.h"
+#include "vesa/vesa_logo.h"
 
 // TODO: vesa scrolling
 
@@ -78,15 +79,6 @@ static void x86_con_cursor(uint16_t row, uint16_t col) {
 	outb(0x03D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
-static void x86_con_scroll(void) {
-    for (int i = 0; i < con_height - 1; ++i) {
-        for (int j = 0; j < con_width; ++j) {
-            con_data[i * con_width + j] = con_data[(i + 1) * con_width + j];
-        }
-    }
-    memsetw(&con_data[con_height * con_width - con_width], 0x0700, con_width);
-}
-
 static inline void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
     // TODO: support non-linear modes
     uint32_t *ptr = (uint32_t *) (vesa_fb_base +
@@ -121,9 +113,21 @@ static void x86_vesa_draw_char(uint16_t y, uint16_t x, uint16_t c) {
         }
     }
 }
+static void x86_con_scroll(void) {
+    for (int i = 0; i < con_height - 1; ++i) {
+        for (int j = 0; j < con_width; ++j) {
+            con_data[i * con_width + j] = con_data[(i + 1) * con_width + j];
+        }
+    }
+    memsetw(&con_data[con_height * con_width - con_width], 0x0700, con_width);
 
-static void x86_vesa_draw_cursor(uint16_t y, uint16_t x, int s) {
-
+    if (vesa_fb_base) {
+        for (int i = 0; i < con_height; ++i) {
+            for (int j = 0; j < con_width; ++j) {
+                x86_vesa_draw_char(i, j, con_data[con_width * i + j]);
+            }
+        }
+    }
 }
 
 void x86_con_putc(char c) {
@@ -194,18 +198,19 @@ void x86_con_init(void) {
 
             // Calculate how many pages we want
             uint32_t vesa_fb_size = (uint32_t) vesa_mode_info->y_res * (uint32_t) vesa_mode_info->pitch;
+            uint32_t vesa_fb_pages = MM_ALIGN_UP(vesa_fb_size, 0x400000) / 0x400000;
 
-            // TODO: support cases when vesa_fb_size > 0x400000
             // TODO: support cases when vesa_fb crosses page boundary
-            assert(vesa_fb_size <= 0x400000);
 
             // Video data storage
-            x86_mm_map(mm_kernel, VESA_FB_VIRT, vesa_mode_info->physbase, X86_MM_FLG_PS | X86_MM_FLG_RW);
+            for (uint32_t i = 0; i < vesa_fb_pages; ++i) {
+                x86_mm_map(mm_kernel, VESA_FB_VIRT + i * 0x400000, vesa_mode_info->physbase, X86_MM_FLG_PS | X86_MM_FLG_RW);
+            }
             // Text buffer
-            x86_mm_map(mm_kernel, VESA_FB_VIRT + 0x400000, mm_alloc_phys_page(), X86_MM_FLG_PS | X86_MM_FLG_RW);
+            x86_mm_map(mm_kernel, VESA_FB_VIRT + vesa_fb_pages * 0x400000, mm_alloc_phys_page(), X86_MM_FLG_PS | X86_MM_FLG_RW);
 
             vesa_fb_base = VESA_FB_VIRT | (vesa_mode_info->physbase & 0x3FFFFF);
-            con_data = (uint16_t *) (VESA_FB_VIRT + 0x400000);
+            con_data = (uint16_t *) (VESA_FB_VIRT + vesa_fb_pages * 0x400000);
 
             con_width = vesa_mode_info->x_res / vesa_char_width;
             con_height = vesa_mode_info->y_res / vesa_char_height;
@@ -215,4 +220,22 @@ void x86_con_init(void) {
         }
     }
     memsetw(con_data, 0x0700, con_width * con_height);
+
+    if (vesa_fb_base) {
+        const uint8_t *data = (const uint8_t *) logo_header_data;
+        uint8_t pixel[4];
+        for (int y = 0; y < logo_height; ++y) {
+            for (int x = 0; x < logo_width; ++x) {
+                LOGO_HEADER_PIXEL(data, pixel);
+
+                for (int i = 0; i < 2; ++i) {
+                    for (int j = 0; j < 2; ++j) {
+                        x86_vesa_set(x * 2 + i, y * 2 + j, (pixel[0] << 16) | (pixel[1] << 8) | pixel[2]);
+                    }
+                }
+            }
+        }
+
+        con_cury += (logo_height * 2) / vesa_char_height;
+    }
 }

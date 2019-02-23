@@ -70,7 +70,7 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
             // TODO: trigger some unmap event?
         } else {
             // Overwrite not allowed, return an error
-            return -1;
+            panic("Trying to map the same location twice: %p\n", virt_page);
         }
     }
 
@@ -173,15 +173,17 @@ void mm_dump_pages(mm_pagedir_t pd) {
     }
 }
 
-void x86_mm_init(void) {
-    // Dump entries retained from bootloader
-    kdebug("Initializing memory management\n");
-
-    x86_pm_init();
-
+void x86_mm_early_init(void) {
     extern uint32_t boot_page_directory[1024];
     mm_current = boot_page_directory;
     mm_kernel = mm_current;
+
+    x86_pm_init();
+}
+
+void x86_mm_init(void) {
+    // Dump entries retained from bootloader
+    kdebug("Initializing memory management\n");
 
     for (int i = 0; i < 1024; ++i) {
         if (mm_current[i] & 0x1) {

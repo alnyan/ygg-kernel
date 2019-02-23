@@ -5,9 +5,15 @@
 .set MM_FLG_RW, (1 << 1)
 .set MM_FLG_PR, (1 << 0)
 
+.set VBE_WIDTH,     1024
+.set VBE_HEIGHT,    768
+.set VBE_DEPTH,     32
+
 .set ALIGN,    1 << 0
 .set MEMINFO,  1 << 1
-.set FLAGS,    ALIGN | MEMINFO
+.set VIDEO,    1 << 2
+.set FLAGS,    ALIGN | MEMINFO \
+             | VIDEO
 .set MAGIC,    0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
@@ -16,6 +22,11 @@
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+.skip 5 * 4
+.long 0
+.long VBE_WIDTH
+.long VBE_HEIGHT
+.long VBE_DEPTH
 
 .section .bss
 .align 16

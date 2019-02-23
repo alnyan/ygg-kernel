@@ -22,6 +22,7 @@
 void (*x86_timer_func) (void);
 
 void hw_early_init(void) {
+    x86_mm_early_init();
     x86_timer_func = NULL;
     com_init(X86_COM0);
     x86_con_init();

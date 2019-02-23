@@ -13,7 +13,7 @@ uint16_t pci_config_getw(pci_addr_t addr, uint8_t off) {
     address = (uint32_t)((((uint32_t) PCI_BUS(addr)) << 16) | (((uint32_t) PCI_SLOT(addr)) << 11) |
               (((uint32_t) PCI_FUNC(addr)) << 8) | (off & 0xfc) | ((uint32_t) 0x80000000));
     outl(PCI_CONFIG_CMD, address);
-    return (uint16_t) ((inl(0xCFC) >> ((off & 2) * 8)) & 0xFFFF);
+    return (uint16_t) ((inl(PCI_CONFIG_DAT) >> ((off & 2) * 8)) & 0xFFFF);
 }
 
 uint32_t pci_config_getl(pci_addr_t addr, uint8_t off) {

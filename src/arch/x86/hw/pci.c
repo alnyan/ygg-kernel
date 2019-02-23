@@ -31,26 +31,26 @@ static void pci_scan_func(pci_addr_t addr) {
         // TODO: scan secondary bus
     } else {
         // TODO: call appropriate initializers bound by device drivers
-        debug("PCI %d:%d:%d: %s (%02x:%02x)\n", PCI_TRIPLET(addr), pci_classes[class], class, subclass);
-        debug("Vendor: 0x%04x, Device: 0x%04x\n", vendor, device);
+        kinfo("PCI %d:%d:%d: %s (%02x:%02x)\n", PCI_TRIPLET(addr), pci_classes[class], class, subclass);
+        kinfo("Vendor: 0x%04x, Device: 0x%04x\n", vendor, device);
 
         switch (class) {
         case PCI_CLASS_DISPLAY:
             if (subclass == 0x00) {
                 // TODO: VGA display support
-                debug(" * VGA-compatible display controller\n");
+                kinfo(" * VGA-compatible display controller\n");
             }
             break;
         case PCI_CLASS_STORAGE:
             if (subclass == 0x01) {
                 // TODO: IDE device support
-                debug(" * IDE drive controller\n");
+                kinfo(" * IDE drive controller\n");
             }
             break;
         case PCI_CLASS_NETWORK:
             if (subclass == 0x00) {
                 // TODO: Ethernet controller support
-                debug(" * Ethernet controller\n");
+                kinfo(" * Ethernet controller\n");
             }
             break;
         }

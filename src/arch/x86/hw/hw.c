@@ -29,7 +29,7 @@ void hw_early_init(void) {
 
 static void x86_initrd_init(void) {
     struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
-    debug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+    kdebug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
 
     if (x86_multiboot_info->mods_count != 1) {
         panic("Kernel expected 1 module, but there're %d\n", x86_multiboot_info->mods_count);
@@ -38,7 +38,7 @@ static void x86_initrd_init(void) {
     uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
     size_t mod_size = mod_list->mod_end - mod_list->mod_start;
 
-    debug("Init module: %p .. %p\n", mod_base, mod_base + mod_size);
+    kdebug("Init module: %p .. %p\n", mod_base, mod_base + mod_size);
     heap_remove_region(mod_base, mod_size);
 
     initrd_init(mod_base, mod_size);

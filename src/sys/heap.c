@@ -35,8 +35,8 @@ void heap_add_region(uintptr_t a, uintptr_t b) {
             s_heap_regions[i] = heap;
 
             fmtsiz(sz, siz_buf);
-            debug("Added %s to heap\n", siz_buf);
-            debug("(%p .. %p)\n", a, b);
+            kdebug("Added %s to heap\n", siz_buf);
+            kdebug("(%p .. %p)\n", a, b);
             return;
         }
     }
@@ -76,7 +76,7 @@ void heap_remove_region(uintptr_t start, size_t sz) {
         uintptr_t is;
         size_t il;
         uintptr_t base = (uintptr_t) s_heap_regions[i];
-        debug("Checking region (%p .. %p)\n", HEAP_DATA(s_heap_regions[i]), HEAP_DATA(s_heap_regions[i]) + s_heap_regions[i]->size);
+        kdebug("Checking region (%p .. %p)\n", HEAP_DATA(s_heap_regions[i]), HEAP_DATA(s_heap_regions[i]) + s_heap_regions[i]->size);
 
         if (region_get_intersect(base,
                                  sizeof(struct heap_block) + s_heap_regions[i]->size,
@@ -113,7 +113,7 @@ void heap_remove_region(uintptr_t start, size_t sz) {
 
                 match = 1;
 
-                debug("Removed (%p .. %p) from heap\n", start, start + sz);
+                kdebug("Removed (%p .. %p) from heap\n", start, start + sz);
                 continue;
             }
         }
@@ -203,7 +203,7 @@ static int heap_free_single(struct heap_block *begin, void *ptr) {
 }
 
 void *heap_alloc(size_t count) {
-    debug("heap_alloc %u\n", count);
+    kdebug("heap_alloc %u\n", count);
     void *res;
     // TODO: expanding heap
     for (int i = 0; i < HEAP_MAX; ++i) {
@@ -212,7 +212,7 @@ void *heap_alloc(size_t count) {
         }
 
         if ((res = heap_alloc_single(s_heap_regions[i], count))) {
-            debug("\t = %p\n", res);
+            kdebug("\t = %p\n", res);
             return res;
         }
     }
@@ -232,7 +232,7 @@ void *heap_realloc(void *ptr, size_t count) {
         // Shrinking
         if (-diff >= sizeof(struct heap_block)) {
             // Just create a new free block
-            debug("Shrinking!\n");
+            kdebug("Shrinking!\n");
 
             struct heap_block *newb = (struct heap_block *) (HEAP_DATA(it) + count);
             newb->size = -diff - sizeof(struct heap_block);
@@ -250,9 +250,9 @@ void *heap_realloc(void *ptr, size_t count) {
 
                 // May join with next block
                 if (!(newb->next->flags & HEAP_FLG_USED)) {
-                    debug("Joining\n");
+                    kdebug("Joining\n");
                     struct heap_block *next = newb->next;
-                    debug("%p->next = %p\n", newb, next);
+                    kdebug("%p->next = %p\n", newb, next);
 
                     newb->size += sizeof(struct heap_block) + next->size;
                     newb->next = next->next;
@@ -315,7 +315,7 @@ void *heap_realloc(void *ptr, size_t count) {
 }
 
 void heap_free(void *ptr) {
-    debug("heap_free %p\n", ptr);
+    kdebug("heap_free %p\n", ptr);
 
     if (!ptr) {
         return;
@@ -367,13 +367,13 @@ void heap_dump(void) {
             break;
         }
 
-        debug("Heap region #%d:\n", i);
+        kdebug("Heap region #%d:\n", i);
 
         struct heap_block *it;
         int j;
 
         for (it = s_heap_regions[i], j = 0; it; it = it->next, ++j) {
-            debug(" [%d] %p %c%c%c%c %uB (%uB)\n",
+            kdebug(" [%d] %p %c%c%c%c %uB (%uB)\n",
                     j,
                     HEAP_DATA(it),
                     (it->flags & HEAP_FLG_USED) ? 'a' : '-',

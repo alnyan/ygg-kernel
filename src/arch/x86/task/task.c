@@ -125,7 +125,7 @@ struct x86_task *x86_task_last = NULL;
 int x86_last_pid = 0;
 
 void task_enable(task_t *t) {
-    debug("Adding task %p to sched\n", t);
+    kdebug("Adding task %p to sched\n", t);
 
     struct x86_task *task = (struct x86_task *) t;
 
@@ -207,7 +207,7 @@ int x86_task_setup_stack(struct x86_task *t,
 }
 
 void x86_task_init(void) {
-    debug("Initializing multitasking\n");
+    kdebug("Initializing multitasking\n");
 
     x86_task_idle.next = NULL;
     x86_task_idle.ctl = NULL;
@@ -250,7 +250,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 x86_task_last = tp;
             }
 
-            debug("Task %d exited with status %d\n",
+            kdebug("Task %d exited with status %d\n",
                     t->ctl->pid,
                     *((uint32_t *) (t->ebp0 - 8 * 4)));
 

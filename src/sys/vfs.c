@@ -246,7 +246,7 @@ void vfs_dirent_dump(const vfs_dirent_t *ent) {
         fmtsiz(ent->size, siz_buf);
         break;
     }
-    debug(" %12s %-16s\n", p, ent->name);
+    kdebug(" %12s %-16s\n", p, ent->name);
 }
 
 ////
@@ -325,12 +325,12 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
     assert(dst);
     assert(fs_type);
 
-    debug("mount %s -> %s, fs %p\n", src, dst, fs_type);
+    kinfo("mount %s -> %s, fs %p\n", src, dst, fs_type);
 
     for (int i = 0; i < sizeof(vfs_mounts) / sizeof(vfs_mounts[0]); ++i) {
         if (vfs_mounts[i].dst[0]) {
             if (!strcmp(vfs_mounts[i].dst, dst)) {
-                debug("Mountpoint already exists\n");
+                kerror("Mountpoint already exists\n");
                 return -1;
             }
         } else {
@@ -339,7 +339,7 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
                 dev_t *blkd = vfs_get_blkdev(src);
 
                 if (!blkd) {
-                    debug("%s is not a block device\n", src);
+                    kerror("%s is not a block device\n", src);
                     return -1;
                 }
 

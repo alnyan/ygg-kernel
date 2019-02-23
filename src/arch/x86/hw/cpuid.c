@@ -101,18 +101,18 @@ int x86_cpuid_check_feature(uint32_t num) {
 }
 
 void x86_cpuid_dump_features(void) {
-    debug("CPUID: Vendor \"%s\"\n", s_cpuid_vendor);
-    debug("Brand string: \"%s\"\n", s_cpuid_brand);
-    debug("EDX features:\n");
+    kdebug("CPUID: Vendor \"%s\"\n", s_cpuid_vendor);
+    kdebug("Brand string: \"%s\"\n", s_cpuid_brand);
+    kdebug("EDX features:\n");
     for (uint32_t i = 0; i < sizeof(x86_cpuid_edx_feature_names) / sizeof(x86_cpuid_edx_feature_names[0]); ++i) {
         if (((1 << i) & s_cpuid_feature_edx) && x86_cpuid_edx_feature_names[i]) {
-            debug("%s\n", x86_cpuid_edx_feature_names[i]);
+            kdebug("%s\n", x86_cpuid_edx_feature_names[i]);
         }
     }
-    debug("ECX features:\n");
+    kdebug("ECX features:\n");
     for (uint32_t i = 0; i < sizeof(x86_cpuid_ecx_feature_names) / sizeof(x86_cpuid_ecx_feature_names[0]); ++i) {
         if (((1 << i) & s_cpuid_feature_ecx) && x86_cpuid_ecx_feature_names[i]) {
-            debug("%s\n", x86_cpuid_ecx_feature_names[i]);
+            kdebug("%s\n", x86_cpuid_ecx_feature_names[i]);
         }
     }
 }
@@ -120,7 +120,7 @@ void x86_cpuid_dump_features(void) {
 void x86_cpuid_init(void) {
     assert(x86_cpuid_support());
 
-    debug("CPUID support is available\n");
+    kdebug("CPUID support is available\n");
 
     uint32_t res[4];
 

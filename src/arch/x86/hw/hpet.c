@@ -59,7 +59,7 @@ void hpet_timer_func(void) {
 }
 
 int hpet_init(void) {
-    debug("Initializing HPET\n");
+    kdebug("Initializing HPET\n");
     uint32_t hpet_clk = (hpet->caps >> 32) & 0xFFFFFFFF; // In 10^-15s
     hpet_freq = 1000000000000000 / hpet_clk;
     // TODO: specify desired frequency as function param

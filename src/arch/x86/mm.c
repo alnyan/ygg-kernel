@@ -33,7 +33,7 @@ void mm_set(mm_pagedir_t pd) {
 }
 
 void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
-    debug("increase refcount for %p\n", pd);
+    kdebug("increase refcount for %p\n", pd);
     if (index != 1023) {
         // Increase pagetable refcount (NYI)
         panic("4K-pages are not supported yet\n");
@@ -43,7 +43,7 @@ void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
 }
 
 int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
-    debug("decrease refcount for %p\nb", pd);
+    kdebug("decrease refcount for %p\nb", pd);
     if (index != 1023) {
         panic("4K-pages are not supported yet\n");
     }
@@ -52,7 +52,7 @@ int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
 }
 
 int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
-    debug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
+    kdebug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
             (flags & X86_MM_FLG_RW) ? 'w' : 'o',
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
     // Last page is used for refcounts
@@ -84,10 +84,10 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
 
 void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
     if (pd[pdi] & 0x1) {
-        debug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
+        kdebug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
                 pd[pdi] & X86_MM_FLG_RW ? 'w' : 'o', pd[pdi] & X86_MM_FLG_US ? 'u' : 'k');
     } else {
-        debug("PD:%p[%d (%p)] = not present\n", pd, pdi, pdi << 22);
+        kdebug("PD:%p[%d (%p)] = not present\n", pd, pdi, pdi << 22);
     }
 }
 
@@ -119,9 +119,9 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
         uint32_t ent = pd[(vaddr >> 22) + i];
 
         if (!(ent & X86_MM_FLG_PR)) {
-            debug("Trying to unmap a non-present page: %p\n", vaddr + (i << 22));
+            kdebug("Trying to unmap a non-present page: %p\n", vaddr + (i << 22));
         } else {
-            debug("unmap %p[%d (%p)]\n", pd, (vaddr >> 22) + i, vaddr + (i << 22));
+            kdebug("unmap %p[%d (%p)]\n", pd, (vaddr >> 22) + i, vaddr + (i << 22));
 
             if (flags & MM_UFLG_PF) {
                 x86_mm_claim_page(ent & -0x400000);
@@ -175,7 +175,7 @@ void mm_dump_pages(mm_pagedir_t pd) {
 
 void x86_mm_init(void) {
     // Dump entries retained from bootloader
-    debug("Initializing memory management\n");
+    kdebug("Initializing memory management\n");
 
     x86_pm_init();
 

@@ -28,7 +28,7 @@ static x86_gdt_entry_t s_gdt[GDT_NENTR];
 static x86_gdt_ptr_t s_gdtr;
 
 void x86_tss_set(uint32_t esp0) {
-    debug("%p -> %p\n", x86_tss.esp0, esp0);
+    kdebug("%p -> %p\n", x86_tss.esp0, esp0);
     x86_tss.esp0 = esp0;
 }
 
@@ -49,7 +49,7 @@ void x86_gdt_set(int idx, uint32_t base, uint32_t limit, uint8_t flags, uint8_t 
 }
 
 void gdt_init(void) {
-    debug("Setting up GDT entries\n");
+    kdebug("Setting up GDT entries\n");
 
     memset(&x86_tss, 0, sizeof(x86_tss));
     x86_tss.ss0 = 0x10;

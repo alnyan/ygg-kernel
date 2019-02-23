@@ -13,7 +13,7 @@ void x86_timer_init(uint32_t freq) {
     uint32_t div = PIT_BASE_FRQ / freq;
 
     if (div > 0xFFFF) {
-        debug("Timer divider is >= 65536 (is %u), resetting\n", div);
+        kdebug("Timer divider is >= 65536 (is %u), resetting\n", div);
         div = 0xFFFF;
     }
 

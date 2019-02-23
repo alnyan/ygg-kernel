@@ -46,7 +46,7 @@ static uintptr_t initrd_find_file(uintptr_t base, const char *name) {
     size_t filesz;
     int zb = 0;
     tar_t *it = (tar_t *) base;
-    debug("find file %s\n", name);
+    kdebug("find file %s\n", name);
 
     while (1) {
         if (it->name[0] == 0) {
@@ -177,7 +177,7 @@ static int initramfs_fact(vfs_t *fs, vfs_mount_t *mnt, const char *path, uint32_
             uintptr_t f = initrd_find_file(initrd.base, path);
 
             if (f == MM_NADDR) {
-                debug("Not found\n");
+                kdebug("Not found\n");
                 break;
             }
 

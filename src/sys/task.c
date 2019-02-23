@@ -6,7 +6,7 @@
 task_ctl_t *task_ctl_create(void) {
     task_ctl_t *ctl = (task_ctl_t *) heap_alloc(sizeof(task_ctl_t));
     memset(ctl, 0, sizeof(task_ctl_t));
-    debug("TASK CTL CREATE\n");
+    kdebug("TASK CTL CREATE\n");
     return ctl;
 }
 

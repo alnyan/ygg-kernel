@@ -14,43 +14,51 @@
 static const char *s_debug_xs_set0 = "0123456789abcdef";
 static const char *s_debug_xs_set1 = "0123456789ABCDEF";
 
-static void debugc(char c) {
+static int s_debug_serial_level = DEBUG_DEFAULT;
+static int s_debug_disp_level = DEBUG_INFO;
+
+void debugc(int level, char c) {
 #ifdef ARCH_AARCH64
     uart_send(0, c);
 #endif
 #ifdef ARCH_X86
-	com_send(X86_COM0, c);
+    if (level >= s_debug_serial_level) {
+	    com_send(X86_COM0, c);
+    }
+    if (level >= s_debug_disp_level) {
+        x86_con_putc(c);
+    }
 #endif
 }
 
-static void debugs(const char *s) {
+void debugs(int level, const char *s) {
     char c;
     while ((c = *(s++))) {
-        debugc(c);
+        debugc(level, c);
     }
 }
 
-static void debugspl(const char *s, char p, size_t c) {
+static void debugspl(int level, const char *s, char p, size_t c) {
     size_t l = strlen(s);
     for (size_t i = l; i < c; ++i) {
-        debugc(p);
+        debugc(level, p);
     }
-    debugs(s);
+    debugs(level, s);
 }
 
-static void debugspr(const char *s, char p, size_t c) {
+static void debugspr(int level, const char *s, char p, size_t c) {
     size_t l = strlen(s);
-    debugs(s);
+    debugs(level, s);
     for (size_t i = l; i < c; ++i) {
-        debugc(p);
+        debugc(level, p);
     }
 }
 
-static void debugsp(const char *s, char padc, int padl) {
+static void debugsp(int level, const char *s, char padc, int padl) {
     if (padl > 0) {
-        debugspl(s, padc, padl);
+        debugspl(level, s, padc, padl);
     } else {
-        debugspr(s, padc, -padl);
+        debugspr(level, s, padc, -padl);
     }
 }
 
@@ -123,14 +131,14 @@ void debug_xs(uint64_t v, char *res, const char *set) {
     }
 }
 
-void debugf(const char *f, ...) {
+void debugf(int level, const char *f, ...) {
     va_list args;
     va_start(args, f);
-    debugfv(f, args);
+    debugfv(level, f, args);
     va_end(args);
 }
 
-void debugfv(const char *fmt, va_list args) {
+void debugfv(int level, const char *fmt, va_list args) {
     char c;
     union {
         const char *v_string;
@@ -176,81 +184,81 @@ void debugfv(const char *fmt, va_list args) {
                             case 'd':
                                 value.v_int64 = va_arg(args, int64_t);
                                 debug_ds(value.v_int64, buf, 1, 1);
-                                debugsp(buf, padc, padn);
+                                debugsp(level, buf, padc, padn);
                                 break;
                             case 'u':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_ds(value.v_uint64, buf, 0, 1);
-                                debugsp(buf, padc, padn);
+                                debugsp(level, buf, padc, padn);
                                 break;
                             case 'x':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set0);
-                                debugsp(buf, padc, padn);
+                                debugsp(level, buf, padc, padn);
                                 break;
                             case 'X':
                                 value.v_uint64 = va_arg(args, uint64_t);
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set1);
-                                debugsp(buf, padc, padn);
+                                debugsp(level, buf, padc, padn);
                                 break;
                             case 'p':
                                 value.v_uint64 = va_arg(args, uint64_t);
-                                debugc('0');
-                                debugc('x');
+                                debugc(level, '0');
+                                debugc(level, 'x');
                                 debug_xs(value.v_uint64, buf, s_debug_xs_set0);
-                                debugspl(buf, '0', sizeof(uint64_t) * 2);
+                                debugspl(level, buf, '0', sizeof(uint64_t) * 2);
                                 break;
                             default:
-                                debugc('%');
-                                debugc('l');
-                                debugc(c);
+                                debugc(level, '%');
+                                debugc(level, 'l');
+                                debugc(level, c);
                                 break;
                         }
                         break;
                     case 'c':
                         // char is promoted to int
                         value.v_char = va_arg(args, int);
-                        debugc(value.v_char);
+                        debugc(level, value.v_char);
                         break;
                     case 'd':
                         value.v_int64 = va_arg(args, int32_t);
                         debug_ds(value.v_int64 & 0xFFFFFFFF, buf, 1, 0);
-                        debugsp(buf, padc, padn);
+                        debugsp(level, buf, padc, padn);
                         break;
                     case 'u':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_ds(value.v_uint64 & 0xFFFFFFFF, buf, 0, 0);
-                        debugsp(buf, padc, padn);
+                        debugsp(level, buf, padc, padn);
                         break;
                     case 'x':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_xs(value.v_uint64 & 0xFFFFFFFF, buf, s_debug_xs_set0);
-                        debugsp(buf, padc, padn);
+                        debugsp(level, buf, padc, padn);
                         break;
                     case 'X':
                         value.v_uint64 = va_arg(args, uint32_t);
                         debug_xs(value.v_uint64 & 0xFFFFFFFF, buf, s_debug_xs_set1);
-                        debugsp(buf, padc, padn);
+                        debugsp(level, buf, padc, padn);
                         break;
                     case 'p':
                         value.v_ptr = va_arg(args, uintptr_t);
-                        debugc('0');
-                        debugc('x');
+                        debugc(level, '0');
+                        debugc(level, 'x');
                         debug_xs(value.v_ptr, buf, s_debug_xs_set0);
-                        debugspl(buf, '0', sizeof(uintptr_t) * 2);
+                        debugspl(level, buf, '0', sizeof(uintptr_t) * 2);
                         break;
                     case 's':
                         value.v_string = va_arg(args, const char *);
-                        debugsp(value.v_string ? value.v_string : "(null)", padc, padn);
+                        debugsp(level, value.v_string ? value.v_string : "(null)", padc, padn);
                         break;
                     default:
-                        debugc('%');
-                        debugc(c);
+                        debugc(level, '%');
+                        debugc(level, c);
                         break;
                 }
                 break;
             default:
-                debugc(c);
+                debugc(level, c);
                 break;
         }
 
@@ -262,59 +270,59 @@ void debugfv(const char *fmt, va_list args) {
 // TODO: move this to some kind of config
 #define DEBUG_DUMP_WORDS
 
-void debug_dump(const void *block, size_t len) {
-    debug("--- Memory dump at %p, %uB ---\n", block, len);
+void debug_dump(int level, const void *block, size_t len) {
+    debugf(level, "--- Memory dump at %p, %uB ---\n", block, len);
 
     for (size_t i = 0; i < len; i += DEBUG_DUMP_LINE) {
-        debugf("%p: ", (uintptr_t) block + i);
+        debugf(level, "%p: ", (uintptr_t) block + i);
 
 #if defined(DEBUG_DUMP_WORDS)
         for (size_t j = i; j < i + DEBUG_DUMP_LINE; j += 2) {
             if (j < len) {
 #if defined(ARCH_X86)
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
 #else
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 12) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 8) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2] >> 4) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint16_t *) block)[j / 2]) & 0xF)]);
 #endif
             } else {
-                debugc(' ');
-                debugc(' ');
+                debugc(level, ' ');
+                debugc(level, ' ');
             }
-            debugc(' ');
+            debugc(level, ' ');
         }
 #else
         for (size_t j = i; j < i + DEBUG_DUMP_LINE; ++j) {
             if (j < len) {
-                debugc(s_debug_xs_set1[((((const uint8_t *) block)[j] >> 4) & 0xF)]);
-                debugc(s_debug_xs_set1[((((const uint8_t *) block)[j]) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint8_t *) block)[j] >> 4) & 0xF)]);
+                debugc(level, s_debug_xs_set1[((((const uint8_t *) block)[j]) & 0xF)]);
             } else {
-                debugc(' ');
-                debugc(' ');
+                debugc(level, ' ');
+                debugc(level, ' ');
             }
-            debugc(' ');
+            debugc(level, ' ');
         }
 #endif
-        debugc(' ');
+        debugc(level, ' ');
 
         for (size_t j = i; j < i + DEBUG_DUMP_LINE && j < len; ++j) {
             char c = ((const char *) block)[j];
             if (isprint(c)) {
-                debugc(c);
+                debugc(level, c);
             } else {
-                debugc('.');
+                debugc(level, '.');
             }
         }
 
-        debugc('\n');
+        debugc(level, '\n');
     }
 
-    debug("--- End dump ---\n");
+    debugf(level, "--- End dump ---\n");
 }
 
 void debug_init(void) {

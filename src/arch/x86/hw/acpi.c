@@ -162,12 +162,12 @@ int x86_acpi_init(void) {
     assert(rsdt != 0);
 
     uint32_t rsdt_p = rsdt;
-    debug("RSDT physical address is %p\n", rsdt);
+    kdebug("RSDT physical address is %p\n", rsdt);
     // Map RSDT
     x86_mm_map(mm_kernel, ACPI_MAP_VIRT, rsdt & -0x400000, X86_MM_FLG_PS | X86_MM_FLG_RW);
     // TODO: either copy this data or make sure the data does not get overwritten
     rsdt = (rsdt & 0x3FFFFF) | ACPI_MAP_VIRT;
-    debug("RSDT virtual address is %p\n", rsdt);
+    kdebug("RSDT virtual address is %p\n", rsdt);
 
     // Validate rsdt
     if (strncmp((const char *) rsdt, "RSDT", 4)) {
@@ -176,7 +176,7 @@ int x86_acpi_init(void) {
     assert(acpi_validate_header(rsdt) == 0);
     struct acpi_rsdt *rsdt_s = (struct acpi_rsdt *) rsdt;
 
-    debug("RSDT contains %u addresses\n", (rsdt_s->hdr.length - sizeof(struct acpi_rsdt)) / 4);
+    kdebug("RSDT contains %u addresses\n", (rsdt_s->hdr.length - sizeof(struct acpi_rsdt)) / 4);
 
     // These pointers will be extra-checked, just useful info dump for later times
     uintptr_t hpet = MM_NADDR;
@@ -195,7 +195,7 @@ int x86_acpi_init(void) {
         uint32_t virt_addr = (phys_addr & 0x3FFFFF) | ACPI_MAP_VIRT;
 
         if (acpi_validate_header(virt_addr) != 0) {
-            debug(" [%d] %p: INVALID TABLE\n", i, virt_addr);
+            kdebug(" [%d] %p: INVALID TABLE\n", i, virt_addr);
             continue;
         }
 
@@ -212,16 +212,16 @@ int x86_acpi_init(void) {
             apic = virt_addr;
         }
 
-        debug(" [%d] %p: \"%s\"\n", i, virt_addr, bytes);
+        kdebug(" [%d] %p: \"%s\"\n", i, virt_addr, bytes);
     }
 
     if (fadt != MM_NADDR) {
         struct acpi_fadt *fadt_s = (struct acpi_fadt *) fadt;
 
-        debug("FADT summary:\n");
+        kdebug("FADT summary:\n");
 
         if (fadt_s->century != 0) {
-            debug(" * RTC supports Century register\n");
+            kdebug(" * RTC supports Century register\n");
             x86_rtc_set_century_addr(fadt_s->century);
         }
 
@@ -240,8 +240,8 @@ int x86_acpi_init(void) {
 
     if (hpet != MM_NADDR) {
         struct acpi_hpet *hpet_s = (struct acpi_hpet *) hpet;
-        debug("HPET summary:\n");
-        debug(" * Base addr: %c:%lp\n", hpet_s->base_addr.space ? 'I' : 'M', hpet_s->base_addr.addr);
+        kdebug("HPET summary:\n");
+        kdebug(" * Base addr: %c:%lp\n", hpet_s->base_addr.space ? 'I' : 'M', hpet_s->base_addr.addr);
         assert(hpet_s->base_addr.space == 0 /* Non-memory mappings not supported yet */);
 
         uint32_t hpet_addr = hpet_s->base_addr.addr;
@@ -251,7 +251,7 @@ int x86_acpi_init(void) {
 
         hpet_addr = (hpet_addr & 0x3FFFFF) | HPET_MAP_VIRT;
 
-        debug(" * HPET virtual mapped addr: %p\n", hpet_addr);
+        kdebug(" * HPET virtual mapped addr: %p\n", hpet_addr);
 
         hpet_set_base(hpet_addr);
     }

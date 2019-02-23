@@ -40,14 +40,14 @@ void x86_pm_init(void) {
     int claimed_pages = 0;
     char siz_buf[11];
 
-    debug("Memory map:\n");
+    kdebug("Memory map:\n");
 
     while (1) {
         uint32_t addr = (uint32_t) mmap->addr;
         uint32_t len = (uint32_t) mmap->len;
 
         fmtsiz(len, siz_buf);
-        debug(" [%d] %c %p %10s\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, siz_buf);
+        kdebug(" [%d] %c %p %10s\n", index++, mmap->type == MULTIBOOT_MEMORY_AVAILABLE ? '+' : '-', addr, siz_buf);
 
         // Claim 4M physical pages
         if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
@@ -58,7 +58,7 @@ void x86_pm_init(void) {
                 len -= diff;
 
                 for (int i = 0; i < (len / 0x400000); ++i) {
-                    debug("Claim %p\n", aligned_addr + i * 0x400000);
+                    kdebug("Claim %p\n", aligned_addr + i * 0x400000);
                     x86_mm_claim_page(aligned_addr + i * 0x400000);
                     ++claimed_pages;
                 }
@@ -76,5 +76,5 @@ void x86_pm_init(void) {
     }
 
     fmtsiz(claimed_pages * 0x400000, siz_buf);
-    debug("Memory manager claimed %d pages (%s) of physical memory\n", claimed_pages, siz_buf);
+    kdebug("Memory manager claimed %d pages (%s) of physical memory\n", claimed_pages, siz_buf);
 }

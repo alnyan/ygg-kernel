@@ -13,29 +13,29 @@
 #define EFLAGS_NT       0x4000
 
 void x86_dump_gp_regs(const x86_gp_regs_t *regs) {
-    debug("General purpose registers:\n");
+    kfatal("General purpose registers:\n");
 
-    debug(" eax = %d (%p)\n", regs->eax, regs->eax);
-    debug(" ecx = %d (%p)\n", regs->ecx, regs->ecx);
-    debug(" edx = %d (%p)\n", regs->edx, regs->edx);
-    debug(" ebx = %d (%p)\n", regs->ebx, regs->ebx);
+    kfatal(" eax = %d (%p)\n", regs->eax, regs->eax);
+    kfatal(" ecx = %d (%p)\n", regs->ecx, regs->ecx);
+    kfatal(" edx = %d (%p)\n", regs->edx, regs->edx);
+    kfatal(" ebx = %d (%p)\n", regs->ebx, regs->ebx);
 
-    debug(" esp = %d (%p)\n", regs->oesp, regs->oesp);
-    debug(" ebp = %d (%p)\n", regs->ebp, regs->ebp);
-    debug(" esi = %d (%p)\n", regs->esi, regs->esi);
-    debug(" edi = %d (%p)\n", regs->edi, regs->edi);
+    kfatal(" esp = %d (%p)\n", regs->oesp, regs->oesp);
+    kfatal(" ebp = %d (%p)\n", regs->ebp, regs->ebp);
+    kfatal(" esi = %d (%p)\n", regs->esi, regs->esi);
+    kfatal(" edi = %d (%p)\n", regs->edi, regs->edi);
 }
 
 void x86_dump_iret_regs(const x86_iret_regs_t *regs) {
-    debug("Execution flow state:\n");
+    kfatal("Execution flow state:\n");
 
-    debug(" cs:eip = %p:%p\n", regs->cs, regs->eip);
+    kfatal(" cs:eip = %p:%p\n", regs->cs, regs->eip);
     if (regs->cs == 0x1B) {
-        debug(" ss:esp = %p:%p\n", regs->ss, regs->esp);
+        kfatal(" ss:esp = %p:%p\n", regs->ss, regs->esp);
     }
 
-    debug(" eflags = %p\n", regs->eflags);
-    debug("\t(%c%c%c%c%c%c%c%c%c%c IOPL=%d)\n",
+    kfatal(" eflags = %p\n", regs->eflags);
+    kfatal("\t(%c%c%c%c%c%c%c%c%c%c IOPL=%d)\n",
             (regs->eflags & EFLAGS_CF) ? 'C' : '-',
             (regs->eflags & EFLAGS_PF) ? 'P' : '-',
             (regs->eflags & EFLAGS_AF) ? 'A' : '-',

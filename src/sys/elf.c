@@ -17,7 +17,7 @@
 
 // Loads ELF file into memory space `dst'
 int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
-    debug("Trying to load ELF from %p, %uB\n", src_addr, src_len);
+    kdebug("Trying to load ELF from %p, %uB\n", src_addr, src_len);
 
     Elf32_Ehdr *ehdr = (Elf32_Ehdr *) src_addr;
     Elf32_Shdr *shdrs = (Elf32_Shdr *) (src_addr + ehdr->e_shoff);
@@ -27,11 +27,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
     // Validate ident
     if (strncmp((const char *) ehdr->e_ident, "\x7F" "ELF", 4)) {
-        debug("\tError: identity doesn't match ELF ident\n");
+        kdebug("\tError: identity doesn't match ELF ident\n");
         return -1;
     }
 
-    debug("There are %u sections:\n", ehdr->e_shnum);
+    kdebug("There are %u sections:\n", ehdr->e_shnum);
 
     for (size_t i = 0; i < ehdr->e_shnum; ++i) {
         Elf32_Shdr *shdr = &shdrs[i];
@@ -41,7 +41,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
             name = &shstrtabd[shdr->sh_name];
         }
 
-        debug(" [%d] %s\n", i, name);
+        kdebug(" [%d] %s\n", i, name);
 
         // Load only program data
         if (shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_NOBITS) {
@@ -56,11 +56,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                     panic("NYI\n");
                 }
 
-                debug("DST IS %p\n", dst);
+                kdebug("DST IS %p\n", dst);
 
                 if (!(dst[(page_start) >> 22] & 1)) {
                     // Allocate a physical page
-                    debug("Destination page is not allocated\n");
+                    kdebug("Destination page is not allocated\n");
                     uintptr_t page = mm_alloc_phys_page();
 
                     if (page == MM_NADDR) {
@@ -69,7 +69,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
                     x86_mm_map(dst, page_start, page, X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US);
                 } else {
-                    debug("No need to allocate page: %p\n", dst[page_start >> 22] & -0x400000);
+                    kdebug("No need to allocate page: %p\n", dst[page_start >> 22] & -0x400000);
                 }
 
                 // Map the page into kernel space
@@ -90,7 +90,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
         }
     }
 
-    debug("DONE! entry is %p, welcome\n", entry_addr);
+    kdebug("DONE! entry is %p, welcome\n", entry_addr);
 
     return (int) entry_addr;
 }

@@ -41,9 +41,9 @@ void x86_rtc_set_century_addr(uint16_t addr) {
 }
 
 void x86_rtc_reload(void) {
-    debug("Reloading RTC registers\n");
+    kdebug("Reloading RTC registers\n");
     x86_rtc_fetch();
-    debug("RTC datetime is: %04u/%02u/%02u, %02u:%02u:%02u\n",
+    kdebug("RTC datetime is: %04u/%02u/%02u, %02u:%02u:%02u\n",
         rtc_cmos_state.year,
         rtc_cmos_state.month,
         rtc_cmos_state.day,
@@ -53,7 +53,7 @@ void x86_rtc_reload(void) {
 }
 
 void x86_rtc_init(void) {
-    debug("Initializing RTC\n");
+    kdebug("Initializing RTC\n");
     outb(0x70, 0x8B);
     uint8_t prev = inb(0x71);
     outb(0x70, 0x8B);

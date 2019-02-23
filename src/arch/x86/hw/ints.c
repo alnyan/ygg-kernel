@@ -86,13 +86,13 @@ extern void x86_irq_syscall();
 
 void x86_isr_handler(x86_int_regs_t *regs) {
     panic_isr("Non-recoverable Exception\n", regs);
-    /*debug("CPU Exception #%d\n", regs->int_no);*/
-    /*debug("Error code: %d (0x%x)\n", regs->err_code);*/
+    /*kdebug("CPU Exception #%d\n", regs->int_no);*/
+    /*kdebug("Error code: %d (0x%x)\n", regs->err_code);*/
 
     /*if (regs->iret.cs == 0x08) {*/
-        /*debug("This is kernel-space exception\n");*/
+        /*kdebug("This is kernel-space exception\n");*/
     /*} else {*/
-        /*debug("This is user-space exception\n");*/
+        /*kdebug("This is user-space exception\n");*/
     /*}*/
 
     /*x86_dump_gp_regs(&regs->gp);*/
@@ -110,7 +110,7 @@ void x86_idt_set(int idx, uint32_t base, uint16_t selector, uint8_t flags) {
 }
 
 void ints_init(void) {
-    debug("Setting up IDT entries\n");
+    kdebug("Setting up IDT entries\n");
 
     x86_idt_set(0, (uint32_t) x86_isr_0, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
     x86_idt_set(1, (uint32_t) x86_isr_1, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);

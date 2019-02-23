@@ -12,12 +12,32 @@
 
 #include "vesa/font.h"
 
+// TODO: vesa scrolling
+
 #define X86_CON_BASE    (KERNEL_VIRT_BASE + 0xB8000)
 #define VESA_FB_VIRT    0xFD000000
 
 static uintptr_t vesa_fb_base = 0;
 static uint16_t vesa_char_width = 8;
 static uint16_t vesa_char_height = 8;
+static uint32_t vesa_attrcol[] = {
+    0x00000000,
+    0x000000AA,
+    0x0000AA00,
+    0x0000AAAA,
+    0x00AA0000,
+    0x00AA00AA,
+    0x00AA5500,
+    0xAAAAAAAA,
+    0x00555555,
+    0x005555FF,
+    0x0055FF55,
+    0x0055FFFF,
+    0x00FF5555,
+    0x00FF55FF,
+    0x00FFFF55,
+    0x00FFFFFF,
+};
 
 static uint16_t *con_data = (uint16_t *) X86_CON_BASE;
 static uint16_t con_width = 80;
@@ -67,7 +87,7 @@ static void x86_con_scroll(void) {
     memsetw(&con_data[con_height * con_width - con_width], 0x0700, con_width);
 }
 
-static void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
+static inline void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
     // TODO: support non-linear modes
     uint32_t *ptr = (uint32_t *) (vesa_fb_base +
                                   y * vesa_mode_info->pitch +
@@ -76,9 +96,14 @@ static void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
 }
 
 static void x86_vesa_draw_char(uint16_t y, uint16_t x, uint16_t c) {
-    // TODO: attributes
-    // TODO: a faster way to perform character drawing
     char ch = c & 0xFF;
+    char fg = (c >> 8) & 0xF;
+    char bg = (c >> 12) & 0xF;
+    if (con_cury == y && con_curx == x) {
+        fg ^= bg;
+        bg ^= fg;
+        fg ^= bg;
+    }
 
     if (ch >= 0x80) {
         ch = 0;
@@ -88,11 +113,17 @@ static void x86_vesa_draw_char(uint16_t y, uint16_t x, uint16_t c) {
 
     for (uint16_t j = 0; j < vesa_char_height; ++j) {
         for (uint16_t i = 0; i < vesa_char_width; ++i) {
-            if (bitmap[j] & (1 << i)) {
-                x86_vesa_set(x * vesa_char_width + i, y * vesa_char_height + j, 0xFF00FF);
+            if ((bitmap[j] & (1 << i))) {
+                x86_vesa_set(x * vesa_char_width + i, y * vesa_char_height + j, vesa_attrcol[(size_t) fg]);
+            } else {
+                x86_vesa_set(x * vesa_char_width + i, y * vesa_char_height + j, vesa_attrcol[(size_t) bg]);
             }
         }
     }
+}
+
+static void x86_vesa_draw_cursor(uint16_t y, uint16_t x, int s) {
+
 }
 
 void x86_con_putc(char c) {
@@ -108,15 +139,20 @@ void x86_con_putc(char c) {
         }
 
         con_data[con_cury * con_width + con_curx] = 0x0700 | c;
+        ++con_curx;
 
         if (vesa_fb_base) {
-            x86_vesa_draw_char(con_cury, con_curx, 0x0700 | c);
+            x86_vesa_draw_char(con_cury, con_curx - 1, 0x0700 | c);
+            x86_vesa_draw_char(con_cury, con_curx, con_data[con_cury * con_width + con_curx]);
         }
-
-        ++con_curx;
     } else if (c == '\n') {
+        uint16_t ocx = con_curx;
+        uint16_t ocy = con_cury;
         con_curx = 0;
         ++con_cury;
+        if (vesa_fb_base) {
+            x86_vesa_draw_char(ocy, ocx, con_data[ocy * con_width + ocx]);
+        }
 
         if (con_cury == con_height - 1) {
             con_cury = con_height - 2;
@@ -128,7 +164,8 @@ void x86_con_putc(char c) {
             con_data[con_cury * con_width + (--con_curx)] = 0x0700;
 
             if (vesa_fb_base) {
-                x86_vesa_draw_char(con_cury, con_curx, 0x0700);
+                x86_vesa_draw_char(con_cury, con_curx + 1, con_data[con_cury * con_width + (con_curx + 1)]);
+                x86_vesa_draw_char(con_cury, con_curx, 0x700);
             }
         }
     } else {

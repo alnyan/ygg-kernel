@@ -10,6 +10,8 @@
 #include "../multiboot.h"
 #include "../mm.h"
 
+#include "vesa/font.h"
+
 #define X86_CON_BASE    (KERNEL_VIRT_BASE + 0xB8000)
 #define VESA_FB_VIRT    0xFD000000
 
@@ -76,9 +78,19 @@ static void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
 static void x86_vesa_draw_char(uint16_t y, uint16_t x, uint16_t c) {
     // TODO: attributes
     // TODO: a faster way to perform character drawing
-    for (uint16_t i = 0; i < con_width; ++i) {
-        for (uint16_t j = 0; j < con_height; ++j) {
-            x86_vesa_set(x * vesa_char_width + i, y * vesa_char_height + j, 0xFF00FF);
+    char ch = c & 0xFF;
+
+    if (ch >= 0x80) {
+        ch = 0;
+    }
+
+    uint8_t *bitmap = &vesa_font_8x8[ch * 8];
+
+    for (uint16_t j = 0; j < vesa_char_height; ++j) {
+        for (uint16_t i = 0; i < vesa_char_width; ++i) {
+            if (bitmap[j] & (1 << i)) {
+                x86_vesa_set(x * vesa_char_width + i, y * vesa_char_height + j, 0xFF00FF);
+            }
         }
     }
 }
@@ -114,6 +126,10 @@ void x86_con_putc(char c) {
         // XXX: should cursor move back one line if at beginning?
         if (con_curx) {
             con_data[con_cury * con_width + (--con_curx)] = 0x0700;
+
+            if (vesa_fb_base) {
+                x86_vesa_draw_char(con_cury, con_curx, 0x0700);
+            }
         }
     } else {
         x86_con_putc('?');
@@ -126,7 +142,6 @@ void x86_con_init(void) {
     if (x86_multiboot_info->flags & MULTIBOOT_INFO_VBE_INFO) {
         if (x86_multiboot_info->vbe_mode <= 0x1F) {
             // TODO: support modes other than 80x25 text
-            memsetw(con_data, 0x0700, 80 * 24);
         } else {
             uint32_t vbe_mode_info_phys = x86_multiboot_info->vbe_mode_info;
             if (vbe_mode_info_phys >= 0x400000) {
@@ -161,7 +176,6 @@ void x86_con_init(void) {
             // Clear it with red color
             memsetl((void *) vesa_fb_base, 0, vesa_fb_size / 4);
         }
-    } else {
-        memsetw(con_data, 0x0700, 80 * 24);
     }
+    memsetw(con_data, 0x0700, con_width * con_height);
 }

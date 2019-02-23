@@ -27,12 +27,14 @@ OBJS+=build/arch/x86/hw/hw.o \
 	  build/arch/x86/hw/rtc.o \
 	  build/arch/x86/hw/acpi.o \
 	  build/arch/x86/hw/hpet.o \
-	  build/arch/x86/hw/pci.o
+	  build/arch/x86/hw/pci.o \
+	  build/arch/x86/hw/vesa/font8x8.o
 
 USR_LINKER=config/ld/x86/user.ld
 
 DIRS+=build/arch/x86/hw \
 	  build/arch/x86/task \
+	  build/arch/x86/hw/vesa \
 	  build/usr
 
 LD=$(CC)

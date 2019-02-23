@@ -18,6 +18,7 @@ task_t *task_create(void) {
     struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
     memset(t, 0, sizeof(struct x86_task *));
     t->ctl = task_ctl_create();
+    t->next = NULL;
 
     return (task_t *) t;
 }

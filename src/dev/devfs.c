@@ -109,6 +109,7 @@ void devfs_add(dev_t *dev, const char *p, uintptr_t param) {
 
     node->dev = dev;
     node->dev_param = param;
+    node->next = NULL;
     strcpy(node->name, p);
 
     if (devfs.last) {

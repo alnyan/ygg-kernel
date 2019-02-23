@@ -28,6 +28,7 @@ void heap_add_region(uintptr_t a, uintptr_t b) {
     heap->flags = HEAP_MAGIC;
     heap->size = sz;
     heap->prev = NULL;
+    heap->next = NULL;
     char siz_buf[12];
     for (int i = 0; i < HEAP_MAX; ++i) {
         if (!s_heap_regions[i]) {
@@ -35,6 +36,7 @@ void heap_add_region(uintptr_t a, uintptr_t b) {
 
             fmtsiz(sz, siz_buf);
             debug("Added %s to heap\n", siz_buf);
+            debug("(%p .. %p)\n", a, b);
             return;
         }
     }
@@ -74,6 +76,7 @@ void heap_remove_region(uintptr_t start, size_t sz) {
         uintptr_t is;
         size_t il;
         uintptr_t base = (uintptr_t) s_heap_regions[i];
+        debug("Checking region (%p .. %p)\n", HEAP_DATA(s_heap_regions[i]), HEAP_DATA(s_heap_regions[i]) + s_heap_regions[i]->size);
 
         if (region_get_intersect(base,
                                  sizeof(struct heap_block) + s_heap_regions[i]->size,
@@ -110,16 +113,17 @@ void heap_remove_region(uintptr_t start, size_t sz) {
 
                 match = 1;
 
+                debug("Removed (%p .. %p) from heap\n", start, start + sz);
                 continue;
             }
         }
     }
 
-    heap_dump();
-
     if (!match) {
         panic("Region %p .. %p does not belong to any heap\n", start, start + sz);
     }
+
+    heap_dump();
 }
 
 static void *heap_alloc_single(struct heap_block *begin, size_t count) {

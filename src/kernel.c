@@ -11,6 +11,7 @@
 #include "util.h"
 
 void kernel_main(void) {
+    irq_disable();
     // Init basic stuff so we can at least print something
     hw_early_init();
     // Init printing

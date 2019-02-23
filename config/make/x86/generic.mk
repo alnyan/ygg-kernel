@@ -55,7 +55,7 @@ qemu: all
 	@$(QEMU_CMD)
 
 qemu-iso: iso
-	@$(QEMU_BIN) -serial stdio -cdrom build/dist.iso
+	@$(QEMU_BIN) -serial stdio -cdrom build/dist.iso $(QEMU_ADD)
 
 build/dist.iso: all
 	@printf " ISO\t%s\n" $@

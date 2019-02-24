@@ -37,11 +37,11 @@ build/%.o: src/%.s
 
 build/%.o: src/%.S
 	@printf " AS\t%s\n" "$<"
-	@$(CC) -ggdb -Isrc -c -o $@ $<
+	@$(CC) -ggdb $(DEFINES) -Isrc -c -o $@ $<
 
 build/%.o: src/%.c $(HDRS)
 	@printf	" CC\t%s\n" "$<"
-	@$(CC) -ggdb $(CFLAGS) -c -o $@ $<
+	@$(CC) -ggdb $(DEFINES) $(CFLAGS) -c -o $@ $<
 
 build/kernel.bin: build/kernel.elf
 	@printf " OC\t%s\n" "$@"

@@ -5,15 +5,20 @@
 .set MM_FLG_RW, (1 << 1)
 .set MM_FLG_PR, (1 << 0)
 
+#ifdef ENABLE_VESA_FBCON
 .set VBE_WIDTH,     1024
 .set VBE_HEIGHT,    768
 .set VBE_DEPTH,     32
+#endif
 
 .set ALIGN,    1 << 0
 .set MEMINFO,  1 << 1
 .set VIDEO,    1 << 2
-.set FLAGS,    ALIGN | MEMINFO \
-             | VIDEO
+#ifdef ENABLE_VESA_FBCON
+.set FLAGS,    ALIGN | MEMINFO | VIDEO
+#else
+.set FLAGS,    ALIGN | MEMINFO
+#endif
 .set MAGIC,    0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
@@ -22,11 +27,13 @@
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+#ifdef ENABLE_VESA_FBCON
 .skip 5 * 4
 .long 0
 .long VBE_WIDTH
 .long VBE_HEIGHT
 .long VBE_DEPTH
+#endif
 
 .section .bss
 .align 16

@@ -10,12 +10,12 @@
 #include "../multiboot.h"
 #include "../mm.h"
 
+#define X86_CON_BASE    (KERNEL_VIRT_BASE + 0xB8000)
+
+#if defined(ENABLE_VESA_FBCON)
 #include "vesa/font.h"
 #include "vesa/vesa_logo.h"
 
-// TODO: vesa scrolling
-
-#define X86_CON_BASE    (KERNEL_VIRT_BASE + 0xB8000)
 #define VESA_FB_VIRT    0xFD000000
 
 static uintptr_t vesa_fb_base = 0;
@@ -40,12 +40,6 @@ static uint32_t vesa_attrcol[] = {
     0x00FFFFFF,
 };
 
-static uint16_t *con_data = (uint16_t *) X86_CON_BASE;
-static uint16_t con_width = 80;
-static uint16_t con_height = 25;
-static uint16_t con_cury = 0;
-static uint16_t con_curx = 0;
-
 struct vesa_mode_info {
     uint16_t attributes;
     uint8_t win_a, win_b;
@@ -69,6 +63,13 @@ struct vesa_mode_info {
 } __attribute__((packed));
 
 static struct vesa_mode_info *vesa_mode_info;
+#endif
+
+static uint16_t *con_data = (uint16_t *) X86_CON_BASE;
+static uint16_t con_width = 80;
+static uint16_t con_height = 25;
+static uint16_t con_cury = 0;
+static uint16_t con_curx = 0;
 
 static void x86_con_cursor(uint16_t row, uint16_t col) {
     uint16_t pos = row * 80 + col;
@@ -79,6 +80,7 @@ static void x86_con_cursor(uint16_t row, uint16_t col) {
 	outb(0x03D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
+#if defined(ENABLE_VESA_FBCON)
 static inline void x86_vesa_set(uint16_t x, uint16_t y, uint32_t p) {
     // TODO: support non-linear modes
     uint32_t *ptr = (uint32_t *) (vesa_fb_base +
@@ -113,6 +115,8 @@ static void x86_vesa_draw_char(uint16_t y, uint16_t x, uint16_t c) {
         }
     }
 }
+#endif
+
 static void x86_con_scroll(void) {
     for (int i = 0; i < con_height - 1; ++i) {
         for (int j = 0; j < con_width; ++j) {
@@ -121,6 +125,7 @@ static void x86_con_scroll(void) {
     }
     memsetw(&con_data[con_height * con_width - con_width], 0x0700, con_width);
 
+#if defined(ENABLE_VESA_FBCON)
     if (vesa_fb_base) {
         for (int i = 0; i < con_height; ++i) {
             for (int j = 0; j < con_width; ++j) {
@@ -128,6 +133,7 @@ static void x86_con_scroll(void) {
             }
         }
     }
+#endif
 }
 
 void x86_con_putc(char c) {
@@ -145,18 +151,24 @@ void x86_con_putc(char c) {
         con_data[con_cury * con_width + con_curx] = 0x0700 | c;
         ++con_curx;
 
+#if defined(ENABLE_VESA_FBCON)
         if (vesa_fb_base) {
             x86_vesa_draw_char(con_cury, con_curx - 1, 0x0700 | c);
             x86_vesa_draw_char(con_cury, con_curx, con_data[con_cury * con_width + con_curx]);
         }
+#endif
     } else if (c == '\n') {
+#if defined(ENABLE_VESA_FBCON)
         uint16_t ocx = con_curx;
         uint16_t ocy = con_cury;
+#endif
         con_curx = 0;
         ++con_cury;
+#if defined(ENABLE_VESA_FBCON)
         if (vesa_fb_base) {
             x86_vesa_draw_char(ocy, ocx, con_data[ocy * con_width + ocx]);
         }
+#endif
 
         if (con_cury == con_height - 1) {
             con_cury = con_height - 2;
@@ -167,10 +179,12 @@ void x86_con_putc(char c) {
         if (con_curx) {
             con_data[con_cury * con_width + (--con_curx)] = 0x0700;
 
+#if defined(ENABLE_VESA_FBCON)
             if (vesa_fb_base) {
                 x86_vesa_draw_char(con_cury, con_curx + 1, con_data[con_cury * con_width + (con_curx + 1)]);
                 x86_vesa_draw_char(con_cury, con_curx, 0x700);
             }
+#endif
         }
     } else {
         x86_con_putc('?');
@@ -180,6 +194,7 @@ void x86_con_putc(char c) {
 }
 
 void x86_con_init(void) {
+#if defined(ENABLE_VESA_FBCON)
     if (x86_multiboot_info->flags & MULTIBOOT_INFO_VBE_INFO) {
         if (x86_multiboot_info->vbe_mode <= 0x1F) {
             // TODO: support modes other than 80x25 text
@@ -219,7 +234,6 @@ void x86_con_init(void) {
             memsetl((void *) vesa_fb_base, 0, vesa_fb_size / 4);
         }
     }
-    memsetw(con_data, 0x0700, con_width * con_height);
 
     if (vesa_fb_base) {
         const uint8_t *data = (const uint8_t *) logo_header_data;
@@ -238,4 +252,7 @@ void x86_con_init(void) {
 
         con_cury += (logo_height * 2) / vesa_char_height;
     }
+#endif
+
+    memsetw(con_data, 0x0700, con_width * con_height);
 }

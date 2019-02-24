@@ -57,12 +57,43 @@ static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page,
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
     // Last page is used for refcounts
     assert((virt_page >> 22) != 1023);
+    uint32_t pdi = virt_page >> 22;
 
     if (!(flags & X86_MM_FLG_PS)) {
-        panic("4K-pages are not supported yet\n");
+        if (pd[pdi] & 1) {
+            // Mapping already exists, map a page into the table
+            mm_pagetab_t pt = (mm_pagetab_t) (x86_mm_reverse_lookup(pd[pdi] & -0x1000));
+            assert((uintptr_t) pt != MM_NADDR);
+
+            uint32_t pti = (virt_page >> 12) & 0x3FF;
+
+            if (pt[pti] & X86_MM_FLG_PR) {
+                if (flags & X86_MM_HNT_OVW) {
+                    // TODO: trigger some unmap event?
+                } else {
+                    // Overwrite not allowed, return an error
+                    panic("Trying to map the same location twice: %p\n", virt_page);
+                }
+            }
+
+            pt[pti] = (phys_page & -0x1000) | X86_MM_FLG_PR | (flags & 0x3FF);
+
+            return 0;
+        } else {
+            uintptr_t pt_phys;
+            mm_pagetab_t pt = (mm_pagetab_t) mm_pagedir_alloc(&pt_phys); // TODO: mm_pagetab_alloc()
+            assert(pt);
+            assert((pt_phys & 0xFFF) == 0);
+
+            uint32_t pti = (virt_page >> 12) & 0x3FF;
+
+            pt[pti] = (phys_page & -0x1000) | X86_MM_FLG_PR | (flags & 0x3FF);
+            pd[pdi] = pt_phys | X86_MM_FLG_PR | X86_MM_FLG_US | X86_MM_FLG_RW;
+
+            return 0;
+        }
     }
 
-    uint32_t pdi = virt_page >> 22;
 
     if ((pd[pdi] & 0x1) != 0) {
         if (flags & X86_MM_HNT_OVW) {
@@ -107,15 +138,6 @@ uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags) {
         return (pde & -0x400000) | (virt & 0x3FFFFF);
     } else {
         panic("4K-pages are not supported yet\n");
-    }
-}
-
-void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {
-    if (pd[pdi] & 0x1) {
-        kdebug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, pdi, pdi << 22, pd[pdi] & -0x400000,
-                pd[pdi] & X86_MM_FLG_RW ? 'w' : 'o', pd[pdi] & X86_MM_FLG_US ? 'u' : 'k');
-    } else {
-        kdebug("PD:%p[%d (%p)] = not present\n", pd, pdi, pdi << 22);
     }
 }
 
@@ -194,9 +216,26 @@ uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
 }
 
 void mm_dump_pages(mm_pagedir_t pd) {
-    for (int i = 0; i < 1024; ++i) {
+    for (int i = 0; i < 1023; ++i) {
         if (pd[i] & X86_MM_FLG_PR) {
-            x86_mm_dump_entry(pd, i);
+            if (pd[i] & X86_MM_FLG_PS) {
+                kdebug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x400000,
+                        pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
+            } else {
+                kdebug("PD:%p[%d (%p)]: Table %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x1000,
+                        pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
+
+                mm_pagedir_t pt = (mm_pagedir_t) x86_mm_reverse_lookup(pd[i] & -0x1000);
+                assert(pt);
+
+                for (int j = 0; j < 1024; ++j) {
+                    if (pt[j] & X86_MM_FLG_PR) {
+                        uintptr_t vaddr = (i << 22) + (j << 12);
+                        kdebug(" PT:%p[%d (%p)] = %p, r%c, %c\n", pt, j, vaddr, pt[j] & -0x1000,
+                                 pt[j] & X86_MM_FLG_RW ? 'w' : 'o', pt[j] & X86_MM_FLG_US ? 'u' : 'k');
+                    }
+                }
+            }
         }
     }
 }
@@ -212,12 +251,6 @@ void x86_mm_early_init(void) {
 void x86_mm_init(void) {
     // Dump entries retained from bootloader
     kdebug("Initializing memory management\n");
-
-    for (int i = 0; i < 1024; ++i) {
-        if (mm_current[i] & 0x1) {
-            x86_mm_dump_entry(mm_current, i);
-        }
-    }
 
     // Add free space after the kernel to heap
     heap_init();

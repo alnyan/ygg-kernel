@@ -10,7 +10,7 @@ struct mm_alloc_block {
     uintptr_t paddr;
 };
 
-static struct mm_alloc_block s_mm_alloc_blocks[4];
+static struct mm_alloc_block s_mm_alloc_blocks[4] = {0};
 
 uintptr_t x86_mm_reverse_lookup(uintptr_t cr3) {
     if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
@@ -46,7 +46,7 @@ void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
     memcpy(dst, src, 1023 * 4);
 }
 
-mm_pagedir_t mm_pagedir_alloc(void) {
+mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys) {
     for (int j = 0; j < 4; ++j) {
         if (!s_mm_alloc_blocks[j].paddr) {
             return NULL;
@@ -64,6 +64,9 @@ mm_pagedir_t mm_pagedir_alloc(void) {
             mm_pagedir_t pd = (mm_pagedir_t) (i * 0x1000 + page);
             pd[1023] = 0;
             x86_mm_pdincr(pd, 1023);
+            if (phys) {
+                *phys = s_mm_alloc_blocks[j].paddr + i * 0x1000;
+            }
             return pd;
         }
     }

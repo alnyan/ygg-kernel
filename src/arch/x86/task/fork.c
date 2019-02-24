@@ -27,7 +27,9 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
     for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
         if (src[i] & 1) {
             // TODO: handle 4K pages
-            assert((src[i] & X86_MM_FLG_PS));
+            if (!(src[i] & (1 << 7))) {
+                continue;
+            }
 
             uint32_t src_phys = src[i] & -MM_PAGESZ;
             uint32_t dst_phys = mm_alloc_phys_page();
@@ -64,7 +66,7 @@ task_t *task_fork(task_t *t) {
     uint32_t src_cr3 = *((uint32_t *) (src->ebp0 - 14 * 4));
     mm_pagedir_t src_pd = (mm_pagedir_t) x86_mm_reverse_lookup(src_cr3);
     assert((uintptr_t) src_pd != MM_NADDR);
-    mm_pagedir_t dst_pd = mm_pagedir_alloc();
+    mm_pagedir_t dst_pd = mm_pagedir_alloc(NULL);
     assert(dst_pd);
 
     // Data copying happens here
@@ -163,7 +165,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     assert(file_mem != MM_NADDR);
 
     // Load the ELF
-    mm_pagedir_t pd = mm_pagedir_alloc();
+    mm_pagedir_t pd = mm_pagedir_alloc(NULL);
     assert(pd);
 
     mm_clone(pd, mm_kernel);

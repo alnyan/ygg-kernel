@@ -51,7 +51,7 @@ int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
     return --pd[1023] == 0;
 }
 
-int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
+static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
     kdebug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
             (flags & X86_MM_FLG_RW) ? 'w' : 'o',
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
@@ -59,7 +59,6 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
     assert((virt_page >> 22) != 1023);
 
     if (!(flags & X86_MM_FLG_PS)) {
-        // TODO: panic!
         panic("4K-pages are not supported yet\n");
     }
 
@@ -80,6 +79,35 @@ int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32
     // Flush TLB by re-setting the same cr3
     asm volatile("movl %cr3, %eax; movl %eax, %cr3");
     return 0;
+}
+
+// TODO: merge x86_mm_map and mm_map_page
+int mm_map_page(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
+    uint32_t f = X86_MM_FLG_PS;
+    if (flags & MM_FLG_RW) {
+        f |= X86_MM_FLG_RW;
+    }
+    if (flags & MM_FLG_US) {
+        f |= X86_MM_FLG_US;
+    }
+    return x86_mm_map(pd, virt_page, phys_page, f);
+}
+
+uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags) {
+    uint32_t pde = pd[virt >> 22];
+    if (!(pde & X86_MM_FLG_PR)) {
+        return MM_NADDR;
+    }
+
+    if (pde & X86_MM_FLG_PS) {
+        if (!(flags & MM_FLG_HUGE)) {
+            return MM_NADDR;
+        }
+
+        return (pde & -0x400000) | (virt & 0x3FFFFF);
+    } else {
+        panic("4K-pages are not supported yet\n");
+    }
 }
 
 void x86_mm_dump_entry(mm_pagedir_t pd, uint32_t pdi) {

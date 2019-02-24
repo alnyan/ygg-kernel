@@ -16,6 +16,7 @@ extern int x86_task_setup_stack(struct x86_task *t,
     mm_pagedir_t pd,
     uint32_t ebp0,
     uint32_t ebp3,
+    uint32_t ebp3p,
     int flag);
 
 static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
@@ -25,20 +26,22 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
     // XXX: The following method is reeeeaaaaalllyyy stupid
     for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
         if (src[i] & 1) {
+            // TODO: handle 4K pages
+            assert((src[i] & X86_MM_FLG_PS));
 
-            uint32_t src_phys = src[i] & -0x400000;
+            uint32_t src_phys = src[i] & -MM_PAGESZ;
             uint32_t dst_phys = mm_alloc_phys_page();
 
             assert(dst_phys != MM_NADDR);
-            dst[i] = dst_phys | (src[i] & 0x3FFFFF);
+            dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
 
             kdebug("Physically copying %p -> %p\n", src_phys, dst_phys);
 
             // Map both of them somewhere
-            x86_mm_map(mm_kernel, 0xF0000000, dst_phys, X86_MM_FLG_PS | X86_MM_FLG_RW);
-            x86_mm_map(mm_kernel, 0xF0400000, src_phys, X86_MM_FLG_PS);
+            mm_map_page(mm_kernel, 0xF0000000, dst_phys, MM_FLG_RW);
+            mm_map_page(mm_kernel, 0xF0000000 + MM_PAGESZ, src_phys, 0);
 
-            memcpy((void *) 0xF0000000, (const void *) 0xF0400000, 0x400000);
+            memcpy((void *) 0xF0000000, (const void *) (0xF0000000 + MM_PAGESZ), MM_PAGESZ);
 
             mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
 
@@ -137,6 +140,7 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
         task_pd,
         ebp0,
         ebp3,
+        ebp3 - MM_PAGESZ,
         0
     ) == 0);
 
@@ -169,7 +173,10 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     // Create and setup the task
     task_t *task = task_create();
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
-    uint32_t ebp3 = 0x80000000 + 0x400000;
+    uint32_t ebp3 = 0x80000000 + MM_PAGESZ;
+    uint32_t ebp3p = mm_alloc_phys_page();
+
+    assert(ebp3p != MM_NADDR);
 
     vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
     assert(fd_tty_wr);
@@ -181,8 +188,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     fd_tty_rd->task = task;
     ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
 
-
-    x86_mm_map(pd, 0x80000000, mm_alloc_phys_page(), X86_MM_FLG_US | X86_MM_FLG_RW | X86_MM_FLG_PS);
+    mm_map_page(pd, ebp3 - MM_PAGESZ, ebp3p, MM_FLG_US | MM_FLG_RW);
 
     assert(x86_task_setup_stack(
         (struct x86_task *) task,
@@ -191,6 +197,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
         pd,
         ebp0,
         ebp3,
+        ebp3p,
         0
     ) == 0);
 

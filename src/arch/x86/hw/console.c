@@ -8,7 +8,6 @@
 #include "hw.h"
 #include "sys/mm.h"
 #include "../multiboot.h"
-#include "../mm.h"
 
 #define X86_CON_BASE    (KERNEL_VIRT_BASE + 0xB8000)
 
@@ -213,19 +212,17 @@ void x86_con_init(void) {
 
             // Calculate how many pages we want
             uint32_t vesa_fb_size = (uint32_t) vesa_mode_info->y_res * (uint32_t) vesa_mode_info->pitch;
-            uint32_t vesa_fb_pages = MM_ALIGN_UP(vesa_fb_size, 0x400000) / 0x400000;
+            uint32_t vesa_fb_pages = MM_ALIGN_UP(vesa_fb_size, MM_PAGESZ) / MM_PAGESZ;
 
             // TODO: support cases when vesa_fb crosses page boundary
-
             // Video data storage
             for (uint32_t i = 0; i < vesa_fb_pages; ++i) {
-                x86_mm_map(mm_kernel, VESA_FB_VIRT + i * 0x400000, vesa_mode_info->physbase, X86_MM_FLG_PS | X86_MM_FLG_RW);
+                mm_map_page(mm_kernel, VESA_FB_VIRT + i * MM_PAGESZ, vesa_mode_info->physbase, MM_FLG_RW);
             }
             // Text buffer
-            x86_mm_map(mm_kernel, VESA_FB_VIRT + vesa_fb_pages * 0x400000, mm_alloc_phys_page(), X86_MM_FLG_PS | X86_MM_FLG_RW);
 
-            vesa_fb_base = VESA_FB_VIRT | (vesa_mode_info->physbase & 0x3FFFFF);
-            con_data = (uint16_t *) (VESA_FB_VIRT + vesa_fb_pages * 0x400000);
+            vesa_fb_base = VESA_FB_VIRT | (vesa_mode_info->physbase & (MM_PAGESZ - 1));
+            con_data = (uint16_t *) (VESA_FB_VIRT + vesa_fb_pages * MM_PAGESZ);
 
             con_width = vesa_mode_info->x_res / vesa_char_width;
             con_height = vesa_mode_info->y_res / vesa_char_height;

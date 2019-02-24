@@ -3,15 +3,14 @@
 #include "sys/string.h"
 #include "sys/task.h"
 #include "sys/panic.h"
+#include "sys/assert.h"
 #include "sys/debug.h"
 #include "sys/mem.h"
 #include "sys/mm.h"
 #include <stddef.h>
 
 // FIXME
-#ifdef ARCH_X86
-#include "arch/x86/mm.h"
-#else
+#ifndef ARCH_X86
 #error "Not yet implemented"
 #endif
 
@@ -49,8 +48,8 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                 // Just alloc pages for the section
                 // TODO: This is platform-specific code and needs to be moved somewhere
                 uintptr_t page_start = shdr->sh_addr & -MM_PAGESZ;
-                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ0);
-                size_t page_count = (page_end - page_start) / MM_PAGESZ0;
+                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ);
+                size_t page_count = (page_end - page_start) / MM_PAGESZ;
 
                 if (page_count != 1) {
                     panic("NYI\n");
@@ -58,30 +57,30 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
                 kdebug("DST IS %p\n", dst);
 
-                if (!(dst[(page_start) >> 22] & 1)) {
-                    // Allocate a physical page
-                    kdebug("Destination page is not allocated\n");
-                    uintptr_t page = mm_alloc_phys_page();
+                uintptr_t page_phys = mm_lookup(dst, page_start, MM_FLG_HUGE);
 
-                    if (page == MM_NADDR) {
-                        panic("Failed to allocate memory for ELF\n");
-                    }
+                if (page_phys == MM_NADDR) {
+                    kdebug("Allocating physical page for section %s\n", name);
+                    uintptr_t page;
 
-                    x86_mm_map(dst, page_start, page, X86_MM_FLG_RW | X86_MM_FLG_PS | X86_MM_FLG_US);
-                } else {
-                    kdebug("No need to allocate page: %p\n", dst[page_start >> 22] & -0x400000);
+                    assert((page = mm_alloc_phys_page()) != MM_NADDR);
+
+                    mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US);
+
+                    page_phys = page;
                 }
 
                 // Map the page into kernel space
                 // 0x400000 is the base for write access
-                x86_mm_map(mm_kernel, 0x400000, dst[page_start >> 22] & -0x400000, X86_MM_FLG_RW | X86_MM_FLG_PS);
+                // TODO: maybe use copy_to_user
+                mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW);
 
                 if (shdr->sh_type == SHT_PROGBITS) {
-                    memcpy((void *) (shdr->sh_addr - page_start + 0x400000),
+                    memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ),
                            (void *) (src_addr + shdr->sh_offset),
                            shdr->sh_size);
                 } else {
-                    memset((void *) (shdr->sh_addr - page_start + 0x400000), 0, shdr->sh_size);
+                    memset((void *) (shdr->sh_addr - page_start + MM_PAGESZ), 0, shdr->sh_size);
                 }
 
                 // Unmap page

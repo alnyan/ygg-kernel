@@ -77,11 +77,14 @@ void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
-    uint32_t dst_page_base = ((uint32_t) dst) & -0x400000;
+    uint32_t dst_page_base = ((uint32_t) dst) & -MM_PAGESZ;
 
     // TODO: handle multiple-page copies
     // TODO: make standard define for "transition page"
-    x86_mm_map(mm_kernel, dst_page_base, task_pd[dst_page_base >> 22], X86_MM_FLG_PS | X86_MM_FLG_RW);
+    uintptr_t user_phys = mm_lookup(task_pd, dst_page_base, MM_FLG_HUGE);
+    assert(user_phys != MM_NADDR);
+
+    mm_map_page(mm_kernel, dst_page_base, user_phys, MM_FLG_RW);
     memcpy(dst, src, sz);
     mm_unmap_cont_region(mm_kernel, dst_page_base, 1, 0);
 }
@@ -98,11 +101,13 @@ void task_copy_from_user(task_t *task, void *dst, const userspace void *src, siz
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
-    uint32_t src_page_base = ((uint32_t) src) & -0x400000;
+    uint32_t src_page_base = ((uint32_t) src) & -MM_PAGESZ;
 
     // TODO: handle multiple-page copies
     // TODO: make standard define for "transition page"
-    x86_mm_map(mm_kernel, src_page_base, task_pd[src_page_base >> 22], X86_MM_FLG_PS);
+    uintptr_t user_phys = mm_lookup(task_pd, src_page_base, MM_FLG_HUGE);
+    mm_map_page(mm_kernel, src_page_base, user_phys, 0);
+
     if (sz != MM_NADDR) {
         memcpy(dst, src, sz);
     } else {
@@ -149,11 +154,12 @@ int x86_task_setup_stack(struct x86_task *t,
         mm_pagedir_t pd,
         uint32_t ebp0,
         uint32_t ebp3,
+        uint32_t ebp3p,
         int flag) {
     uint32_t cr3;
 
-    assert(mm_kernel[(uintptr_t) pd >> 22] & 1);
-    cr3 = (mm_kernel[(uintptr_t) pd >> 22] & -0x400000) | (((uintptr_t) pd) & 0x3FFFFF);
+    cr3 = mm_lookup(mm_kernel, (uintptr_t) pd, MM_FLG_HUGE);
+    assert(cr3 != MM_NADDR);
 
     uint32_t *esp0;
     uint32_t *esp3;
@@ -174,13 +180,15 @@ int x86_task_setup_stack(struct x86_task *t,
     } else {
         // Init userspace task
         // Map stack page
-        x86_mm_map(mm_kernel, ebp3 - 0x400000, pd[(ebp3 - 0x400000) >> 22] & -0x400000, X86_MM_FLG_RW | X86_MM_FLG_PS);
+        // TODO: cases when stack occupies several pages
+        mm_map_page(mm_kernel, ebp3 - MM_PAGESZ, ebp3p, MM_FLG_RW | MM_FLG_US);
+
         esp3 = (uint32_t *) t->ebp3;
 
         *--esp3 = (uint32_t) arg;   // Push thread arg
         *--esp3 = 0x12345678;       // Push some funny return address
 
-        mm_unmap_cont_region(mm_kernel, ebp3 - 0x400000, 1, 0);
+        mm_unmap_cont_region(mm_kernel, ebp3 - MM_PAGESZ, 1, 0);
 
         *--esp0 = 0x23;             // SS
         *--esp0 = (uint32_t) esp3;  // ESP
@@ -217,6 +225,7 @@ void x86_task_init(void) {
             NULL,
             mm_kernel,
             (uint32_t) &x86_task_idle_stack[X86_TASK_TOTAL_STACK],
+            0,
             0,
             X86_TASK_IDLE);
 

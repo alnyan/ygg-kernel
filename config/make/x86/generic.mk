@@ -27,7 +27,8 @@ OBJS+=build/arch/x86/hw/hw.o \
 	  build/arch/x86/hw/rtc.o \
 	  build/arch/x86/hw/acpi.o \
 	  build/arch/x86/hw/hpet.o \
-	  build/arch/x86/hw/pci.o
+	  build/arch/x86/hw/pci.o \
+	  build/arch/x86/hw/periph_irq.o
 
 ifneq ($(ENABLE_VESA_FBCON),)
 OBJS+=build/arch/x86/hw/vesa/font8x8.o
@@ -56,6 +57,12 @@ QEMU_CMD?=$(QEMU_BIN) \
 		  -initrd build/usr/init.tar $(QEMU_ADD)
 ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
+endif
+
+ifneq ($(ENABLE_RTL8139),)
+QEMU_ADD+= -device rtl8139,netdev=net0 \
+		   -netdev user,id=net0,hostfwd=tcp::5432-:22 \
+		   -object filter-dump,id=f1,netdev=net0,file=dump.dat
 endif
 
 qemu: all

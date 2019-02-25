@@ -80,6 +80,13 @@ extern void x86_irq_5();
 extern void x86_irq_6();
 extern void x86_irq_7();
 extern void x86_irq_8();
+extern void x86_irq_9();
+extern void x86_irq_10();
+extern void x86_irq_11();
+extern void x86_irq_12();
+extern void x86_irq_13();
+extern void x86_irq_14();
+extern void x86_irq_15();
 
 // System call IRQ
 extern void x86_irq_syscall();
@@ -156,6 +163,7 @@ void ints_init(void) {
     /*x86_idt_set(37, (uint32_t) x86_irq_5, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
     /*x86_idt_set(38, (uint32_t) x86_irq_6, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);*/
     x86_idt_set(40, (uint32_t) x86_irq_8, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
+    x86_idt_set(43, (uint32_t) x86_irq_11, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
 
     x86_idt_set(128, (uint32_t) x86_irq_syscall, 0x08, IDT_FLG_P | IDT_FLG_R3 | IDT_FLG_INT32);
 

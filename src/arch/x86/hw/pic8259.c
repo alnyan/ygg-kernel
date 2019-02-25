@@ -20,6 +20,20 @@
 #define PIC_ICW4_BUF_MASTER	0x0C
 #define PIC_ICW4_SFNM	    0x10
 
+void pic8259_clear_mask(uint8_t line) {
+    uint16_t port;
+    uint8_t value;
+
+    if (line < 8) {
+        port = PIC_MDAT;
+    } else {
+        port = PIC_SDAT;
+        line -= 8;
+    }
+    value = inb(port) & ~(1 << line);
+    outb(port, value);
+}
+
 void pic8259_init(void) {
     uint8_t a1, a2;
 	a1 = inb(PIC_MDAT);
@@ -45,4 +59,7 @@ void pic8259_init(void) {
 
 	outb(PIC_MDAT, a1);
 	outb(PIC_SDAT, a2);
+
+    pic8259_clear_mask(11);
 }
+

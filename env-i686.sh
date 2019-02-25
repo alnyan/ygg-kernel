@@ -5,3 +5,6 @@ export T=/storage/toolchains/${TARGET}
 export PATH="${T}/bin:${PATH}"
 export CROSS_COMPILE=${TARGET}-
 export ARCH=x86
+unset BOARD
+
+export ENABLE_RTL8139=1

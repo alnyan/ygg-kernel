@@ -5,6 +5,10 @@
 #include "dev/pci/pci.h"
 #include "io.h"
 
+#ifdef ENABLE_RTL8139
+#include "dev/pci/net/rtl8139.h"
+#endif
+
 #define PCI_CONFIG_CMD  0x0CF8
 #define PCI_CONFIG_DAT  0x0CFC
 
@@ -16,8 +20,28 @@ uint16_t pci_config_getw(pci_addr_t addr, uint8_t off) {
     return (uint16_t) ((inl(PCI_CONFIG_DAT) >> ((off & 2) * 8)) & 0xFFFF);
 }
 
+void pci_config_setw(pci_addr_t addr, uint8_t off, uint16_t v) {
+    uint32_t address;
+    address = (uint32_t)((((uint32_t) PCI_BUS(addr)) << 16) | (((uint32_t) PCI_SLOT(addr)) << 11) |
+              (((uint32_t) PCI_FUNC(addr)) << 8) | (off & 0xfc) | ((uint32_t) 0x80000000));
+    outl(PCI_CONFIG_CMD, address);
+    uint32_t old = inl(PCI_CONFIG_DAT);
+    old &= ~(0xFFFF << ((off & 2) * 8));
+    old |= v << ((off & 2) * 8);
+    outl(PCI_CONFIG_CMD, address);
+    outl(PCI_CONFIG_DAT, old);
+}
+
 uint32_t pci_config_getl(pci_addr_t addr, uint8_t off) {
     return pci_config_getw(addr, off) | ((uint32_t) pci_config_getw(addr, off + 2) << 16);
+}
+
+void pci_config_setl(pci_addr_t addr, uint8_t off, uint32_t v) {
+    uint32_t address;
+    address = (uint32_t)((((uint32_t) PCI_BUS(addr)) << 16) | (((uint32_t) PCI_SLOT(addr)) << 11) |
+              (((uint32_t) PCI_FUNC(addr)) << 8) | (off & 0xfc) | ((uint32_t) 0x80000000));
+    outl(PCI_CONFIG_CMD, address);
+    outl(PCI_CONFIG_DAT, v);
 }
 
 static void pci_scan_func(pci_addr_t addr) {
@@ -49,7 +73,11 @@ static void pci_scan_func(pci_addr_t addr) {
             break;
         case PCI_CLASS_NETWORK:
             if (subclass == 0x00) {
-                // TODO: Ethernet controller support
+#ifdef ENABLE_RTL8139
+                if (vendor == 0x10EC && device == 0x8139) {
+                    rtl8139_init(addr);
+                }
+#endif
                 kinfo(" * Ethernet controller\n");
             }
             break;

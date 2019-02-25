@@ -19,4 +19,5 @@ typedef struct {
     x86_iret_regs_t iret;
 } x86_irq_regs_t;
 
+void pic8259_clear_mask(uint8_t line);
 void pic8259_init(void);

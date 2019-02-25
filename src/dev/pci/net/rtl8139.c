@@ -3,12 +3,33 @@
 #include "sys/panic.h"
 #include "sys/assert.h"
 #include "sys/mm.h"
+#include "sys/mem.h"
+#include "net/eth/eth.h"
+#include "net/dhcp.h"
+#include "net/udp.h"
 
-#define MAC_FMT             "%02x:%02x:%02x:%02x:%02x:%02x"
+#define IGNORE(x)
 
 // TODO: automatic device memory allocation
 // Just allocate a virtual page to map devices
 #define RTL8139_PAGE        0xFDC00000
+
+#define RTL8139_ISR_ROK     (1 << 0)
+#define RTL8139_ISR_RER     (1 << 1)
+#define RTL8139_ISR_TOK     (1 << 2)
+#define RTL8139_ISR_TER     (1 << 3)
+
+#define RTL8139_CR_TE       (1 << 2)
+#define RTL8139_CR_RE       (1 << 3)
+
+#define RTL8139_RCR_AAP     (1 << 0)
+#define RTL8139_RCR_APM     (1 << 1)
+#define RTL8139_RCR_AM      (1 << 2)
+#define RTL8139_RCR_AB      (1 << 3)
+#define RTL8139_RCR_AR      (1 << 4)
+#define RTL8139_RCR_AER     (1 << 5)
+
+#define RTL8139_STATUS_TXOP (1 << 7)
 
 struct rtl8139_registers {
     uint8_t idr[6];
@@ -42,19 +63,123 @@ struct rtl8139_registers {
 };
 
 static char rtl8139_recv_buf[8192 + 16];
+static char rtl8139_txbuf[4096];
 
 // Does not inherit dev_t
 struct rtl8139 {
     uint32_t iobase;
     uint32_t membase;
+    uint16_t cbr_prev;
     uint8_t int_no;
+    uint8_t tx_reg_num;
+
+    // Lower 4 bits:
+    //  1 - txbuf allocated, 0 - txbuf free
+    // Upper 4 bits:
+    //  1 - txbuf has txop scheduled, 0 - no pending ops on buffer
+    uint8_t status;
+
+    size_t buflen[4];
     struct rtl8139_registers *regs;
 } rtl8139;
 
-int rtl8139_irq_handler(int irq) {
-    kinfo("RTL8139 got IRQ\n");
+static void rtl8139_recv(int s) {
+    uint16_t size;
 
-    rtl8139.regs->isr = 1;
+    if (rtl8139.regs->cbr >= rtl8139.cbr_prev) {
+        size = rtl8139.regs->cbr - rtl8139.cbr_prev;
+    } else {
+        size = rtl8139.regs->cbr;
+    }
+
+    if (size >= (4 + sizeof(struct eth_hdr))) {
+        eth_handle_packet(rtl8139.cbr_prev + rtl8139_recv_buf + 4, size - 4);
+    }
+
+    rtl8139.cbr_prev = rtl8139.regs->cbr;
+}
+
+static int rtl8139_alloc_txbuf(void) {
+    for (int d = 0, i = rtl8139.tx_reg_num; d < 4; i = (i + 1) & 0x3, ++d) {
+        if (rtl8139.status & (1 << i)) {
+            continue;
+        }
+
+        // Mark "slot" as used
+        rtl8139.status |= (1 << i);
+
+        return i;
+    }
+
+    // No free "slots" left
+    return -1;
+}
+
+static void rtl8139_tx_sched(void) {
+    // If we're not busy Tx'ing
+    if (!(rtl8139.status & RTL8139_STATUS_TXOP)) {
+        assert(rtl8139.status & (1 << rtl8139.tx_reg_num));
+        kdebug("tx #%u\n", rtl8139.tx_reg_num);
+        rtl8139.regs->tsd[rtl8139.tx_reg_num] = rtl8139.buflen[rtl8139.tx_reg_num];
+        rtl8139.tx_reg_num = (rtl8139.tx_reg_num + 1) & 0x3;
+        rtl8139.status |= RTL8139_STATUS_TXOP;
+    }
+}
+
+int rtl8139_send(const void *buf, size_t size) {
+    if (size > 1024) {
+        return -1;
+    }
+
+    int txbuf = rtl8139_alloc_txbuf();
+
+    if (txbuf == -1) {
+        kdebug("Tx queue overflow\n");
+        return -1;
+    }
+
+    rtl8139.status |= (1 << txbuf);
+    rtl8139.buflen[txbuf] = size & 0x0FFF;
+
+    kdebug("sched tx #%u\n", txbuf);
+    memcpy(&rtl8139_txbuf[1024 * txbuf], buf, size);
+
+    if (rtl8139.tx_reg_num == txbuf) {
+        // Perform the send right now
+        rtl8139_tx_sched();
+    }
+
+    return 0;
+}
+
+int rtl8139_irq_handler(int irq) {
+    uint32_t status = rtl8139.regs->isr;
+
+    if (status & RTL8139_ISR_ROK) {
+        kinfo("Recv OK\n");
+        rtl8139.regs->isr |= RTL8139_ISR_ROK;
+        rtl8139_recv(0);
+    } else if (status & RTL8139_ISR_TOK) {
+        // Mark txop as complete
+        int txop = ((int) rtl8139.tx_reg_num - 1) & 0x3;
+        kdebug("marking #%d\n", txop);
+
+        assert(rtl8139.status & (1 << txop));
+        // Also clear busy bit
+        rtl8139.status &= ~((1 << txop) | RTL8139_STATUS_TXOP);
+        rtl8139.regs->isr |= RTL8139_ISR_TOK;
+        kinfo("Transmit OK\n");
+        // Sched if next is set
+        if (rtl8139.status & (1 << rtl8139.tx_reg_num)) {
+            rtl8139_tx_sched();
+        }
+    } else if (status & RTL8139_ISR_RER) {
+        kinfo("Recv ERR\n");
+        rtl8139.regs->isr |= RTL8139_ISR_RER;
+    } else {
+        kinfo("Unhandled status\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -82,12 +207,10 @@ int rtl8139_init(pci_addr_t addr) {
         panic("Unhandled case: MEMIN == 1\n");
     }
     rtl8139.membase &= 0xFFFFFFF0;
-
+    rtl8139.cbr_prev = 0;
     rtl8139.int_no = (uint8_t) (pci_config_getw(addr, PCI_CONF_INTFO) & 0xFF);
 
     kinfo("Interrupt line: %u\n", (uint32_t) rtl8139.int_no);
-    kinfo("IOAR: %p\n", rtl8139.iobase);
-    kinfo("MEMAR: %p\n", rtl8139.membase);
 
     assert(mm_map_page(mm_kernel, RTL8139_PAGE, rtl8139.membase & -MM_PAGESZ, MM_FLG_RW) == 0);
     rtl8139.regs = (struct rtl8139_registers *) (RTL8139_PAGE | (rtl8139.membase & 0x3FFFFF));
@@ -100,6 +223,8 @@ int rtl8139_init(pci_addr_t addr) {
     rtl8139.regs->cr = 0x10;
     while ((rtl8139.regs->cr & 0x10)) {}
 
+    uint8_t mac[6];
+    memcpy(mac, rtl8139.regs->idr, 6);
     kinfo("IDR: " MAC_FMT "\n", rtl8139.regs->idr[0],
                                 rtl8139.regs->idr[1],
                                 rtl8139.regs->idr[2],
@@ -113,13 +238,15 @@ int rtl8139_init(pci_addr_t addr) {
     // Set recvbuf address
     rtl8139.regs->rbstart = recvbuf_phys;
 
-    assert(offsetof(struct rtl8139_registers, rbstart) == 0x30);
-    assert(offsetof(struct rtl8139_registers, rcr) == 0x44);
-    assert(offsetof(struct rtl8139_registers, cr) == 0x37);
-    assert(offsetof(struct rtl8139_registers, config1) == 0x52);
+    // Setup txbufs
+    for (int i = 0; i < 4; ++i) {
+        uint32_t txbuf_phys = mm_lookup(mm_kernel, (uintptr_t) &rtl8139_txbuf[i * 1024], MM_FLG_HUGE);
+        assert(txbuf_phys != MM_NADDR);
+        rtl8139.regs->tsad[i] = txbuf_phys;
+    }
 
     // Configure interrupt mask
-    rtl8139.regs->imr = (1 << 0) | (1 << 1);
+    rtl8139.regs->imr = RTL8139_ISR_ROK | RTL8139_ISR_RER | RTL8139_ISR_TOK | RTL8139_ISR_TER;
 
     // Configure recv settings
     rtl8139.regs->rcr = (1 << 0) |
@@ -127,14 +254,12 @@ int rtl8139_init(pci_addr_t addr) {
                         (1 << 2) |
                         (1 << 3) |
                         (1 << 4) |
-                        (1 << 5) |
-                        (1 << 7);
-    io_wait();
+                        (1 << 5);
 
-    // Enable Rx
-    rtl8139.regs->cr = (1 << 3);
-    kinfo("STATUS = %p\n", rtl8139.regs->config3);
-    io_wait();
+    // Enable Rx/Tx
+    rtl8139.regs->cr = RTL8139_CR_TE | RTL8139_CR_RE;
+
+    rtl8139.status = 0;
 
     return -1;
 }

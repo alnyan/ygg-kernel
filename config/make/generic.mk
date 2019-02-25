@@ -27,8 +27,12 @@ OBJS+=build/kernel.o \
 	  build/sys/dev.o \
 	  build/sys/task.o \
 	  build/dev/pseudo.o \
-	  build/sys/time.o
+	  build/sys/time.o \
+	  build/net/eth/eth.o \
+	  build/net/arp.o \
+	  build/net/inet.o
 
 DIRS+=build/sys \
-	  build/dev
+	  build/dev \
+	  build/net/eth
 

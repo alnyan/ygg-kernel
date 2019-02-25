@@ -2,6 +2,7 @@
 #include "sys/assert.h"
 #include "sys/debug.h"
 #include "sys/time.h"
+#include "dev/pci/net/rtl8139.h"
 
 #define HPET_ENABLE_CNF     (1 << 0)
 #define HPET_LEG_RT_CNF     (1 << 1)
@@ -49,11 +50,18 @@ void hpet_set_base(uint32_t addr) {
     hpet = (struct hpet *) addr;
 }
 
+static uint64_t systime_prev;
+
 void hpet_timer_func(void) {
     // Update system-global time
     uint64_t hpet_count = hpet->count;
     systime += (hpet_count - hpet_last) / hpet_systick_res;
     hpet_last = hpet_count;
+
+    if (systime - systime_prev >= SYSTICK_DES_RES) {
+        systime_prev = systime;
+
+    }
 
     hpet->intr |= 1;
 }

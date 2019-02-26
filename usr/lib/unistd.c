@@ -76,6 +76,17 @@ int execve(const char *path, const char **argp, const char **envp) {
     return r;
 }
 
+void nanosleep(const struct timespec *ts) {
+    asm volatile ("int $0x80"::
+            "a"(SYSCALL_NR_NANOSLEEP),
+            "b"(ts));
+}
+
+void sleep(unsigned int sec) {
+    struct timespec ts = { sec, 0 };
+    nanosleep(&ts);
+}
+
 void puts(const char *s) {
     size_t l = strlen(s);
     write(STDOUT_FILENO, s, l);

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "sys/vfs.h"
 #include "sys/attr.h"
+#include "sys/time.h"
 
 typedef void task_t;
 typedef void *(*task_entry_func)(void *);
@@ -10,7 +11,7 @@ typedef int pid_t;
 // Platform-agnostic task control struct
 typedef struct {
     vfs_file_t *fds[4];
-    uint32_t sleep;
+    uint64_t sleep_deadline;
     pid_t pid;
 } task_ctl_t;
 
@@ -26,8 +27,12 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
 task_ctl_t *task_ctl_create(void);
 void task_ctl_free(task_ctl_t *ctl);
 
+// Waiting and blocking stuff
+void task_set_sleep(task_t *task, const struct timespec *ts);
+
 void task_busy(task_t *task);
 void task_nobusy(task_t *task);
+//
 
 task_t *task_create(void);
 int task_init(task_t *t, task_entry_func entry, void *arg, uint32_t flags);

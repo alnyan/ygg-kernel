@@ -4,6 +4,11 @@
 
 typedef int ssize_t;
 
+struct timespec {
+    uint64_t tv_sec;
+    uint64_t tv_nsec;
+};
+
 #define STDOUT_FILENO       0
 #define STDIN_FILENO        1
 #define STDERR_FILENO       2
@@ -25,3 +30,6 @@ int fork(void);
 void exit(int r);
 int execve(const char *path, const char **argp, const char **envp);
 int fexecve(const char *path, const char **argp, const char **envp);
+
+void nanosleep(const struct timespec *ts);
+void sleep(unsigned int sec);

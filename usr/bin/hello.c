@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <unistd.h>
 
 void _start(void) {
-    printf("Hello!\n");
+    while (1) {
+        printf("Hello!\n");
+        sleep(3);
+    }
     exit(0);
 }

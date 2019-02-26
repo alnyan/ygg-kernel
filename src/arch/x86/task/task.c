@@ -13,6 +13,7 @@
 #include "sys/attr.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
+#include "sys/time.h"
 
 task_t *task_create(void) {
     struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
@@ -55,6 +56,11 @@ void task_destroy(task_t *t) {
     // Free data structures
     task_ctl_free(task->ctl);
     heap_free(task);
+}
+
+void task_set_sleep(task_t *t, const struct timespec *ts) {
+    uint64_t delta = ts->tv_sec * SYSTICK_DES_RES + ts->tv_nsec * (1000000 / SYSTICK_DES_RES);
+    ((struct x86_task *) t)->ctl->sleep_deadline = delta + systime;
 }
 
 void task_busy(void *task) {
@@ -274,7 +280,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         }
         // Decrease sleep counters
         if (t->flag & TASK_FLG_WAIT) {
-            if (!(--t->ctl->sleep)) {
+            if (systime >= t->ctl->sleep_deadline) {
                 t->flag &= ~TASK_FLG_WAIT;
             }
         }

@@ -91,7 +91,22 @@ void x86_syscall(x86_irq_regs_t *regs) {
                                    (const userspace char **) regs->gp.edx);
         break;
 
+    case SYSCALL_NR_NANOSLEEP:
+        {
+            struct timespec ts;
+            task_copy_from_user(x86_task_current, &ts, (struct userspace timespec *) regs->gp.ebx, sizeof(struct timespec));
+
+            if (ts.tv_sec || ts.tv_nsec) {
+                task_set_sleep(x86_task_current, &ts);
+                x86_task_current->flag |= TASK_FLG_WAIT;
+
+                x86_task_switch(regs);
+            }
+        }
+        break;
+
     default:
+        // TODO: the offender must die
         regs->gp.eax = -1;
         break;
     }

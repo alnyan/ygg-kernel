@@ -8,6 +8,11 @@ HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 HDRS=$(shell find src -name "*.h")
+CONFIG=$(shell find . -maxdepth 1 -name ".config")
+
+ifneq ($(CONFIG),)
+include $(CONFIG)
+endif
 
 all: mkdirs build/kernel.bin userspace
 	@HOSTCC=$(HOSTCC) make -s -C util $(UTILS)
@@ -35,11 +40,11 @@ clean:
 build/%.o: src/%.s
 	@$(error "$<: We don't do that here. Please rename it to .S")
 
-build/%.o: src/%.S
+build/%.o: src/%.S $(CONFIG)
 	@printf " AS\t%s\n" "$<"
 	@$(CC) -ggdb $(DEFINES) -Isrc -c -o $@ $<
 
-build/%.o: src/%.c $(HDRS)
+build/%.o: src/%.c $(HDRS) $(CONFIG)
 	@printf	" CC\t%s\n" "$<"
 	@$(CC) -ggdb $(DEFINES) $(CFLAGS) -c -o $@ $<
 

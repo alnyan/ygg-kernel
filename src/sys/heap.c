@@ -76,7 +76,6 @@ void heap_remove_region(uintptr_t start, size_t sz) {
         uintptr_t is;
         size_t il;
         uintptr_t base = (uintptr_t) s_heap_regions[i];
-        kdebug("Checking region (%p .. %p)\n", HEAP_DATA(s_heap_regions[i]), HEAP_DATA(s_heap_regions[i]) + s_heap_regions[i]->size);
 
         if (region_get_intersect(base,
                                  sizeof(struct heap_block) + s_heap_regions[i]->size,
@@ -203,7 +202,9 @@ static int heap_free_single(struct heap_block *begin, void *ptr) {
 }
 
 void *heap_alloc(size_t count) {
+#ifdef ENABLE_HEAP_TRACE
     kdebug("heap_alloc %u\n", count);
+#endif
     void *res;
     // TODO: expanding heap
     for (int i = 0; i < HEAP_MAX; ++i) {
@@ -212,7 +213,9 @@ void *heap_alloc(size_t count) {
         }
 
         if ((res = heap_alloc_single(s_heap_regions[i], count))) {
+#ifdef ENABLE_HEAP_TRACE
             kdebug("\t = %p\n", res);
+#endif
             return res;
         }
     }
@@ -231,9 +234,6 @@ void *heap_realloc(void *ptr, size_t count) {
     if (diff < 0) {
         // Shrinking
         if (-diff >= sizeof(struct heap_block)) {
-            // Just create a new free block
-            kdebug("Shrinking!\n");
-
             struct heap_block *newb = (struct heap_block *) (HEAP_DATA(it) + count);
             newb->size = -diff - sizeof(struct heap_block);
             newb->prev = it;
@@ -250,9 +250,7 @@ void *heap_realloc(void *ptr, size_t count) {
 
                 // May join with next block
                 if (!(newb->next->flags & HEAP_FLG_USED)) {
-                    kdebug("Joining\n");
                     struct heap_block *next = newb->next;
-                    kdebug("%p->next = %p\n", newb, next);
 
                     newb->size += sizeof(struct heap_block) + next->size;
                     newb->next = next->next;
@@ -315,7 +313,9 @@ void *heap_realloc(void *ptr, size_t count) {
 }
 
 void heap_free(void *ptr) {
+#ifdef ENABLE_HEAP_TRACE
     kdebug("heap_free %p\n", ptr);
+#endif
 
     if (!ptr) {
         return;

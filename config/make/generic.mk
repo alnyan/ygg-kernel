@@ -1,3 +1,11 @@
+ifneq ($(ENABLE_MAP_TRACE),)
+DEFINES+=-DENABLE_MAP_TRACE
+endif
+
+ifneq ($(ENABLE_HEAP_TRACE),)
+DEFINES+=-DENABLE_HEAP_TRACE
+endif
+
 CFLAGS=-ffreestanding \
 	   -nostdlib \
 	   -nostartfiles \

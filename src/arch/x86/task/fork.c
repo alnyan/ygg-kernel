@@ -20,7 +20,6 @@ extern int x86_task_setup_stack(struct x86_task *t,
     int flag);
 
 static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
-    kdebug("dst = %p\n", dst);
     mm_clone(dst, mm_kernel);
 
     // XXX: The following method is reeeeaaaaalllyyy stupid
@@ -37,8 +36,6 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
             assert(dst_phys != MM_NADDR);
             dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
 
-            kdebug("Physically copying %p -> %p\n", src_phys, dst_phys);
-
             // Map both of them somewhere
             mm_map_page(mm_kernel, 0xF0000000, dst_phys, MM_FLG_RW);
             mm_map_page(mm_kernel, 0xF0000000 + MM_PAGESZ, src_phys, 0);
@@ -46,8 +43,6 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
             memcpy((void *) 0xF0000000, (const void *) (0xF0000000 + MM_PAGESZ), MM_PAGESZ);
 
             mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
-
-            kdebug("Copy done\n");
         }
     }
 }
@@ -104,12 +99,6 @@ task_t *task_fork(task_t *t) {
 
 int task_execve(task_t *dst, const char *path, const char **argp, const char **envp) {
     assert(!argp && !envp);     // These are not supported yet
-    kdebug("------ EXECVE -------\n");
-
-    struct heap_stat st;
-    heap_stat(&st);
-
-    kdebug("------- HEAP FREE %u -------\n", st.free);
 
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
@@ -118,8 +107,6 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
     // Task stack
     uint32_t ebp0 = ((struct x86_task *) dst)->ebp0;
     uint32_t ebp3 = ((struct x86_task *) dst)->ebp3;
-
-    kdebug("DST EBP3 = %p\n", ebp3);
 
     // TODO: allow loading from sources other than ramdisk
     uintptr_t file_mem = vfs_getm(path);
@@ -150,12 +137,6 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
 }
 
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
-    kdebug("------ FEXECVE -------\n");
-
-    struct heap_stat st;
-    heap_stat(&st);
-
-    kdebug("------- HEAP FREE %u -------\n", st.free);
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);

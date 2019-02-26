@@ -33,7 +33,6 @@ void mm_set(mm_pagedir_t pd) {
 }
 
 void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
-    kdebug("increase refcount for %p\n", pd);
     if (index != 1023) {
         // Increase pagetable refcount (NYI)
         panic("4K-pages are not supported yet\n");
@@ -43,7 +42,6 @@ void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
 }
 
 int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
-    kdebug("decrease refcount for %p\nb", pd);
     if (index != 1023) {
         panic("4K-pages are not supported yet\n");
     }
@@ -52,9 +50,11 @@ int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
 }
 
 static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
+#ifdef ENABLE_MAP_TRACE
     kdebug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
             (flags & X86_MM_FLG_RW) ? 'w' : 'o',
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
+#endif
     // Last page is used for refcounts
     assert((virt_page >> 22) != 1023);
     uint32_t pdi = virt_page >> 22;
@@ -169,9 +169,11 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
         uint32_t ent = pd[(vaddr >> 22) + i];
 
         if (!(ent & X86_MM_FLG_PR)) {
-            kdebug("Trying to unmap a non-present page: %p\n", vaddr + (i << 22));
+            panic("Trying to unmap a non-present page: %p\n", vaddr + (i << 22));
         } else {
+#ifdef ENABLE_MAP_TRACE
             kdebug("unmap %p[%d (%p)]\n", pd, (vaddr >> 22) + i, vaddr + (i << 22));
+#endif
 
             if (flags & MM_UFLG_PF) {
                 x86_mm_claim_page(ent & -0x400000);

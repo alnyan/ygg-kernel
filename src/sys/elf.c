@@ -26,11 +26,9 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
 
     // Validate ident
     if (strncmp((const char *) ehdr->e_ident, "\x7F" "ELF", 4)) {
-        kdebug("\tError: identity doesn't match ELF ident\n");
+        kerror("\tError: identity doesn't match ELF ident\n");
         return -1;
     }
-
-    kdebug("There are %u sections:\n", ehdr->e_shnum);
 
     for (size_t i = 0; i < ehdr->e_shnum; ++i) {
         Elf32_Shdr *shdr = &shdrs[i];
@@ -39,8 +37,6 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
         if (shdr->sh_name) {
             name = &shstrtabd[shdr->sh_name];
         }
-
-        kdebug(" [%d] %s\n", i, name);
 
         // Load only program data
         if (shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_NOBITS) {
@@ -55,18 +51,12 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                     panic("NYI\n");
                 }
 
-                kdebug("DST IS %p\n", dst);
-
                 uintptr_t page_phys = mm_lookup(dst, page_start, MM_FLG_HUGE);
 
                 if (page_phys == MM_NADDR) {
-                    kdebug("Allocating physical page for section %s\n", name);
                     uintptr_t page;
-
                     assert((page = mm_alloc_phys_page()) != MM_NADDR);
-
                     mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US);
-
                     page_phys = page;
                 }
 

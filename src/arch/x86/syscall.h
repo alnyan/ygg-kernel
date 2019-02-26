@@ -32,5 +32,8 @@ SYSCALL_DECL3(execve, const userspace char *, const userspace char **, const use
 #define SYSCALL_NRX_FEXECVE     0x11
 SYSCALL_DECL3(fexecve, const userspace char *, const userspace char **, const userspace char **);
 
+#define SYSCALL_NR_GETPID       0x14
+SYSCALL_DECL0(getpid);
+
 #define SYSCALL_NR_NANOSLEEP    0xA2
 SYSCALL_DECL1(nanosleep, const userspace struct timespec *);

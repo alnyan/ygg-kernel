@@ -11,4 +11,6 @@
 #define SYSCALL_NR_EXECVE       0x0B
 #define SYSCALL_NRX_FEXECVE     0x11
 
+#define SYSCALL_NR_GETPID       0x14
+
 #define SYSCALL_NR_NANOSLEEP    0xA2

@@ -91,6 +91,11 @@ void x86_syscall(x86_irq_regs_t *regs) {
                                    (const userspace char **) regs->gp.edx);
         break;
 
+    case SYSCALL_NR_GETPID:
+        assert(x86_task_current->ctl);
+        regs->gp.eax = x86_task_current->ctl->pid;
+        break;
+
     case SYSCALL_NR_NANOSLEEP:
         {
             struct timespec ts;

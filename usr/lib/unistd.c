@@ -76,6 +76,14 @@ int execve(const char *path, const char **argp, const char **envp) {
     return r;
 }
 
+pid_t getpid(void) {
+    pid_t r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_GETPID));
+    return r;
+}
+
 void nanosleep(const struct timespec *ts) {
     asm volatile ("int $0x80"::
             "a"(SYSCALL_NR_NANOSLEEP),

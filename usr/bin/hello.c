@@ -3,7 +3,7 @@
 
 void _start(void) {
     while (1) {
-        printf("Hello!\n");
+        printf("Hello from #%d!\n", getpid());
         sleep(3);
     }
     exit(0);

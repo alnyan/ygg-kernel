@@ -4,6 +4,8 @@
 
 #define NETDEV_FLG_ETH      (1 << 0)
 
+#define NET_ARP_WAITING     (1 << 30)
+
 typedef struct netdev netdev_t;
 typedef struct net_priv net_priv_t;
 

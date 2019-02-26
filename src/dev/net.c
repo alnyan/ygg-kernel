@@ -9,6 +9,25 @@
 #include "sys/atoi.h"
 #include "sys/string.h"
 
+#define NET_SAME_SUBNET(mask, a, b)     (((a) & net_inaddr_mask(mask)) == ((b) & net_inaddr_mask(mask)))
+
+uint32_t net_inaddr_mask(int8_t n) {
+    switch (n) {
+    case 0:
+        return 0;
+    case 8:
+        return 0xFF;
+    case 16:
+        return 0xFFFF;
+    case 24:
+        return 0xFFFFFF;
+    case 32:
+        return 0xFFFFFFFF;
+    default:
+        panic("Unsupported netmask\n");
+    }
+}
+
 struct net_inaddr_spec {
     uint32_t flags;
     uint32_t addr;
@@ -119,8 +138,23 @@ void net_post_config(void) {
 
         assert(s_routes[i].dev);
 
-        // Request hwaddr via arp
-        arp_request_in_hwaddr(s_routes[i].dev, s_routes[i].dst);
+        netdev_t *dev = s_routes[i].dev;
+        assert(dev->priv);
+
+        for (int j = 0; j < 4; ++j) {
+            if (!dev->priv->inaddrs[j].flags) {
+                break;
+            }
+
+            // Check if subnets match
+            if (!NET_SAME_SUBNET(dev->priv->inaddrs[j].flags & 0xFF, dev->priv->inaddrs[j].addr, s_routes[i].dst)) {
+                continue;
+            }
+
+            // Request hwaddr via arp
+            arp_request_in_hwaddr(s_routes[i].dev, s_routes[i].dst, dev->priv->inaddrs[j].addr);
+            break;
+        }
     }
 }
 
@@ -193,6 +227,7 @@ void net_inaddr_add(netdev_t *dev, uint32_t addr, uint32_t flags) {
 
 void net_route_add(uint32_t addr, uint32_t via, netdev_t *dev, uint32_t flags) {
     assert(dev);
+    assert((flags & 0x7) == 0);
 
     for (int i = 0; i < sizeof(s_routes) / sizeof(s_routes[0]); ++i) {
         if (s_routes[i].flags) {

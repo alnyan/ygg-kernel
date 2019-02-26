@@ -46,7 +46,7 @@ int arp_handle_packet(netdev_t *dev, struct arp_msg *msg) {
     return -1;
 }
 
-void arp_request_in_hwaddr(netdev_t *dev, uint32_t inaddr) {
+void arp_request_in_hwaddr(netdev_t *dev, uint32_t inaddr, uint32_t src) {
     assert(dev);
 
     kinfo("req hwaddr of %08x dev %s\n", inaddr, dev->name);
@@ -63,11 +63,7 @@ void arp_request_in_hwaddr(netdev_t *dev, uint32_t inaddr) {
     arp->plen = 4;
     arp->oper = inet_htons(ARP_WHO_HAS);
     memcpy(arp->sha, dev->mac, 6);
-
-    // TODO: support multiple inaddrs per dev
-    uint32_t spa = net_inaddr_from(dev);
-    arp->spa = spa;
-
+    arp->spa = src;
     memset(arp->tha, 0, 6);
     arp->tpa = inaddr;
 

@@ -316,5 +316,20 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         return;
     }
 
+#ifdef ENABLE_SCHED_TRACE
+    int from_pid = -1;
+    int to_pid = -1;
+
+    if (from && from->ctl) {
+        from_pid = from->ctl->pid;
+    }
+    if (x86_task_current && x86_task_current->ctl) {
+        to_pid = x86_task_current->ctl->pid;
+    }
+
+    if (from_pid != to_pid)
+    kdebug("%d -> %d\n", from_pid, to_pid);
+#endif
+
     x86_task_current->flag |= TASK_FLG_RUNNING;
 }

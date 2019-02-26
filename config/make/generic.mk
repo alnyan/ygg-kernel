@@ -6,6 +6,10 @@ ifneq ($(ENABLE_HEAP_TRACE),)
 DEFINES+=-DENABLE_HEAP_TRACE
 endif
 
+ifneq ($(ENABLE_SCHED_TRACE),)
+DEFINES+=-DENABLE_SCHED_TRACE
+endif
+
 CFLAGS=-ffreestanding \
 	   -nostdlib \
 	   -nostartfiles \

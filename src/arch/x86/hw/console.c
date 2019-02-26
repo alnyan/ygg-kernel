@@ -142,8 +142,8 @@ void x86_con_putc(char c) {
             ++con_cury;
         }
 
-        if (con_cury == con_height) {
-            con_cury = con_height - 1;
+        if (con_cury == con_height - 1) {
+            con_cury = con_height - 2;
             x86_con_scroll();
         }
 

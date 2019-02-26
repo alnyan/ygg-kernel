@@ -21,11 +21,15 @@ struct netdev {
 
 void net_dump_ifaces(void);
 void net_init(void);
+void net_post_config(void);
 
 void net_register(netdev_t *dev);
 int net_load_config(const char *path);
 void net_inaddr_add(netdev_t *dev, uint32_t addr, uint32_t flags);
 void net_route_add(uint32_t addr, uint32_t via, netdev_t *dev, uint32_t flags);
+void net_route_resolve(netdev_t *dev, uint32_t inaddr, const uint8_t *hwaddr);
+
+uint32_t net_inaddr_from(netdev_t *dev);
 
 int net_send_packet(const char *iface, const void *buf, size_t len);
 int net_send_from(netdev_t *dev, const void *buf, size_t len);

@@ -19,3 +19,4 @@ struct arp_msg {
 
 void arp_dump_packet(struct arp_msg *msg);
 int arp_handle_packet(netdev_t *dev, struct arp_msg *msg);
+void arp_request_in_hwaddr(netdev_t *dev, uint32_t inaddr);

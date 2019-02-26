@@ -19,6 +19,7 @@ struct net_inaddr_route_spec {
     uint32_t addr;
     netdev_t *dev;
     uint32_t dst;
+    uint8_t dst_hwaddr[6];
 };
 
 struct net_priv {
@@ -109,6 +110,20 @@ void net_init(void) {
     memset(s_routes, 0, sizeof(s_routes));
 }
 
+void net_post_config(void) {
+    // TODO: make sure we don't perform this twice on the same iface/gateway
+    for (int i = 0; i < sizeof(s_routes) / sizeof(s_routes[0]); ++i) {
+        if (!s_routes[i].flags) {
+            break;
+        }
+
+        assert(s_routes[i].dev);
+
+        // Request hwaddr via arp
+        arp_request_in_hwaddr(s_routes[i].dev, s_routes[i].dst);
+    }
+}
+
 void net_register(netdev_t *dev) {
     // We don't support devices other than ethernet yet
     assert(dev->flags & NETDEV_FLG_ETH);
@@ -149,6 +164,16 @@ void net_handle_packet(netdev_t *dev, const void *buf, size_t len) {
 
 ////
 
+uint32_t net_inaddr_from(netdev_t *dev) {
+    assert(dev);
+    assert(dev->priv);
+    assert(dev->priv->inaddrs[0].flags);
+    // Just return the first address
+    return dev->priv->inaddrs[0].addr;
+}
+
+////
+
 void net_inaddr_add(netdev_t *dev, uint32_t addr, uint32_t flags) {
     assert(dev);
     assert(dev->priv);
@@ -183,6 +208,28 @@ void net_route_add(uint32_t addr, uint32_t via, netdev_t *dev, uint32_t flags) {
     }
 
     panic("Failed to add route\n");
+}
+
+void net_route_resolve(netdev_t *dev, uint32_t inaddr, const uint8_t *hwaddr) {
+    assert(dev);
+    assert(hwaddr);
+
+    for (int i = 0; i < sizeof(s_routes) / sizeof(s_routes[0]); ++i) {
+        if (!s_routes[i].flags) {
+            break;
+        }
+
+        if (s_routes[i].dev == dev && s_routes[i].dst == inaddr) {
+            memcpy(s_routes[i].dst_hwaddr, hwaddr, 6);
+
+            char inaddr_via_text[24];
+            inet_ntoa(inaddr_via_text, inaddr);
+            kinfo("%s: resolved route via %s as hwaddr " MAC_FMT "\n", dev->name, inaddr_via_text, MAC_BYTES(hwaddr));
+            return;
+        }
+    }
+
+    panic("Failed to add hwaddr to resolved route dev %s via %08x\n", dev->name, inaddr);
 }
 
 int net_load_config(const char *path) {

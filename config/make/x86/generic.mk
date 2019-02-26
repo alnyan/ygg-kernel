@@ -61,7 +61,7 @@ endif
 
 ifneq ($(ENABLE_RTL8139),)
 QEMU_ADD+= -device rtl8139,netdev=net0 \
-		   -netdev user,id=net0,hostfwd=tcp::5432-:22,net=192.168.123.0/24,dhcpstart=192.168.123.10 \
+		   -netdev user,id=net0,hostfwd=tcp::5432-:22,net=192.168.123.1/24 \
 		   -object filter-dump,id=f1,netdev=net0,file=dump.dat
 endif
 

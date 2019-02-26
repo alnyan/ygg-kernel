@@ -5,7 +5,8 @@ USR_PROGS=$(O)/bin/init \
 		  $(O)/bin/hello
 
 DIRS=$(O)/lib \
-	 $(O)/bin
+	 $(O)/bin \
+	 $(O)/etc
 
 all: mkdirs $(O)/lib/libusr.a $(O)/init.tar
 
@@ -13,8 +14,9 @@ mkdirs:
 	mkdir -p $(DIRS)
 
 $(O)/init.tar: $(USR_PROGS)
-	echo Hello! > $(O)/bin/test.txt
-	tar -C $(O) -cf $@ bin
+	rm -rf $(O)/etc
+	cp -r etc $(O)/etc
+	tar -C $(O) -cf $@ bin etc
 
 $(O)/bin/%: bin/%.c
 	$(CC) -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc

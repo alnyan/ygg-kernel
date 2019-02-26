@@ -119,6 +119,9 @@ void vfs_close(vfs_file_t *f);
 ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len, ssize_t *res);
 ssize_t vfs_write(vfs_file_t *f, const void *buf, size_t len);
 
+// Helper wrapper around vfs_read
+ssize_t vfs_gets(vfs_file_t *f, char *buf, size_t len);
+
 int vfs_stat(const char *path, struct vfs_stat *st);
 dev_t *vfs_get_blkdev(const char *path);
 uintptr_t vfs_getm(const char *path);

@@ -4,9 +4,7 @@
 #include "sys/assert.h"
 #include "sys/mm.h"
 #include "sys/mem.h"
-#include "net/eth/eth.h"
-#include "net/dhcp.h"
-#include "net/udp.h"
+#include "dev/net.h"
 
 #define IGNORE(x)
 
@@ -67,6 +65,8 @@ static char rtl8139_txbuf[4096];
 
 // Does not inherit dev_t
 struct rtl8139 {
+    netdev_t dev;
+
     uint32_t iobase;
     uint32_t membase;
     uint16_t cbr_prev;
@@ -92,8 +92,8 @@ static void rtl8139_recv(int s) {
         size = rtl8139.regs->cbr;
     }
 
-    if (size >= (4 + sizeof(struct eth_hdr))) {
-        eth_handle_packet(rtl8139.cbr_prev + rtl8139_recv_buf + 4, size - 4);
+    if (size >= 4) {
+        net_handle_packet((netdev_t *) &rtl8139, rtl8139.cbr_prev + rtl8139_recv_buf + 4, size - 4);
     }
 
     rtl8139.cbr_prev = rtl8139.regs->cbr;
@@ -126,7 +126,9 @@ static void rtl8139_tx_sched(void) {
     }
 }
 
-int rtl8139_send(const void *buf, size_t size) {
+static int rtl8139_tx(netdev_t *dev, const void *buf, size_t size, uint32_t flags) {
+    assert((uintptr_t) dev == (uintptr_t) &rtl8139);
+
     if (size > 1024) {
         return -1;
     }
@@ -223,15 +225,6 @@ int rtl8139_init(pci_addr_t addr) {
     rtl8139.regs->cr = 0x10;
     while ((rtl8139.regs->cr & 0x10)) {}
 
-    uint8_t mac[6];
-    memcpy(mac, rtl8139.regs->idr, 6);
-    kinfo("IDR: " MAC_FMT "\n", rtl8139.regs->idr[0],
-                                rtl8139.regs->idr[1],
-                                rtl8139.regs->idr[2],
-                                rtl8139.regs->idr[3],
-                                rtl8139.regs->idr[4],
-                                rtl8139.regs->idr[5]);
-
     uintptr_t recvbuf_phys = mm_lookup(mm_kernel, (uintptr_t) rtl8139_recv_buf, MM_FLG_HUGE);
     assert(recvbuf_phys != MM_NADDR);
 
@@ -260,6 +253,12 @@ int rtl8139_init(pci_addr_t addr) {
     rtl8139.regs->cr = RTL8139_CR_TE | RTL8139_CR_RE;
 
     rtl8139.status = 0;
+
+    // Register networking device with kernel
+    memcpy(rtl8139.dev.mac, rtl8139.regs->idr, 6);
+    rtl8139.dev.flags = NETDEV_FLG_ETH;
+    rtl8139.dev.tx = rtl8139_tx;
+    net_register((netdev_t *) &rtl8139);
 
     return -1;
 }

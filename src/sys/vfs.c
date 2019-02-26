@@ -19,6 +19,33 @@ void vfs_init(vfs_t *fs) {
 
 ////
 
+ssize_t vfs_gets(vfs_file_t *f, char *buf, size_t lim) {
+    size_t i = 0;
+    ssize_t r;
+    char c;
+
+    while (i < (lim - 1)) {
+        if (vfs_read(f, &c, 1, &r) != 1) {
+            if (i == 0) {
+                return -1;
+            } else {
+                break;
+            }
+        }
+
+        if (c == '\n') {
+            break;
+        }
+
+        buf[i++] = c;
+    }
+
+    buf[i] = 0;
+    return i;
+}
+
+////
+
 vfs_file_t *vfs_open(const char *path, uint32_t flags) {
     vfs_file_t *ret = NULL;
     const char *rel = NULL;
@@ -57,7 +84,6 @@ void vfs_close(vfs_file_t *f) {
     }
 }
 
-// TODO: allow these operations to be done asynchronously via IRQs
 ssize_t vfs_read(vfs_file_t *f, void *buf, size_t len, ssize_t *res) {
     assert(f);
 

@@ -30,9 +30,3 @@ void eth_dump_packet(const void *buf, size_t size) {
 
     kdebug(">\n");
 }
-
-int eth_handle_packet(const void *buf, size_t size) {
-    eth_dump_packet(buf, size);
-
-    return 0;
-}

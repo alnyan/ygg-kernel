@@ -25,3 +25,4 @@ struct in_hdr {
 } __attribute__((packed));
 
 void inet_ntoa(char *out, inaddr_t a);
+uint32_t inet_aton(const char *in);

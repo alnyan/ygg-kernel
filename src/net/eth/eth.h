@@ -17,4 +17,3 @@ struct eth_hdr {
 } __attribute__((packed));
 
 void eth_dump_packet(const void *buf, size_t size);
-int eth_handle_packet(const void *buf, size_t size);

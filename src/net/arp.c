@@ -3,6 +3,43 @@
 #include "inet.h"
 #include "sys/debug.h"
 #include "sys/mem.h"
+#include "sys/assert.h"
+
+static void arp_reply(netdev_t *dev, struct arp_msg *ask) {
+    char buf[sizeof(struct eth_hdr) + sizeof(struct arp_msg)];
+
+    struct eth_hdr *eth = (struct eth_hdr *) buf;
+    memcpy(eth->src_mac, dev->mac, 6);
+    memcpy(eth->dst_mac, ask->sha, 6);
+    eth->type = inet_htons(ETH_TYPE_ARP);
+    struct arp_msg *arp = (struct arp_msg *) &eth[1];
+    arp->htype = ask->htype;
+    arp->ptype = ask->ptype;
+    arp->hlen = ask->hlen;
+    arp->plen = ask->plen;
+    arp->oper = inet_htons(ARP_RESPONSE);
+    memcpy(arp->sha, dev->mac, 6);
+    arp->spa = ask->tpa;
+    memcpy(arp->tha, ask->sha, 6);
+    arp->tpa = ask->spa;
+
+    assert(net_send_from(dev, buf, sizeof(struct eth_hdr) + sizeof(struct arp_msg)) == 0);
+}
+
+int arp_handle_packet(netdev_t *dev, struct arp_msg *msg) {
+    // For debugging purpose, respond with "me" to "who-has" with any addr
+    switch (inet_htons(msg->oper)) {
+    case ARP_WHO_HAS:
+        // TODO: check if dev has the requested address bound
+        arp_reply(dev, msg);
+        break;
+    case ARP_RESPONSE:
+        // We didn't ask anyone yet
+        break;
+    }
+
+    return -1;
+}
 
 void arp_dump_packet(struct arp_msg *msg) {
     char spa[32];

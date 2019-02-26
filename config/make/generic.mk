@@ -30,7 +30,9 @@ OBJS+=build/kernel.o \
 	  build/sys/time.o \
 	  build/net/eth/eth.o \
 	  build/net/arp.o \
-	  build/net/inet.o
+	  build/net/inet.o \
+	  build/dev/net.o \
+	  build/sys/atoi.o
 
 DIRS+=build/sys \
 	  build/dev \

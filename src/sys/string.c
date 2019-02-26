@@ -44,6 +44,17 @@ char *strcpy(char *dst, const char *src) {
     return dst;
 }
 
+char *strncpy(char *dst, const char *src, size_t l) {
+    size_t i;
+    for (i = 0; src[i] && i < l; ++i) {
+        dst[i] = src[i];
+    }
+    if (i != l) {
+        dst[i] = 0;
+    }
+    return dst;
+}
+
 char *strchr(const char *s, char c) {
     for (size_t i = 0; s[i]; ++i) {
         if (s[i] == c) {

@@ -8,6 +8,7 @@
 #include "arch/hw.h"
 #include "sys/elf.h"
 #include "sys/mm.h"
+#include "dev/net.h"
 #include "util.h"
 
 void kernel_main(void) {
@@ -27,6 +28,11 @@ void kernel_main(void) {
 
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+
+    // Load network device config
+    net_init();
+    net_load_config("/etc/network.conf");
+    net_dump_ifaces();
 
     vfs_dirent_t ent;
     vfs_dir_t *dir;

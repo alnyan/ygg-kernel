@@ -1,5 +1,9 @@
 #pragma once
 #include <stdint.h>
+#include "dev/net.h"
+
+#define ARP_WHO_HAS     1
+#define ARP_RESPONSE    2
 
 struct arp_msg {
     uint16_t htype;
@@ -14,3 +18,4 @@ struct arp_msg {
 } __attribute__((packed));
 
 void arp_dump_packet(struct arp_msg *msg);
+int arp_handle_packet(netdev_t *dev, struct arp_msg *msg);

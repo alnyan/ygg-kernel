@@ -219,6 +219,7 @@ vfs_dir_t *vfs_opendir(const char *path) {
     vfs_dir_t *dir = (vfs_dir_t *) heap_alloc(sizeof(vfs_dir_t));
 
     strcpy(dir->path, rel);
+    dir->flags |= VFS_FLG_DIR;
     dir->dev = mnt->srcdev;
     dir->fs = mnt->fs;
 
@@ -232,6 +233,7 @@ vfs_dir_t *vfs_opendir(const char *path) {
 
 int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
     assert(dir && dir->fs);
+    assert(dir->flags & VFS_FLG_DIR);
 
     if (!dir->fs->readdir) {
         return -1;
@@ -242,6 +244,7 @@ int vfs_readdir(vfs_dir_t *dir, vfs_dirent_t *ent) {
 
 void vfs_closedir(vfs_dir_t *dir) {
     assert(dir && dir->fs);
+    assert(dir->flags & VFS_FLG_DIR);
 
     if (dir->fs->closedir) {
         dir->fs->closedir(dir->fs, dir, 0);
@@ -251,28 +254,22 @@ void vfs_closedir(vfs_dir_t *dir) {
 }
 
 void vfs_dirent_dump(const vfs_dirent_t *ent) {
-    char siz_buf[12];
     const char *p;
-    int type = (ent->flags >> 2) & 0x7;
-    switch (type) {
-    case VFS_TYPE_CHR:
+    switch (ent->d_type) {
+    case VFS_DT_CHR:
         p = "chr";
         break;
-    case VFS_TYPE_BLK:
+    case VFS_DT_BLK:
         p = "blk";
         break;
-    case VFS_TYPE_DIR:
+    case VFS_DT_DIR:
         p = "dir";
         break;
-    case VFS_TYPE_SOCK:
-        p = "sck";
-        break;
-    case VFS_TYPE_REG:
-        p = siz_buf;
-        fmtsiz(ent->size, siz_buf);
+    case VFS_DT_REG:
+        p = "reg";
         break;
     }
-    kdebug(" %12s %-16s\n", p, ent->name);
+    kdebug(" %12s %-16s\n", p, ent->d_name);
 }
 
 ////

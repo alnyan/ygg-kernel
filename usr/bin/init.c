@@ -51,6 +51,19 @@ void _start(void *arg) {
                 printf("fork() succeeded\n");
                 break;
             }
+        } else if (!strcmp(line, "ls")) {
+            int f = opendir("/");
+            if (f == -1) {
+                printf("opendir failed\n");
+            } else {
+                struct dirent ent;
+
+                while (readdir(f, &ent) == 0) {
+                    printf(" %s\n", ent.d_name);
+                }
+
+                closedir(f);
+            }
         }
     }
 

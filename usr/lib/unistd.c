@@ -2,6 +2,17 @@
 #include "string.h"
 #include "syscall.h"
 
+int readdir(int dir, struct dirent *ent) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_READ),
+            "b"(dir),
+            "c"(ent),
+            "d"(sizeof(struct dirent)));
+    return r;
+}
+
 ssize_t read(int fd, void *data, size_t len) {
     ssize_t r;
     asm volatile ("int $0x80":
@@ -32,6 +43,17 @@ int open(const char *path, int flags, uint32_t mode) {
             "b"(path),
             "c"(flags),
             "d"(mode));
+    return r;
+}
+
+int opendir(const char *path) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_OPEN),
+            "b"(path),
+            "c"(O_DIRECTORY),
+            "d"(0));
     return r;
 }
 

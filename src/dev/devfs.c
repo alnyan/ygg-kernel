@@ -73,13 +73,13 @@ static int devfs_readdir(vfs_t *fs, vfs_dir_t *dir, vfs_dirent_t *ent, uint32_t 
     }
 
     struct devfs_node *node = (struct devfs_node *) dir->dev_priv;
-    strcpy(ent->name, node->name);
+    strcpy(ent->d_name, node->name);
 
     assert(node->dev);
     if (node->dev->flags & DEV_FLG_CHR) {
-        ent->flags = VFS_TYPE_CHR << 2;
+        ent->d_type = VFS_DT_CHR;
     } else {
-        ent->flags = VFS_TYPE_BLK << 2;
+        ent->d_type = VFS_DT_BLK;
     }
 
     dir->dev_priv = node->next;

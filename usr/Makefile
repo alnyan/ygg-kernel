@@ -1,6 +1,7 @@
 LIBUSR_OBJS=$(O)/lib/printf.o \
 			$(O)/lib/unistd.o \
 			$(O)/lib/string.o
+LIBUSR_HDRS=$(shell find lib -name "*.h")
 USR_PROGS=$(O)/bin/init \
 		  $(O)/bin/hello
 CONFIGS=$(O)/etc/network.conf
@@ -30,7 +31,7 @@ $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	@printf " AR\t%s\n" "usr/lib/libusr.a"
 	@$(AR) rcs $@ $(LIBUSR_OBJS)
 
-$(O)/lib/%.o: lib/%.c
+$(O)/lib/%.o: lib/%.c $(LIBUSR_HDRS)
 	@printf " CC\t%s\n" "usr/$(<:%.c=%.o)"
 	@$(CC) -nostdlib -c -ffreestanding -o $@ $<
 

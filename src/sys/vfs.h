@@ -4,11 +4,18 @@
 
 #define VFS_FLG_RD      (1 << 0)
 #define VFS_FLG_WR      (1 << 1)
+#define VFS_FLG_DIR     (1 << 21)
+
 #define VFS_TYPE_REG    0
 #define VFS_TYPE_BLK    1
 #define VFS_TYPE_CHR    2
 #define VFS_TYPE_SOCK   3
 #define VFS_TYPE_DIR    4
+
+#define VFS_DT_CHR      2
+#define VFS_DT_DIR      4
+#define VFS_DT_BLK      6
+#define VFS_DT_REG      8
 
 #define VFS_READ_ASYNC  ((ssize_t) -2)
 
@@ -35,7 +42,7 @@ typedef ssize_t (*vfs_read_func)(vfs_t *, vfs_file_t *, void *, size_t, uint32_t
 // Combination of stat/link/etc.
 typedef int (*vfs_fact_func)(vfs_t *, vfs_mount_t *, const char *, uint32_t, ...);
 
-typedef struct vfs_dir vfs_dir_t;
+typedef struct vfs_file vfs_dir_t;
 typedef struct vfs_dirent vfs_dirent_t;
 typedef int (*vfs_opendir_func)(vfs_t *, vfs_mount_t *, vfs_dir_t *, const char *, uint32_t);
 typedef void (*vfs_closedir_func)(vfs_t *, vfs_dir_t *, uint32_t);
@@ -48,9 +55,11 @@ struct vfs_stat {
 };
 
 struct vfs_dirent {
-    uint32_t flags;
-    char name[256];
-    size_t size;
+    uint32_t d_ino;
+    uint32_t d_off;
+    uint16_t d_reclen;
+    uint8_t d_type;
+    char d_name[256];
 };
 
 struct vfs {
@@ -78,6 +87,7 @@ struct vfs_file {
     uint32_t flags;
     dev_t *dev;
     vfs_t *fs;
+    char path[256];
     // Device-specific info
     void *dev_priv;
     uintptr_t pos0, pos1;
@@ -88,15 +98,6 @@ struct vfs_file {
     size_t op_len;
     int op_type;
     void *task;
-};
-
-struct vfs_dir {
-    uint32_t flags;
-    dev_t *dev;
-    vfs_t *fs;
-    char path[256];
-    void *dev_priv;
-    void *fs_priv;
 };
 
 struct vfs_mount {

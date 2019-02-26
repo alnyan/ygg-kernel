@@ -58,18 +58,24 @@ void x86_syscall(x86_irq_regs_t *regs) {
             vfs_file_t *file = task->ctl->fds[fd];
             assert(file);
 
-            regs->gp.eax = 0;
-            int res = vfs_read(file, (void *) regs->gp.ecx, regs->gp.edx, (ssize_t *) &regs->gp.eax);
+            if (file->flags & (1 << 21)) {
+                assert(regs->gp.edx == sizeof(struct vfs_dirent));
 
-            if (res == VFS_READ_ASYNC) {
-                task_busy(task);
+                regs->gp.eax = vfs_readdir(file, (struct vfs_dirent *) regs->gp.ecx);
+            } else {
+                regs->gp.eax = 0;
+                int res = vfs_read(file, (void *) regs->gp.ecx, regs->gp.edx, (ssize_t *) &regs->gp.eax);
 
-                x86_task_switch(regs);
+                if (res == VFS_READ_ASYNC) {
+                    task_busy(task);
 
-                break;
+                    x86_task_switch(regs);
+
+                    break;
+                }
+
+                regs->gp.eax = res;
             }
-
-            regs->gp.eax = res;
         }
         break;
     case SYSCALL_NR_OPEN:
@@ -143,22 +149,40 @@ SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
         return -1;
     }
 
+    char path_cloned[256];
+    task_copy_from_user(x86_task_current, path_cloned, path, MM_NADDR);
+
     uint32_t vfsm = 0;
+    // O_RDONLY
     if (mode & (1 << 0)) {
         vfsm |= VFS_FLG_RD;
     }
+    // O_WRONLY
     if (mode & (1 << 1)) {
         vfsm |= VFS_FLG_WR;
     }
-    vfs_file_t *f = vfs_open(path, vfsm);
+    // O_DIRECTORY
+    if (flags & (1 << 21)) {
+        vfs_file_t *f = vfs_opendir(path_cloned);
 
-    if (!f) {
-        return -1;
+        if (!f) {
+            return -1;
+        }
+
+        t->ctl->fds[free_fd] = f;
+
+        return free_fd;
+    } else {
+        vfs_file_t *f = vfs_open(path_cloned, vfsm);
+
+        if (!f) {
+            return -1;
+        }
+
+        t->ctl->fds[free_fd] = f;
+
+        return free_fd;
     }
-
-    t->ctl->fds[free_fd] = f;
-
-    return free_fd;
 }
 
 SYSCALL_DEFINE1(close, int fd) {

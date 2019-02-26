@@ -14,8 +14,7 @@ ifneq ($(CONFIG),)
 include $(CONFIG)
 endif
 
-all: mkdirs build/kernel.bin userspace
-	@HOSTCC=$(HOSTCC) make -s -C util $(UTILS)
+all: mkdirs build/kernel.bin userspace utils
 
 include config/make/generic.mk
 
@@ -57,4 +56,9 @@ build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
 
 userspace:
+	@mkdir -p build/usr
 	@AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -s -C usr all
+
+utils:
+	@mkdir -p build/util
+	@HOSTCC=$(HOSTCC) HOSTLD=$(HOSTLD) HOSTAS=$(HOSTAS) ARCH=$(ARCH) O=../build/util make -s -C util all

@@ -3,6 +3,7 @@ LIBUSR_OBJS=$(O)/lib/printf.o \
 			$(O)/lib/string.o
 USR_PROGS=$(O)/bin/init \
 		  $(O)/bin/hello
+CONFIGS=$(O)/etc/network.conf
 
 DIRS=$(O)/lib \
 	 $(O)/bin \
@@ -13,17 +14,23 @@ all: mkdirs $(O)/lib/libusr.a $(O)/init.tar
 mkdirs:
 	mkdir -p $(DIRS)
 
-$(O)/init.tar: $(USR_PROGS)
-	rm -rf $(O)/etc
-	cp -r etc $(O)/etc
-	tar -C $(O) -cf $@ bin etc
+$(O)/init.tar: $(USR_PROGS) $(CONFIGS)
+	@printf " ROOTFS\t%s\n" "init.tar"
+	@tar -C $(O) -cf $@ bin etc
+
+$(O)/etc/%: etc/%
+	@printf " CONF\t%s\n" "/$<"
+	@cp "$<" "$@"
 
 $(O)/bin/%: bin/%.c
-	$(CC) -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
+	@printf " CC\t%s\n" "/$(<:%.c=%)"
+	@$(CC) -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
 
 $(O)/lib/libusr.a: $(LIBUSR_OBJS)
-	$(AR) rcs $@ $(LIBUSR_OBJS)
+	@printf " AR\t%s\n" "usr/lib/libusr.a"
+	@$(AR) rcs $@ $(LIBUSR_OBJS)
 
 $(O)/lib/%.o: lib/%.c
-	$(CC) -nostdlib -c -ffreestanding -o $@ $<
+	@printf " CC\t%s\n" "usr/$(<:%.c=%.o)"
+	@$(CC) -nostdlib -c -ffreestanding -o $@ $<
 

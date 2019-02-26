@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    qsort((const void *) syms, symc, sizeof(struct symbol), cmpsym);
+    qsort((void *) syms, symc, sizeof(struct symbol), cmpsym);
 
     for (int i = 0; i < symc; ++i) {
         printf("%p %c %s\n", syms[i].addr, syms[i].type == STT_FUNC ? 'F' : 'O', syms[i].name);

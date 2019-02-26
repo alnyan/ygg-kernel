@@ -85,8 +85,6 @@ task_t *task_fork(task_t *t) {
     dst->ebp3 = src->ebp3;
     dst->esp0 = dst_ebp0 - 18 * 4;
 
-    // Give the task a new PID
-    dst->ctl->pid = ++x86_last_pid;
     // TODO: actually clone open descriptors
     dst->ctl->fds[0] = vfs_open("/dev/tty0", VFS_FLG_WR);
     dst->ctl->fds[1] = vfs_open("/dev/tty0", VFS_FLG_RD);

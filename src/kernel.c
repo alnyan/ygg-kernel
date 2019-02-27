@@ -3,6 +3,7 @@
 #include "sys/debug.h"
 #include "sys/panic.h"
 #include "dev/devfs.h"
+#include "dev/procfs.h"
 #include "sys/task.h"
 #include "dev/tty.h"
 #include "arch/hw.h"
@@ -22,12 +23,14 @@ void kernel_main(void) {
 
     // Now the kernel-stuff kicks in
     devfs_init();
+    procfs_init();
     tty_init();
     // Will create basic device set
     devfs_populate();
 
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+    assert(vfs_mount(NULL, "/proc", vfs_procfs, 0) == 0);
 
     // Load network device config
     net_init();

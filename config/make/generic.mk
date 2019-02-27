@@ -44,7 +44,8 @@ OBJS+=build/kernel.o \
 	  build/net/arp.o \
 	  build/net/inet.o \
 	  build/dev/net.o \
-	  build/sys/atoi.o
+	  build/sys/atoi.o \
+	  build/dev/procfs.o
 
 DIRS+=build/sys \
 	  build/dev \

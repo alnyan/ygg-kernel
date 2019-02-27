@@ -89,7 +89,7 @@ struct vfs_file {
     vfs_t *fs;
     char path[256];
     // Device-specific info
-    void *dev_priv;
+    void *dev_priv, *fs_priv;
     uintptr_t pos0, pos1;
 
     // Pending operation info

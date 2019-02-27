@@ -43,3 +43,4 @@ void task_copy_from_user(task_t *t, void *dst, const userspace void *src, size_t
 
 // TODO: move this to sched.h?
 void task_enable();
+task_t *task_by_pid(int pid);

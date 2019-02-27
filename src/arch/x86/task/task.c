@@ -71,6 +71,20 @@ void task_nobusy(void *task) {
     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
 }
 
+task_t *task_by_pid(int pid) {
+    for (struct x86_task *t = x86_task_first; t; t = t->next) {
+        if (t->ctl) {
+            if (t->ctl->pid == pid) {
+                return t;
+            }
+        } else if (pid == 0) {
+            return t;
+        }
+    }
+
+    return NULL;
+}
+
 void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
     // Temp: just check we're entering here from kernel
     uint32_t cr3_0;

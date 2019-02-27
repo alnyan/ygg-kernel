@@ -22,6 +22,11 @@ struct dirent {
 #define STDIN_FILENO        1
 #define STDERR_FILENO       2
 
+#define DT_CHR              2
+#define DT_DIR              4
+#define DT_BLK              6
+#define DT_REG              8
+
 #define O_RDONLY            (1 << 0)
 #define O_WRONLY            (1 << 1)
 #define O_RDWR              (O_RDONLY | O_WRONLY)

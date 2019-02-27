@@ -52,17 +52,29 @@ void _start(void *arg) {
                 break;
             }
         } else if (!strcmp(line, "ls")) {
-            int f = opendir("/");
+            int f = opendir("/proc");
             if (f == -1) {
                 printf("opendir failed\n");
             } else {
                 struct dirent ent;
 
                 while (readdir(f, &ent) == 0) {
-                    printf(" %s\n", ent.d_name);
+                    printf(" %s %c\n", ent.d_name, ent.d_type == DT_REG ? 'R' : 'D');
                 }
 
                 closedir(f);
+            }
+        } else if (!strcmp(line, "test")) {
+            int f = open("/proc/test", 0, O_RDONLY);
+
+            if (f == -1) {
+                printf("open failed\n");
+            } else {
+                printf("open succeeded\n");
+                int v;
+                printf("read returned %d\n", read(f, &v, sizeof(int)));
+                printf(" = %d\n", v);
+                close(f);
             }
         }
     }

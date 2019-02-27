@@ -114,17 +114,20 @@ static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page,
 
 // TODO: merge x86_mm_map and mm_map_page
 int mm_map_page(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
-    uint32_t f = X86_MM_FLG_PS;
+    uint32_t f = 0;
     if (flags & MM_FLG_RW) {
         f |= X86_MM_FLG_RW;
     }
     if (flags & MM_FLG_US) {
         f |= X86_MM_FLG_US;
     }
+    if (flags & MM_FLG_HUGE) {
+        f |= X86_MM_FLG_PS;
+    }
     return x86_mm_map(pd, virt_page, phys_page, f);
 }
 
-uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags) {
+uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags, uint32_t *rflags) {
     uint32_t pde = pd[virt >> 22];
     if (!(pde & X86_MM_FLG_PR)) {
         return MM_NADDR;
@@ -135,9 +138,28 @@ uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags) {
             return MM_NADDR;
         }
 
+        if (rflags) {
+            *rflags = MM_FLG_HUGE | ((pde & X86_MM_FLG_PR) ? MM_FLG_RW : 0);
+        }
+
         return (pde & -0x400000) | (virt & 0x3FFFFF);
     } else {
-        panic("4K-pages are not supported yet\n");
+        if ((flags & MM_FLG_HUGE)) {
+            return MM_NADDR;
+        }
+
+
+        mm_pagetab_t pt = (mm_pagetab_t) (x86_mm_reverse_lookup(pd[virt >> 22] & -0x1000));
+        assert((uintptr_t) pt != MM_NADDR);
+
+        uint32_t pti = (virt >> 12) & 0x3FF;
+        uint32_t pte = pt[pti];
+
+        if (pte & X86_MM_FLG_PR) {
+            return (pte & -0x1000) | (virt & 0xFFF);
+        }
+
+        return MM_NADDR;
     }
 }
 

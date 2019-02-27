@@ -34,11 +34,11 @@ void task_destroy(task_t *t) {
     task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
-    for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
-        if (task_pd[i] & 1) {
-            mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF);
-        }
-    }
+    //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
+    //    if (task_pd[i] & 1) {
+    //        mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF | MM_FLG_HUGE);
+    //    }
+    //}
 
     // Close file descriptors
     for (int i = 0; i < 4; ++i) {
@@ -97,16 +97,17 @@ void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
-    uint32_t dst_page_base = ((uint32_t) dst) & -MM_PAGESZ;
+    assert(task_pd[(uint32_t) src >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_RW | X86_MM_FLG_US));
 
-    // TODO: handle multiple-page copies
-    // TODO: make standard define for "transition page"
-    uintptr_t user_phys = mm_lookup(task_pd, dst_page_base, MM_FLG_HUGE);
-    assert(user_phys != MM_NADDR);
+    asm volatile ("mov %0, %%cr3"::"a"(cr3));
 
-    mm_map_page(mm_kernel, dst_page_base, user_phys, MM_FLG_RW);
-    memcpy(dst, src, sz);
-    mm_unmap_cont_region(mm_kernel, dst_page_base, 1, 0);
+    if (sz == MM_NADDR) {
+        strcpy(dst, src);
+    } else {
+        memcpy(dst, src, sz);
+    }
+
+    asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
 }
 
 void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
@@ -121,21 +122,17 @@ void task_copy_from_user(task_t *task, void *dst, const userspace void *src, siz
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
-    uint32_t src_page_base = ((uint32_t) src) & -MM_PAGESZ;
+    assert(task_pd[(uint32_t) dst >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_US));
 
-    // TODO: handle multiple-page copies
-    // TODO: make standard define for "transition page"
-    uintptr_t user_phys = mm_lookup(task_pd, src_page_base, MM_FLG_HUGE);
-    mm_map_page(mm_kernel, src_page_base, user_phys, 0);
+    asm volatile ("mov %0, %%cr3"::"a"(cr3));
 
-    if (sz != MM_NADDR) {
-        memcpy(dst, src, sz);
+    if (sz == MM_NADDR) {
+        strcpy(dst, src);
     } else {
-        const char *src_str = (const char *) src;
-        char *dst_str = (char *) dst;
-        strcpy(dst_str, src_str);
+        memcpy(dst, src, sz);
     }
-    mm_unmap_cont_region(mm_kernel, src_page_base, 1, 0);
+
+    asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
 }
 
 // Idle task (kernel-space) stuff
@@ -178,7 +175,7 @@ int x86_task_setup_stack(struct x86_task *t,
         int flag) {
     uint32_t cr3;
 
-    cr3 = mm_lookup(mm_kernel, (uintptr_t) pd, MM_FLG_HUGE);
+    cr3 = mm_lookup(mm_kernel, (uintptr_t) pd, MM_FLG_HUGE, NULL);
     assert(cr3 != MM_NADDR);
 
     uint32_t *esp0;
@@ -201,14 +198,14 @@ int x86_task_setup_stack(struct x86_task *t,
         // Init userspace task
         // Map stack page
         // TODO: cases when stack occupies several pages
-        mm_map_page(mm_kernel, ebp3 - MM_PAGESZ, ebp3p, MM_FLG_RW | MM_FLG_US);
+        mm_map_page(mm_kernel, ebp3 - MM_PAGESZ_SMALL, ebp3p, MM_FLG_RW | MM_FLG_US);
 
         esp3 = (uint32_t *) t->ebp3;
 
         *--esp3 = (uint32_t) arg;   // Push thread arg
         *--esp3 = 0x12345678;       // Push some funny return address
 
-        mm_unmap_cont_region(mm_kernel, ebp3 - MM_PAGESZ, 1, 0);
+        mm_unmap_cont_region(mm_kernel, ebp3 - MM_PAGESZ_SMALL, 1, 0);
 
         *--esp0 = 0x23;             // SS
         *--esp0 = (uint32_t) esp3;  // ESP

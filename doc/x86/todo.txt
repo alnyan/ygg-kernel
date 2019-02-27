@@ -1,7 +1,10 @@
+Critical features:
+
+    * Decouple MM implementation from other parts as much as possible
+    * Rework MM to use 4K pages as default instead of 4M for userspace
+
 Planned (and very desired and useful) features:
 
     * Add page markers to tell .text pages from .data/.bss ones
-    * Sanitize userspace-kernel interaction in syscalls
     * Sanitize VFS userspace interaction
-    * 4K-page support for userspace
     * Reference counting on page directories/tables + COW

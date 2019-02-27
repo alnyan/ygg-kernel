@@ -35,6 +35,10 @@ OBJS+=build/arch/x86/hw/vesa/font8x8.o
 DEFINES+=-DENABLE_VESA_FBCON
 endif
 
+ifneq ($(ENABLE_KERNEL_MAP),)
+PRE_USER_HOOKS+=mkdir -p ./build/usr/etc && ./build/util/x86/mmap-gen ./build/kernel.elf > ./build/usr/etc/kernel.map;
+DEFINES+=-DENABLE_KERNEL_MAP
+endif
 
 USR_LINKER=config/ld/x86/user.ld
 

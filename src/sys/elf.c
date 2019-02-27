@@ -51,19 +51,19 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                     panic("NYI\n");
                 }
 
-                uintptr_t page_phys = mm_lookup(dst, page_start, MM_FLG_HUGE);
+                uintptr_t page_phys = mm_lookup(dst, page_start, MM_FLG_HUGE, NULL);
 
                 if (page_phys == MM_NADDR) {
                     uintptr_t page;
                     assert((page = mm_alloc_phys_page()) != MM_NADDR);
-                    mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US);
+                    mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US | MM_FLG_HUGE);
                     page_phys = page;
                 }
 
                 // Map the page into kernel space
                 // 0x400000 is the base for write access
                 // TODO: maybe use copy_to_user
-                mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW);
+                mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW | MM_FLG_HUGE);
 
                 if (shdr->sh_type == SHT_PROGBITS) {
                     memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ),

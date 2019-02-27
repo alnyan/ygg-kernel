@@ -49,10 +49,13 @@ void kernel_main(void) {
 
     ////
 
+#if defined(ENABLE_TASK)
     assert(task_fexecve("/bin/init", NULL, NULL));
+#endif
 
     // This is where we're ready to accept the first interrupt and start multitasking mode
     net_post_config();
+
     irq_enable();
     while (1) {
         __idle();

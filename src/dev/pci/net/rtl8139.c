@@ -214,7 +214,7 @@ int rtl8139_init(pci_addr_t addr) {
 
     kinfo("Interrupt line: %u\n", (uint32_t) rtl8139.int_no);
 
-    assert(mm_map_page(mm_kernel, RTL8139_PAGE, rtl8139.membase & -MM_PAGESZ, MM_FLG_RW) == 0);
+    assert(mm_map_page(mm_kernel, RTL8139_PAGE, rtl8139.membase & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE) == 0);
     rtl8139.regs = (struct rtl8139_registers *) (RTL8139_PAGE | (rtl8139.membase & 0x3FFFFF));
 
     // Turn on RTL8139
@@ -225,7 +225,7 @@ int rtl8139_init(pci_addr_t addr) {
     rtl8139.regs->cr = 0x10;
     while ((rtl8139.regs->cr & 0x10)) {}
 
-    uintptr_t recvbuf_phys = mm_lookup(mm_kernel, (uintptr_t) rtl8139_recv_buf, MM_FLG_HUGE);
+    uintptr_t recvbuf_phys = mm_lookup(mm_kernel, (uintptr_t) rtl8139_recv_buf, MM_FLG_HUGE, NULL);
     assert(recvbuf_phys != MM_NADDR);
 
     // Set recvbuf address
@@ -233,7 +233,7 @@ int rtl8139_init(pci_addr_t addr) {
 
     // Setup txbufs
     for (int i = 0; i < 4; ++i) {
-        uint32_t txbuf_phys = mm_lookup(mm_kernel, (uintptr_t) &rtl8139_txbuf[i * 1024], MM_FLG_HUGE);
+        uint32_t txbuf_phys = mm_lookup(mm_kernel, (uintptr_t) &rtl8139_txbuf[i * 1024], MM_FLG_HUGE, NULL);
         assert(txbuf_phys != MM_NADDR);
         rtl8139.regs->tsad[i] = txbuf_phys;
     }

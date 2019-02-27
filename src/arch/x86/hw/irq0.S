@@ -1,3 +1,4 @@
+// vi:syntax=gas
 #include "../def.h"
 
 .section .text
@@ -21,6 +22,7 @@ x86_irq_0:
 
     pushal
 
+#ifdef ENABLE_TASK
     // Stack state:
     // <esp + 68> ss
     // <esp + 64> esp
@@ -50,8 +52,8 @@ x86_irq_0:
     pushl %ds
 
     // The stack pointer now should be equal to FROM task's esp0
-
     // Setup kernel segments
+
     movl $0x10, %eax
     movl %eax, %ds
     movl %eax, %es
@@ -104,6 +106,13 @@ x86_irq_0:
 
     popl %eax
     movl %eax, %cr3
+#else
+    movl x86_timer_func, %eax
+    test %eax, %eax
+    jz 1f
+    call *%eax
+1:
+#endif
 
     movw $0x20, %dx
     movb $0x20, %al

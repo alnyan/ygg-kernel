@@ -217,7 +217,7 @@ void x86_con_init(void) {
             // TODO: support cases when vesa_fb crosses page boundary
             // Video data storage
             for (uint32_t i = 0; i < vesa_fb_pages; ++i) {
-                mm_map_page(mm_kernel, VESA_FB_VIRT + i * MM_PAGESZ, vesa_mode_info->physbase, MM_FLG_RW);
+                mm_map_page(mm_kernel, VESA_FB_VIRT + i * MM_PAGESZ, vesa_mode_info->physbase + i * MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
             }
             // Text buffer
 

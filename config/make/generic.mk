@@ -10,6 +10,10 @@ ifneq ($(ENABLE_SCHED_TRACE),)
 DEFINES+=-DENABLE_SCHED_TRACE
 endif
 
+ifeq ($(DISABLE_TASK),)
+DEFINES+=-DENABLE_TASK
+endif
+
 CFLAGS=-ffreestanding \
 	   -nostdlib \
 	   -nostartfiles \

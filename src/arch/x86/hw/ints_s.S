@@ -1,3 +1,8 @@
+.section .bss
+.global x86_crash_esp
+x86_crash_esp:
+    .skip 4
+
 .section .text
 .extern x86_isr_handler
 .extern x86_int_stack
@@ -30,6 +35,7 @@ x86_isr_generic:
     cmpl $0x08, %eax
     jne 1f
 
+    movl %ebp, x86_crash_esp
     // cs is 0x08, use a dedicated kernel exception stack
     movl $x86_kernel_exc_stack_end, %esp
     jmp 2f

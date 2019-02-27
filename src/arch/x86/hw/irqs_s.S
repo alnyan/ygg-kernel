@@ -14,6 +14,7 @@ x86_irq_\n:
     // Store current task's context
     pushal
 
+#ifdef ENABLE_TASK
     movl %cr3, %eax
     pushl %eax
 
@@ -55,6 +56,20 @@ x86_irq_\n:
 
     popl %eax
     movl %eax, %cr3
+#else
+    pushl mm_kernel
+    pushl %gs
+    pushl %es
+    pushl %fs
+    pushl %ds
+
+    pushl %esp
+    call x86_irq_handler_\n
+    addl $4, %esp
+
+    addl $16, %esp
+    addl $4, %esp
+#endif
 
     popal
 

@@ -14,7 +14,7 @@ ifneq ($(CONFIG),)
 include $(CONFIG)
 endif
 
-all: mkdirs build/kernel.bin userspace utils
+all: pre_build mkdirs build/kernel.bin utils userspace post
 
 include config/make/generic.mk
 
@@ -29,6 +29,15 @@ include config/make/$(ARCH)/generic.mk
 endif
 
 include config/make/driver.mk
+
+pre_build:
+	@$(foreach cmd,$(PRE_BUILD_HOOKS),$(cmd))
+
+pre_user:
+	@$(foreach cmd,$(PRE_USER_HOOKS),$(cmd))
+
+post:
+	@$(foreach cmd,$(POST_HOOKS),$(cmd))
 
 mkdirs:
 	@mkdir -p $(DIRS)
@@ -55,7 +64,7 @@ build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 	@printf " LD\t%s\n" "$@"
 	@$(LD) $(LDFLAGS) -T$(LINKER) -o $@ $(BOOT_OBJS) $(OBJS) $(LDFLAGS_POST)
 
-userspace:
+userspace: pre_user
 	@mkdir -p build/usr
 	@AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -s -C usr all
 

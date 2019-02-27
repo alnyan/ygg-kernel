@@ -28,7 +28,7 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t addr, int count, uint32_t u
 void mm_dump_pages(mm_pagedir_t pd);
 
 int mm_map_page(mm_pagedir_t pd, uintptr_t vaddr, uintptr_t paddr, uint32_t flags);
-uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t vaddr, uint32_t flags);
+uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t vaddr, uint32_t flags, uint32_t *rflags);
 
 mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys);
 void mm_pagedir_free(mm_pagedir_t pd);

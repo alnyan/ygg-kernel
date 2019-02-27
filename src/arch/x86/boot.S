@@ -86,6 +86,11 @@ _start_high:
     // Setup stack
     movl $stack_top, %esp
 
+    // Backtrace support
+    pushl $0x0
+    pushl $0x0
+    movl %esp, %ebp
+
     call kernel_main
 
     cli

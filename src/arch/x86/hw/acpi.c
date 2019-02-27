@@ -164,7 +164,7 @@ int x86_acpi_init(void) {
     uint32_t rsdt_p = rsdt;
     kdebug("RSDT physical address is %p\n", rsdt);
     // Map RSDT
-    mm_map_page(mm_kernel, ACPI_MAP_VIRT, rsdt & -MM_PAGESZ, MM_FLG_RW);
+    mm_map_page(mm_kernel, ACPI_MAP_VIRT, rsdt & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
     // TODO: either copy this data or make sure the data does not get overwritten
     rsdt = (rsdt & 0x3FFFFF) | ACPI_MAP_VIRT;
     kdebug("RSDT virtual address is %p\n", rsdt);
@@ -247,7 +247,7 @@ int x86_acpi_init(void) {
         uint32_t hpet_addr = hpet_s->base_addr.addr;
 
         assert(!(mm_kernel[HPET_MAP_VIRT >> 22] & 1));
-        mm_map_page(mm_kernel, HPET_MAP_VIRT, hpet_addr & -MM_PAGESZ, MM_FLG_RW);
+        mm_map_page(mm_kernel, HPET_MAP_VIRT, hpet_addr & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
 
         hpet_addr = (hpet_addr & 0x3FFFFF) | HPET_MAP_VIRT;
 

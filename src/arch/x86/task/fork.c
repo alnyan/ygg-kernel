@@ -27,7 +27,7 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
         if (src[i] & 1) {
             // TODO: handle 4K pages
             if (!(src[i] & (1 << 7))) {
-                continue;
+                panic("NYI\n");
             }
 
             uint32_t src_phys = src[i] & -MM_PAGESZ;
@@ -72,7 +72,10 @@ task_t *task_fork(task_t *t) {
     memcpy((void *) (dst_ebp0 - 18 * 4), (const void *) (src->ebp0 - 18 * 4), 18 * 4);
 
     // However, we need to replace cr3
-    *((uint32_t *) (dst_ebp0 - 14 * 4)) = (mm_kernel[(uintptr_t) dst_pd >> 22] & -0x400000) | ((uintptr_t) dst_pd & 0x3FFFFF);
+    uintptr_t dst_pd_phys = mm_lookup(mm_kernel, (uintptr_t) dst_pd, MM_FLG_HUGE, NULL);
+    assert(dst_pd_phys != MM_NADDR);
+    //*((uint32_t *) (dst_ebp0 - 14 * 4)) = (mm_kernel[(uintptr_t) dst_pd >> 22] & -0x400000) | ((uintptr_t) dst_pd & 0x3FFFFF);
+    *((uint32_t *) (dst_ebp0 - 14 * 4)) = dst_pd_phys;
     // Fork returns 0
     *((uint32_t *) (dst_ebp0 - 6 * 4)) = 0;
 
@@ -154,7 +157,8 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     // Create and setup the task
     task_t *task = task_create();
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
-    uint32_t ebp3 = 0x80000000 + MM_PAGESZ;
+    uint32_t ebp3 = 0x80000000 + MM_PAGESZ_SMALL * 2;
+    kinfo("ebp3 = %p\n", ebp3);
     uint32_t ebp3p = mm_alloc_phys_page();
 
     assert(ebp3p != MM_NADDR);
@@ -169,7 +173,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     fd_tty_rd->task = task;
     ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
 
-    mm_map_page(pd, ebp3 - MM_PAGESZ, ebp3p, MM_FLG_US | MM_FLG_RW);
+    mm_map_page(pd, ebp3 - MM_PAGESZ_SMALL, ebp3p, MM_FLG_US | MM_FLG_RW);
 
     assert(x86_task_setup_stack(
         (struct x86_task *) task,
@@ -181,6 +185,8 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
         ebp3p,
         0
     ) == 0);
+
+    mm_dump_pages(pd);
 
     task_enable(task);
 

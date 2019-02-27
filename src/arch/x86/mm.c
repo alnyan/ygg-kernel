@@ -188,6 +188,7 @@ static uintptr_t x86_mm_find_cont_region(mm_pagedir_t pd, uintptr_t start, uintp
 }
 
 void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t flags) {
+    // FIXME: does not support 4K
     for (int i = 0; i < count; ++i) {
         uint32_t ent = pd[(vaddr >> 22) + i];
 
@@ -292,6 +293,8 @@ void mm_dump_stats(void) {
     mm_dump_pages(mm_kernel);
     kdebug("---- Paging structure allocator stats ----\n");
     x86_mm_alloc_dump();
+    kdebug("---- Physical memory stats ----\n");
+    x86_pm_dump();
     kdebug("---- Heap stats ----\n");
     struct heap_stat st;
     heap_stat(&st);

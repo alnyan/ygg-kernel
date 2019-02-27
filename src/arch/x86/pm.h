@@ -4,3 +4,4 @@
 
 void x86_pm_init(void);
 void x86_mm_claim_page(uintptr_t page, int sz);
+void x86_pm_dump(void);

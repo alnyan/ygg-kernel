@@ -13,8 +13,22 @@
 static uint32_t s_pstack[PSTACK_SIZE];
 static uint32_t s_sstack[SSTACK_SIZE];
 static uint32_t *s_psp = s_pstack + PSTACK_SIZE;
-static uint32_t *s_ssp = s_sstack + PSTACK_SIZE;
+static uint32_t *s_ssp = s_sstack + SSTACK_SIZE;
+static size_t s_pstack_allocs = 0;
+static size_t s_sstack_allocs = 0;
 
+
+void x86_pm_dump(void) {
+    uint32_t pfree = ((uintptr_t) s_pstack + PSTACK_SIZE * 4 - (uint32_t) s_psp) / 4;
+    uint32_t sfree = ((uintptr_t) s_sstack + SSTACK_SIZE * 4 - (uint32_t) s_ssp) / 4;
+    char siz_buf[12];
+    fmtsiz(pfree * 0x400000 + sfree * 0x1000, siz_buf);
+    kdebug(" Memory free: %s\n", siz_buf);
+    kdebug(" Huge pages free: %u\n", pfree);
+    kdebug(" Pages free: %u (+%u)\n", sfree, pfree * 1024);
+    kdebug(" Huge allocs: %u\n", s_pstack_allocs);
+    kdebug(" Allocs: %u\n", s_sstack_allocs);
+}
 
 static void x86_mm_claim_small(uintptr_t page) {
     if (s_ssp == s_sstack) {
@@ -62,12 +76,14 @@ uintptr_t mm_alloc_phys_page(size_t sz) {
             return mm_alloc_phys_page(sz);
         }
 
+        ++s_sstack_allocs;
         return *s_ssp++;
     } else {
         if (s_psp == s_pstack + PSTACK_SIZE) {
             return MM_NADDR;
         }
 
+        ++s_pstack_allocs;
         return *s_psp++;
     }
 }

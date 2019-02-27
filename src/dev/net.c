@@ -273,8 +273,8 @@ int net_load_config(const char *path) {
      * The config file format is something like:
      *
      * [eth0]
-     * inet = 192.168.1.2/24
-     * router = 192.168.1.1
+     * inet=192.168.1.2/24
+     * route 192.168.1.0/24 192.168.1.1
      */
 
     vfs_file_t *f = vfs_open(path, VFS_FLG_RD);

@@ -300,50 +300,52 @@ int net_load_config(const char *path) {
 
             curr_iface = net_find_iface(buf0);
         } else if (!strncmp(linebuf, "inet=", 5)) {
-            assert(curr_iface);
-            e = linebuf + 5;
-            p = strchr(e, '/');
+            if (curr_iface) {
+                e = linebuf + 5;
+                p = strchr(e, '/');
 
-            // Parse mask
-            if (p) {
-                mask = atoi(p + 1);
+                // Parse mask
+                if (p) {
+                    mask = atoi(p + 1);
+                }
+                // Parse inaddr
+                if (p) {
+                    strncpy(buf0, e, p - e);
+                    buf0[p - e] = 0;
+                } else {
+                    strcpy(buf0, e);
+                }
+
+                assert(inaddr = inet_aton(buf0));
+
+                net_inaddr_add(curr_iface, inaddr, mask);
             }
-            // Parse inaddr
-            if (p) {
-                strncpy(buf0, e, p - e);
-                buf0[p - e] = 0;
-            } else {
-                strcpy(buf0, e);
-            }
-
-            assert(inaddr = inet_aton(buf0));
-
-            net_inaddr_add(curr_iface, inaddr, mask);
         } else if (!strncmp(linebuf, "route ", 6)) {
-            assert(curr_iface);
-            e = linebuf + 6;
-            p = strchr(e, '/');
-            n = strchr(e, ' ');
+            if (curr_iface) {
+                e = linebuf + 6;
+                p = strchr(e, '/');
+                n = strchr(e, ' ');
 
-            assert(n);
+                assert(n);
 
-            // Parse route real destination address
-            if (p) {
-                mask = atoi(p + 1);
-                strncpy(buf0, e, p - e);
-                buf0[p - e] = 0;
-            } else {
-                strncpy(buf0, e, n - e);
-                buf0[n - e] = 0;
+                // Parse route real destination address
+                if (p) {
+                    mask = atoi(p + 1);
+                    strncpy(buf0, e, p - e);
+                    buf0[p - e] = 0;
+                } else {
+                    strncpy(buf0, e, n - e);
+                    buf0[n - e] = 0;
+                }
+
+                assert(inaddr = inet_aton(buf0));
+                e = n + 1;
+
+                // Parse via-destination address
+                assert(inaddr1 = inet_aton(e));
+
+                net_route_add(inaddr, inaddr1, curr_iface, mask);
             }
-
-            assert(inaddr = inet_aton(buf0));
-            e = n + 1;
-
-            // Parse via-destination address
-            assert(inaddr1 = inet_aton(e));
-
-            net_route_add(inaddr, inaddr1, curr_iface, mask);
         }
     }
 

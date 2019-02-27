@@ -16,6 +16,10 @@ endif
 
 all: pre_build mkdirs build/kernel.bin utils userspace post
 
+dump:
+	@echo "Build files:"
+	@echo $(OBJS)
+
 include config/make/generic.mk
 
 ifeq ($(ARCH),)

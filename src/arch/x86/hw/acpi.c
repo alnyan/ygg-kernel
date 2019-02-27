@@ -164,7 +164,6 @@ int x86_acpi_init(void) {
     kdebug("RSDT physical address is %p\n", rsdt);
     // Map RSDT
     mm_map_page(mm_kernel, ACPI_MAP_VIRT, rsdt & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
-    // TODO: either copy this data or make sure the data does not get overwritten
     rsdt = (rsdt & 0x3FFFFF) | ACPI_MAP_VIRT;
     kdebug("RSDT virtual address is %p\n", rsdt);
 

@@ -8,27 +8,68 @@
 #include "hw/hw.h"
 
 #define PSTACK_SIZE     256
+#define SSTACK_SIZE     4096
 
 static uint32_t s_pstack[PSTACK_SIZE];
+static uint32_t s_sstack[SSTACK_SIZE];
 static uint32_t *s_psp = s_pstack + PSTACK_SIZE;
+static uint32_t *s_ssp = s_sstack + PSTACK_SIZE;
 
-void x86_mm_claim_page(uintptr_t page) {
+
+static void x86_mm_claim_small(uintptr_t page) {
+    if (s_ssp == s_sstack) {
+        panic("No free pages left\n");
+    }
+    *(--s_ssp) = page;
+}
+
+void x86_mm_claim_page(uintptr_t page, int sz) {
+    if (sz == 0x1000) {
+        x86_mm_claim_small(page);
+        return;
+    }
+
     if (s_psp == s_pstack) {
         panic("No free pages left\n");
     }
     *(--s_psp) = page;
 }
 
-static uintptr_t x86_mm_alloc_phys_page(uintptr_t start, uintptr_t end) {
+static int x86_mm_shatter() {
     if (s_psp == s_pstack + PSTACK_SIZE) {
-        return MM_NADDR;
+        return -1;
     }
 
-    return *s_psp++;
+    uintptr_t a = *s_psp++;
+
+    for (int i = 0; i < 1024; ++i) {
+        x86_mm_claim_small(a + i * 0x1000);
+    }
+
+    return 0;
 }
 
-uintptr_t mm_alloc_phys_page(void) {
-    return x86_mm_alloc_phys_page(0x400000, -0x400000);
+uintptr_t mm_alloc_phys_page(size_t sz) {
+    if (sz == 0x1000) {
+        kdebug("Alloc small page\n");
+
+        if (s_ssp == s_sstack + SSTACK_SIZE) {
+            // Try "shattering" huge page into small ones
+            if (x86_mm_shatter() != 0) {
+                return MM_NADDR;
+            }
+
+            return mm_alloc_phys_page(sz);
+        }
+
+        return *s_ssp++;
+    } else {
+        if (s_psp == s_pstack + PSTACK_SIZE) {
+            return MM_NADDR;
+        }
+
+        return *s_psp++;
+    }
 }
 
 void x86_pm_init(void) {
@@ -59,7 +100,7 @@ void x86_pm_init(void) {
 
                 for (int i = 0; i < (len / 0x400000); ++i) {
                     kdebug("Claim %p\n", aligned_addr + i * 0x400000);
-                    x86_mm_claim_page(aligned_addr + i * 0x400000);
+                    x86_mm_claim_page(aligned_addr + i * 0x400000, 0x400000);
                     ++claimed_pages;
                 }
             }

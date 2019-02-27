@@ -199,7 +199,7 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
 #endif
 
             if (flags & MM_UFLG_PF) {
-                x86_mm_claim_page(ent & -0x400000);
+                x86_mm_claim_page(ent & -0x400000, 0x400000);
             }
 
             pd[(vaddr >> 22) + i] = 0;
@@ -208,13 +208,18 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
 }
 
 uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
-    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0xC00000, -0x400000, count, 0x400000);
+    uint32_t ps = (flags & MM_FLG_HUGE) ? 0x400000 : 0x1000;
+    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0xC00000, -0x400000, count, ps);
 
     if (vaddr == MM_NADDR) {
         return MM_NADDR;
     }
 
-    uint32_t xflags = X86_MM_FLG_PS;
+    uint32_t xflags = 0;
+
+    if (flags & MM_FLG_HUGE) {
+        xflags |= X86_MM_FLG_PS;
+    }
 
     if (flags & MM_FLG_US) {
         xflags |= X86_MM_FLG_US;
@@ -227,14 +232,14 @@ uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
     // Alloc and bind physical pages
     for (int i = 0; i < count; ++i) {
         //uintptr_t page = x86_mm_alloc_phys_page(0x400000, -0x400000);
-        uintptr_t page = mm_alloc_phys_page();
+        uintptr_t page = mm_alloc_phys_page(ps);
 
         if (page == MM_NADDR) {
             // XXX: unmap previously mapped on failure
             return MM_NADDR;
         }
 
-        x86_mm_map(pd, vaddr + i * 0x400000, page, xflags);
+        x86_mm_map(pd, vaddr + i * ps, page, xflags);
     }
 
     return vaddr;

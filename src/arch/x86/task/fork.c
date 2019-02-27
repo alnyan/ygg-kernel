@@ -31,7 +31,7 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
             }
 
             uint32_t src_phys = src[i] & -MM_PAGESZ;
-            uint32_t dst_phys = mm_alloc_phys_page();
+            uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ);
 
             assert(dst_phys != MM_NADDR);
             dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
@@ -159,7 +159,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     uint32_t ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
     uint32_t ebp3 = 0x80000000 + MM_PAGESZ_SMALL * 2;
     kinfo("ebp3 = %p\n", ebp3);
-    uint32_t ebp3p = mm_alloc_phys_page();
+    uint32_t ebp3p = mm_alloc_phys_page(MM_PAGESZ_SMALL);
 
     assert(ebp3p != MM_NADDR);
 

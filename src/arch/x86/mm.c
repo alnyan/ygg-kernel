@@ -32,40 +32,20 @@ void mm_set(mm_pagedir_t pd) {
     }
 }
 
-void x86_mm_pdincr(mm_pagedir_t pd, uint32_t index) {
-    if (index != 1023) {
-        // Increase pagetable refcount (NYI)
-        panic("4K-pages are not supported yet\n");
-    }
-
-    ++pd[1023];
-}
-
-int x86_mm_pddecr(mm_pagedir_t pd, uint32_t index) {
-    if (index != 1023) {
-        panic("4K-pages are not supported yet\n");
-    }
-
-    return --pd[1023] == 0;
-}
-
 static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page, uint32_t flags) {
 #ifdef ENABLE_MAP_TRACE
     kdebug("map %p[%d (%p)] = %p, r%c, %c\n", pd, virt_page >> 22, virt_page, phys_page,
             (flags & X86_MM_FLG_RW) ? 'w' : 'o',
             (flags & X86_MM_FLG_US) ? 'u' : 'k');
 #endif
-    // Last page is used for refcounts
-    assert((virt_page >> 22) != 1023);
     uint32_t pdi = virt_page >> 22;
+    uint32_t pti = (virt_page >> 12) & 0x3FF;
 
     if (!(flags & X86_MM_FLG_PS)) {
         if (pd[pdi] & 1) {
             // Mapping already exists, map a page into the table
             mm_pagetab_t pt = (mm_pagetab_t) (x86_mm_reverse_lookup(pd[pdi] & -0x1000));
             assert((uintptr_t) pt != MM_NADDR);
-
-            uint32_t pti = (virt_page >> 12) & 0x3FF;
 
             if (pt[pti] & X86_MM_FLG_PR) {
                 if (flags & X86_MM_HNT_OVW) {
@@ -81,11 +61,9 @@ static int x86_mm_map(mm_pagedir_t pd, uintptr_t virt_page, uintptr_t phys_page,
             return 0;
         } else {
             uintptr_t pt_phys;
-            mm_pagetab_t pt = (mm_pagetab_t) mm_pagedir_alloc(&pt_phys); // TODO: mm_pagetab_alloc()
+            mm_pagetab_t pt = (mm_pagetab_t) x86_mm_pagetab_alloc(pd, &pt_phys); // TODO: mm_pagetab_alloc()
             assert(pt);
             assert((pt_phys & 0xFFF) == 0);
-
-            uint32_t pti = (virt_page >> 12) & 0x3FF;
 
             pt[pti] = (phys_page & -0x1000) | X86_MM_FLG_PR | (flags & 0x3FF);
             pd[pdi] = pt_phys | X86_MM_FLG_PR | X86_MM_FLG_US | X86_MM_FLG_RW;
@@ -163,24 +141,47 @@ uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t virt, uint32_t flags, uint32_t *r
     }
 }
 
-static uintptr_t x86_mm_find_cont_region(mm_pagedir_t pd, uintptr_t start, uintptr_t end, int count) {
-    uintptr_t addr = start & -0x400000;
+static uintptr_t x86_mm_find_cont_region(mm_pagedir_t pd, uintptr_t start, uintptr_t end, int count, int sz) {
+    if (sz == 0x400000) {
+        uintptr_t addr = start & -sz;
 
-    while (addr <= end - count * 0x400000) {
-        int match = 1;
+        while (addr <= end - count * sz) {
+            int match = 1;
 
-        for (int i = 0; i < count; ++i) {
-            if (pd[(addr + i * 0x400000) >> 22] & X86_MM_FLG_PS) {
-                match = 0;
-                break;
+            for (int i = 0; i < count; ++i) {
+                if (pd[(addr + i * sz) >> 22] & X86_MM_FLG_PR) {
+                    match = 0;
+                    break;
+                }
             }
-        }
 
-        if (match) {
-            return addr;
-        }
+            if (match) {
+                return addr;
+            }
 
-        addr += 0x400000;
+            addr += sz;
+        }
+    } else if (sz == 0x1000) {
+        uintptr_t addr = start & -sz;
+
+        while (addr <= end - count * sz) {
+            int match = 1;
+
+            for (int i = 0; i < count; ++i) {
+                uintptr_t a;
+                if ((a = mm_lookup(pd, addr + i * sz, MM_FLG_HUGE, NULL)) != MM_NADDR ||
+                    (a = mm_lookup(pd, addr + i * sz, 0, NULL)) != MM_NADDR) {
+                    match = 0;
+                    break;
+                }
+            }
+
+            if (match) {
+                return addr;
+            }
+
+            addr += sz;
+        }
     }
 
     return MM_NADDR;
@@ -207,7 +208,7 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
 }
 
 uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
-    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0xC00000, -0x400000, count);
+    uintptr_t vaddr = x86_mm_find_cont_region(pd, KERNEL_VIRT_BASE + 0xC00000, -0x400000, count, 0x400000);
 
     if (vaddr == MM_NADDR) {
         return MM_NADDR;
@@ -215,11 +216,11 @@ uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
 
     uint32_t xflags = X86_MM_FLG_PS;
 
-    if (flags & MM_AFLG_US) {
+    if (flags & MM_FLG_US) {
         xflags |= X86_MM_FLG_US;
     }
 
-    if (flags & MM_AFLG_RW) {
+    if (flags & MM_FLG_RW) {
         xflags |= X86_MM_FLG_RW;
     }
 
@@ -237,6 +238,22 @@ uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t flags) {
     }
 
     return vaddr;
+}
+
+uintptr_t x86_mm_map_hw(uintptr_t phys, size_t count) {
+    int page_count = MM_ALIGN_UP(count, 0x1000) / 0x1000;
+    // TODO: define KERNEL_HW_BASE for these mappings
+    uintptr_t vaddr = x86_mm_find_cont_region(mm_kernel, KERNEL_VIRT_BASE + 0xC00000, -0x400000, page_count, 0x1000);
+
+    if (vaddr == MM_NADDR) {
+        return MM_NADDR;
+    }
+
+    for (int i = 0; i < page_count; ++i) {
+        assert(x86_mm_map(mm_kernel, vaddr + (i << 12), (phys & -0x1000) + (i << 12), X86_MM_FLG_RW) == 0);
+    }
+
+    return vaddr | (phys & 0xFFF);
 }
 
 void mm_dump_pages(mm_pagedir_t pd) {
@@ -262,6 +279,28 @@ void mm_dump_pages(mm_pagedir_t pd) {
             }
         }
     }
+}
+
+void mm_dump_stats(void) {
+    // Use kernel pd for dumping
+    kdebug("---- Kernel page directory ----\n");
+    mm_dump_pages(mm_kernel);
+    kdebug("---- Paging structure allocator stats ----\n");
+    x86_mm_alloc_dump();
+    kdebug("---- Heap stats ----\n");
+    struct heap_stat st;
+    heap_stat(&st);
+    kdebug(" Blocks: %u\n", st.blocks);
+    kdebug(" Free: %uB\n", st.free);
+    kdebug(" Used: %uB\n", st.used);
+    kdebug(" Total size: %uB\n", st.total);
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+    kdebug(" Allocs: %u (%uB)\n", st.allocs, st.alloc_bytes);
+    kdebug(" Frees: %u (%uB)\n", st.frees, st.free_bytes);
+#endif
+    kdebug("---- Heap blocks ----\n");
+    heap_dump();
+    kdebug("---- End dump ----\n");
 }
 
 void x86_mm_early_init(void) {

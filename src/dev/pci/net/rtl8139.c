@@ -8,10 +8,6 @@
 
 #define IGNORE(x)
 
-// TODO: automatic device memory allocation
-// Just allocate a virtual page to map devices
-#define RTL8139_PAGE        0xFDC00000
-
 #define RTL8139_ISR_ROK     (1 << 0)
 #define RTL8139_ISR_RER     (1 << 1)
 #define RTL8139_ISR_TOK     (1 << 2)
@@ -214,8 +210,9 @@ int rtl8139_init(pci_addr_t addr) {
 
     kinfo("Interrupt line: %u\n", (uint32_t) rtl8139.int_no);
 
-    assert(mm_map_page(mm_kernel, RTL8139_PAGE, rtl8139.membase & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE) == 0);
-    rtl8139.regs = (struct rtl8139_registers *) (RTL8139_PAGE | (rtl8139.membase & 0x3FFFFF));
+    uintptr_t rtl8139_vaddr;
+    assert((rtl8139_vaddr = x86_mm_map_hw(rtl8139.membase, 1024)) != MM_NADDR);
+    rtl8139.regs = (struct rtl8139_registers *) rtl8139_vaddr;
 
     // Turn on RTL8139
     rtl8139.regs->config1 = 0;

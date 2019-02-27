@@ -8,12 +8,6 @@
 #define MM_FLG_US   (1 << 1)
 #define MM_FLG_HUGE  (1 << 2)
 
-// Alloc flags
-// 0x01: writable
-#define MM_AFLG_RW   (1 << 0)
-// 0x02: user-available
-#define MM_AFLG_US   (1 << 1)
-
 // Unmap flags
 // 0x01: free physical pages
 #define MM_UFLG_PF   (1 << 0)
@@ -36,3 +30,5 @@ void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src);
 
 // void mm_set_kernel(void);
 void mm_set(mm_pagedir_t pd);
+
+void mm_dump_stats(void);

@@ -11,6 +11,10 @@ struct mm_alloc_block {
 };
 
 static struct mm_alloc_block s_mm_alloc_blocks[4] = {0};
+static size_t s_mm_alloc_dirs = 0;
+static size_t s_mm_alloc_tabs = 0;
+static size_t s_mm_alloc_free_dirs = 0;
+static size_t s_mm_alloc_free_tabs = 0;
 
 uintptr_t x86_mm_reverse_lookup(uintptr_t cr3) {
     if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
@@ -22,7 +26,7 @@ uintptr_t x86_mm_reverse_lookup(uintptr_t cr3) {
             return MM_NADDR;
         }
 
-        if (cr3 >= s_mm_alloc_blocks[i].paddr && cr3 < (s_mm_alloc_blocks[i].paddr + 0x400000)) {
+        if (cr3 >= s_mm_alloc_blocks[i].paddr && cr3 < (s_mm_alloc_blocks[i].paddr + MM_PAGESZ_HUGE)) {
             return s_mm_alloc_blocks[i].vaddr - s_mm_alloc_blocks[i].paddr + cr3;
         }
     }
@@ -31,7 +35,8 @@ uintptr_t x86_mm_reverse_lookup(uintptr_t cr3) {
 }
 
 void x86_mm_alloc_init(void) {
-    uintptr_t page = mm_alloc_kernel_pages(mm_kernel, 1, MM_AFLG_RW);
+    uintptr_t page = mm_alloc_kernel_pages(mm_kernel, 1, MM_FLG_RW | MM_FLG_HUGE);
+    kdebug("mmalloc page: %p\n", page);
     assert(page != 0xFFFFFFFF);
     memset((void *) (page + 0x1000 * 1023), 0, 4096);
 
@@ -46,10 +51,10 @@ void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
     memcpy(dst, src, 1023 * 4);
 }
 
-mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys) {
+static uintptr_t x86_mm_alloc_4k(uintptr_t *phys) {
     for (int j = 0; j < 4; ++j) {
         if (!s_mm_alloc_blocks[j].paddr) {
-            return NULL;
+            return 0;
         }
 
         uintptr_t page = s_mm_alloc_blocks[j].vaddr;
@@ -61,16 +66,32 @@ mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys) {
             }
 
             track[i >> 5] |= 1 << (i & 0x1F);
-            mm_pagedir_t pd = (mm_pagedir_t) (i * 0x1000 + page);
-            pd[1023] = 0;
-            x86_mm_pdincr(pd, 1023);
             if (phys) {
                 *phys = s_mm_alloc_blocks[j].paddr + i * 0x1000;
             }
-            return pd;
+            return i * 0x1000 + page;
         }
     }
-    return NULL;
+    return 0;
+}
+
+// TODO: reference counting
+mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys) {
+    uintptr_t res = x86_mm_alloc_4k(phys);
+    if (res) {
+        ++s_mm_alloc_tabs;
+        memset((void *) res, 0, 0x1000);
+    }
+    return (mm_pagedir_t) res;
+}
+
+mm_pagetab_t x86_mm_pagetab_alloc(mm_pagedir_t parent, uintptr_t *phys) {
+    uintptr_t res = x86_mm_alloc_4k(phys);
+    if (res) {
+        ++s_mm_alloc_tabs;
+        memset((void *) res, 0, 0x1000);
+    }
+    return (mm_pagedir_t) res;
 }
 
 void mm_pagedir_free(mm_pagedir_t pd) {
@@ -100,7 +121,34 @@ void mm_pagedir_free(mm_pagedir_t pd) {
         panic("Invalid pagedir free\n");
     }
 
-    if (x86_mm_pddecr(pd, 1023)) {
-        track[i >> 5] &= ~(1 << (i & 0x1F));
+    ++s_mm_alloc_free_dirs;
+    track[i >> 5] &= ~(1 << (i & 0x1F));
+}
+
+void x86_mm_alloc_dump(void) {
+    int c = 0;
+    for (int i = 0; i < sizeof(s_mm_alloc_blocks) / sizeof(s_mm_alloc_blocks[0]); ++i) {
+        if (!s_mm_alloc_blocks[i].paddr) {
+            break;
+        }
+
+        ++c;
     }
+
+    kdebug(" Block count: %u\n", c);
+
+    for (int i = 0; i < c; ++i) {
+        kdebug(" [%u] %p .. %p:\n",
+                i,
+                s_mm_alloc_blocks[i].vaddr,
+                s_mm_alloc_blocks[i].vaddr + MM_PAGESZ_HUGE);
+        kdebug("  (phys %p .. %p)\n",
+                s_mm_alloc_blocks[i].paddr,
+                s_mm_alloc_blocks[i].paddr + MM_PAGESZ_HUGE);
+    }
+
+    kdebug(" Dirs allocd: %u\n", s_mm_alloc_dirs);
+    kdebug(" Freed: %u\n", s_mm_alloc_free_dirs);
+    kdebug(" Tabs allocd: %u\n", s_mm_alloc_tabs);
+    kdebug(" Freed: %u\n", s_mm_alloc_free_tabs);
 }

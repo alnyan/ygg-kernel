@@ -8,6 +8,13 @@
 #define HEAP_MAX        16
 #define HEAP_DATA(b)    (((uintptr_t) (b)) + sizeof(struct heap_block))
 
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+static size_t heap_allocs = 0;
+static size_t heap_frees = 0;
+static size_t heap_alloc_bytes = 0;
+static size_t heap_free_bytes = 0;
+#endif
+
 struct heap_block {
     uint32_t flags;
     size_t size;
@@ -95,7 +102,7 @@ void heap_remove_region(uintptr_t start, size_t sz) {
                 struct heap_block *new_free = (struct heap_block *) end;
 
                 alloced->prev = s_heap_regions[i];
-                alloced->flags = HEAP_FLG_USED | HEAP_MAGIC;
+                alloced->flags = HEAP_FLG_USED | HEAP_FLG_EXCLUDE | HEAP_MAGIC;
                 alloced->size = sz;
                 alloced->next = new_free;
 
@@ -144,6 +151,11 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
         if (it->size >= count && it->size < count + sizeof(struct heap_block)) {
             it->flags |= HEAP_FLG_USED;
             it->size = count;
+
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+        ++heap_allocs;
+        heap_alloc_bytes += count;
+#endif
             return (void *) HEAP_DATA(it);
         }
 
@@ -164,6 +176,11 @@ static void *heap_alloc_single(struct heap_block *begin, size_t count) {
         it->flags |= HEAP_FLG_USED;
         newb->flags = HEAP_MAGIC;
 
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+        ++heap_allocs;
+        heap_alloc_bytes += count;
+#endif
+
         return (void *) HEAP_DATA(it);
     }
 
@@ -174,6 +191,11 @@ static int heap_free_single(struct heap_block *begin, void *ptr) {
     struct heap_block *it = (struct heap_block *) (((uintptr_t) ptr) - sizeof(struct heap_block));
 
     if ((it->flags & HEAP_MAGIC) == HEAP_MAGIC && (it->flags & HEAP_FLG_USED)) {
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+        ++heap_frees;
+        heap_free_bytes += it->size;
+#endif
+
         it->flags ^= HEAP_FLG_USED;
 
         if (it->next && !(it->next->flags & HEAP_FLG_USED)) {
@@ -195,6 +217,7 @@ static int heap_free_single(struct heap_block *begin, void *ptr) {
                 it->next->prev = it;
             }
         }
+
         return 0;
     } else {
         return -1;
@@ -349,7 +372,9 @@ void heap_stat(struct heap_stat *st) {
 
         for (it = s_heap_regions[i]; it; it = it->next) {
             if (it->flags & HEAP_FLG_USED) {
-                st->used += it->size;
+                if (!(it->flags & HEAP_FLG_EXCLUDE)) {
+                    st->used += it->size;
+                }
             } else {
                 st->free += it->size;
             }
@@ -359,6 +384,13 @@ void heap_stat(struct heap_stat *st) {
     }
 
     st->total = st->used + st->free + st->blocks * sizeof(struct heap_block);
+
+#ifdef ENABLE_HEAP_ALLOC_COUNT
+    st->allocs = heap_allocs;
+    st->frees = heap_frees;
+    st->alloc_bytes = heap_alloc_bytes;
+    st->free_bytes = heap_free_bytes;
+#endif
 }
 
 void heap_dump(void) {
@@ -376,7 +408,7 @@ void heap_dump(void) {
             kdebug(" [%d] %p %c%c%c%c %uB (%uB)\n",
                     j,
                     HEAP_DATA(it),
-                    (it->flags & HEAP_FLG_USED) ? 'a' : '-',
+                    (it->flags & HEAP_FLG_EXCLUDE) ? 'x' :((it->flags & HEAP_FLG_USED) ? 'a' : '-'),
                     (it->prev) ? 'p' : '-',
                     (it->next) ? 'n' : '-',
                     ((it->flags & HEAP_MAGIC) == HEAP_MAGIC) ? '-' : '!',

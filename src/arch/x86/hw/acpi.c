@@ -11,7 +11,6 @@
 #include "hpet.h"
 
 #define ACPI_MAP_VIRT       0xFF000000
-#define HPET_MAP_VIRT       0xFE000000
 
 struct acpi_rsdp {
     char signature[8];
@@ -245,11 +244,7 @@ int x86_acpi_init(void) {
         assert(hpet_s->base_addr.space == 0 /* Non-memory mappings not supported yet */);
 
         uint32_t hpet_addr = hpet_s->base_addr.addr;
-
-        assert(!(mm_kernel[HPET_MAP_VIRT >> 22] & 1));
-        mm_map_page(mm_kernel, HPET_MAP_VIRT, hpet_addr & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
-
-        hpet_addr = (hpet_addr & 0x3FFFFF) | HPET_MAP_VIRT;
+        assert((hpet_addr = x86_mm_map_hw(hpet_addr, 256)) != MM_NADDR);
 
         kdebug(" * HPET virtual mapped addr: %p\n", hpet_addr);
 

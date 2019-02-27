@@ -14,6 +14,10 @@ ifeq ($(DISABLE_TASK),)
 DEFINES+=-DENABLE_TASK
 endif
 
+ifeq ($(DISABLE_HEAP_ALLOC_COUNT),)
+DEFINES+=-DENABLE_HEAP_ALLOC_COUNT
+endif
+
 CFLAGS=-ffreestanding \
 	   -nostdlib \
 	   -nostartfiles \

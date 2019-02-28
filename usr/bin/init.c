@@ -37,6 +37,10 @@ void _start(void *arg) {
             exit(1234);
         }
 
+        if (!strcmp(line, "fello")) {
+            fexecve("/bin/hello", NULL, NULL);
+        }
+
         if (!strcmp(line, "hello")) {
             // fexecve("/bin/hello", NULL, NULL);
             switch (fork()) {

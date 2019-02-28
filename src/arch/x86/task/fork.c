@@ -31,11 +31,15 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
                 // Copy 4M page
                 uint32_t src_phys = src[pdi] & -MM_PAGESZ_HUGE;
                 uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ_HUGE);
+                assert(dst_phys != MM_NADDR);
 
+                assert(!(dst[pdi] & X86_MM_FLG_PR));
+
+#if defined(ENABLE_MAP_TRACE)
+                kdebug("map %p[%d (%p)] = %p\n", dst, pdi, pdi << 22, dst_phys);
+#endif
                 // Map it into dst
                 dst[pdi] = dst_phys | (src[pdi] & 0x3FFFFF);
-
-                assert(dst_phys != MM_NADDR);
 
                 assert(!(mm_kernel[TASK_COPY_VIRT_BASE >> 22] & X86_MM_FLG_PR));
 
@@ -57,7 +61,8 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
                 assert(!(mm_kernel[TASK_COPY_VIRT_BASE >> 22] & X86_MM_FLG_PR));
 
                 // Map it into dst
-                dst[pdi] = dst_pt_phys | (src[pdi] & 0x3FFFFF);
+                assert(!(dst[pdi] & X86_MM_FLG_PR));
+                dst[pdi] = dst_pt_phys | (src[pdi] & 0xFFF);
 
                 for (uint32_t pti = 0; pti < 1024; ++pti) {
                     if (src_pt[pti] & X86_MM_FLG_PR) {
@@ -67,9 +72,12 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
                         assert(dst_phys != MM_NADDR);
 
                         // Map page into table
-                        dst_pt[pti] = dst_phys | (src_pt[pti] & 0xFFF);
+#if defined(ENABLE_MAP_TRACE)
+                        kdebug("map %p[%d (%p)] = %p\n", dst_pt, pti, (pdi << 22) | (pti << 12), dst_phys);
+#endif
+                        dst_pt[pti] = dst_phys | (src_pt[pti] & 0xFFF) | X86_MM_FLG_PR;
 
-                        mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE, dst_phys, 0);
+                        mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE, dst_phys, MM_FLG_RW);
                         mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL, src_phys, 0);
 
                         memcpy((void *) TASK_COPY_VIRT_BASE, (const void *) (TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL), MM_PAGESZ_SMALL);
@@ -78,34 +86,9 @@ static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
                         mm_unmap_cont_region(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL, 1, 0);
                     }
                 }
-
             }
         }
     }
-
-    // XXX: The following method is reeeeaaaaalllyyy stupid
-    //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
-    //    if (src[i] & 1) {
-    //        // TODO: handle 4K pages
-    //        if (!(src[i] & (1 << 7))) {
-    //            panic("NYI\n");
-    //        }
-
-    //        uint32_t src_phys = src[i] & -MM_PAGESZ;
-    //        uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ);
-
-    //        assert(dst_phys != MM_NADDR);
-    //        dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
-
-    //        // Map both of them somewhere
-    //        mm_map_page(mm_kernel, 0xF0000000, dst_phys, MM_FLG_RW);
-    //        mm_map_page(mm_kernel, 0xF0000000 + MM_PAGESZ, src_phys, 0);
-
-    //        memcpy((void *) 0xF0000000, (const void *) (0xF0000000 + MM_PAGESZ), MM_PAGESZ);
-
-    //        mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
-    //    }
-    //}
 }
 
 task_t *task_fork(task_t *t) {
@@ -179,6 +162,9 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
     assert((uintptr_t) task_pd != MM_NADDR);
 
+    uint32_t ebp3p = mm_lookup(task_pd, ebp3 - MM_PAGESZ_SMALL, 0, NULL);
+    assert(ebp3p != MM_NADDR);
+
     // TODO: cleanup unused pages
     uintptr_t entry = elf_load(task_pd, file_mem, 0);
 
@@ -191,7 +177,7 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
         task_pd,
         ebp0,
         ebp3,
-        ebp3 - MM_PAGESZ,
+        ebp3p,
         0
     ) == 0);
 
@@ -246,8 +232,6 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
         ebp3p,
         0
     ) == 0);
-
-    mm_dump_pages(pd);
 
     task_enable(task);
 

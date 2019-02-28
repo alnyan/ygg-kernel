@@ -204,7 +204,11 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
                     panic("Trying to unmap a 4K virtual address with 4M real page\n ");
                 }
 #ifdef ENABLE_MAP_TRACE
-                kdebug("unmap %p[%d (%p)]\n", pd, pdi, page);
+                if (pd == mm_kernel) {
+                    kdebug("unmap mm_kernel[%d (%p)]:\n", pdi, page & -0x400000);
+                } else {
+                    kdebug("unmap %p[%d (%p)]:\n", pd, pdi, page & -0x400000);
+                }
 #endif
                 if (flags & MM_UFLG_PF) {
                     x86_mm_claim_page(ent & -0x400000, 0x400000);
@@ -226,7 +230,11 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
                 }
 
 #ifdef ENABLE_MAP_TRACE
-                kdebug("unmap %p[%d (%p)]:\n", pd, pdi, page & -0x400000);
+                if (pd == mm_kernel) {
+                    kdebug("unmap mm_kernel[%d (%p)]:\n", pdi, page & -0x400000);
+                } else {
+                    kdebug("unmap %p[%d (%p)]:\n", pd, pdi, page & -0x400000);
+                }
                 kdebug(" -> %p[%d (%p)]\n", pt, pti, page);
 #endif
                 ent = pt[pti];
@@ -247,6 +255,8 @@ void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t 
                 }
 
                 if (!r) {
+                    pd[pdi] = 0;
+
                     kwarn("TODO: free pagetab\n");
                 }
             }
@@ -308,27 +318,38 @@ uintptr_t x86_mm_map_hw(uintptr_t phys, size_t count) {
     return vaddr | (phys & 0xFFF);
 }
 
-void mm_dump_pages(mm_pagedir_t pd) {
-    for (int i = 0; i < 1023; ++i) {
-        if (pd[i] & X86_MM_FLG_PR) {
-            if (pd[i] & X86_MM_FLG_PS) {
-                kdebug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x400000,
-                        pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
-            } else {
-                kdebug("PD:%p[%d (%p)]: Table %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x1000,
-                        pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
+static void mm_dump_entry(mm_pagedir_t pd, uint32_t i) {
+    if (pd[i] & X86_MM_FLG_PS) {
+        kdebug("PD:%p[%d (%p)] = %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x400000,
+                pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
+    } else {
+        kdebug("PD:%p[%d (%p)]: Table %p, r%c, %c\n", pd, i, i << 22, pd[i] & -0x1000,
+                pd[i] & X86_MM_FLG_RW ? 'w' : 'o', pd[i] & X86_MM_FLG_US ? 'u' : 'k');
 
-                mm_pagedir_t pt = (mm_pagedir_t) x86_mm_reverse_lookup(pd[i] & -0x1000);
-                assert(pt);
+        mm_pagedir_t pt = (mm_pagedir_t) x86_mm_reverse_lookup(pd[i] & -0x1000);
+        assert(pt);
 
-                for (int j = 0; j < 1024; ++j) {
-                    if (pt[j] & X86_MM_FLG_PR) {
-                        uintptr_t vaddr = (i << 22) + (j << 12);
-                        kdebug(" PT:%p[%d (%p)] = %p, r%c, %c\n", pt, j, vaddr, pt[j] & -0x1000,
-                                 pt[j] & X86_MM_FLG_RW ? 'w' : 'o', pt[j] & X86_MM_FLG_US ? 'u' : 'k');
-                    }
-                }
+        for (int j = 0; j < 1024; ++j) {
+            if (pt[j] & X86_MM_FLG_PR) {
+                uintptr_t vaddr = (i << 22) + (j << 12);
+                kdebug(" PT:%p[%d (%p)] = %p, r%c, %c\n", pt, j, vaddr, pt[j] & -0x1000,
+                         pt[j] & X86_MM_FLG_RW ? 'w' : 'o', pt[j] & X86_MM_FLG_US ? 'u' : 'k');
             }
+        }
+    }
+}
+
+void mm_dump_pages(mm_pagedir_t pd) {
+    kdebug(" User space:\n");
+    for (int i = 0; i < KERNEL_VIRT_BASE >> 22; ++i) {
+        if (pd[i] & X86_MM_FLG_PR) {
+            mm_dump_entry(pd, i);
+        }
+    }
+    kdebug(" Kernel space:\n");
+    for (int i = KERNEL_VIRT_BASE >> 22; i < 1024; ++i) {
+        if (pd[i] & X86_MM_FLG_PR) {
+            mm_dump_entry(pd, i);
         }
     }
 }

@@ -43,9 +43,10 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
             if (shdr->sh_flags & SHF_ALLOC) {
                 // Just alloc pages for the section
                 // TODO: This is platform-specific code and needs to be moved somewhere
-                uintptr_t page_start = shdr->sh_addr & -MM_PAGESZ;
-                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ);
-                size_t page_count = (page_end - page_start) / MM_PAGESZ;
+                kdebug(" %s load is %p\n", name, shdr->sh_addr);
+                uintptr_t page_start = shdr->sh_addr & -MM_PAGESZ_HUGE;
+                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ_HUGE);
+                size_t page_count = (page_end - page_start) / MM_PAGESZ_HUGE;
 
                 if (page_count != 1) {
                     panic("NYI\n");
@@ -66,11 +67,11 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                 mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW | MM_FLG_HUGE);
 
                 if (shdr->sh_type == SHT_PROGBITS) {
-                    memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ),
+                    memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE),
                            (void *) (src_addr + shdr->sh_offset),
                            shdr->sh_size);
                 } else {
-                    memset((void *) (shdr->sh_addr - page_start + MM_PAGESZ), 0, shdr->sh_size);
+                    memset((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE), 0, shdr->sh_size);
                 }
 
                 // Unmap page

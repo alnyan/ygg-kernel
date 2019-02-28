@@ -25,7 +25,7 @@ $(O)/etc/%: etc/%
 
 $(O)/bin/%: bin/%.c
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
-	@$(CC) -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
+	@$(CC) -T../config/ld/x86/user.ld -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
 
 $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	@printf " AR\t%s\n" "usr/lib/libusr.a"

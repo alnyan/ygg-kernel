@@ -8,6 +8,8 @@
 #define MM_FLG_US   (1 << 1)
 #define MM_FLG_HUGE  (1 << 2)
 
+#define MM_CLONE_FLG_KERNEL     (1 << 0)
+
 // Unmap flags
 // 0x01: free physical pages
 #define MM_UFLG_PF   (1 << 0)
@@ -26,7 +28,7 @@ uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t vaddr, uint32_t flags, uint32_t *
 
 mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys);
 void mm_pagedir_free(mm_pagedir_t pd);
-void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src);
+void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src, uint32_t flags);
 
 // void mm_set_kernel(void);
 void mm_set(mm_pagedir_t pd);

@@ -74,7 +74,7 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                 }
 
                 // Unmap page
-                mm_unmap_cont_region(mm_kernel, 0x400000, 1, 0);
+                mm_unmap_cont_region(mm_kernel, 0x400000, 1, MM_FLG_HUGE);
             }
         }
     }

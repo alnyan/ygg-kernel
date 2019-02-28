@@ -46,9 +46,30 @@ void x86_mm_alloc_init(void) {
     s_mm_alloc_blocks[0].paddr = mm_kernel[page >> 22] & -0x400000;
 }
 
-void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src) {
-    // TODO: support pagedir nesting
-    memcpy(dst, src, 1023 * 4);
+void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src, uint32_t flags) {
+    // memcpy(dst, src, 1023 * 4);
+    memset(dst, 0, 4096);
+
+    if (flags & MM_CLONE_FLG_KERNEL) {
+        for (int pdi = KERNEL_VIRT_BASE >> 22; pdi < 1024; ++pdi) {
+            if (src[pdi] & X86_MM_FLG_PR) {
+                if (src[pdi] & X86_MM_FLG_PS) {
+                    dst[pdi] = src[pdi];
+                } else {
+                    mm_pagetab_t pt_src = (mm_pagetab_t) x86_mm_reverse_lookup(src[pdi] & -0x1000);
+                    assert((uintptr_t) pt_src != MM_NADDR);
+
+                    uintptr_t phys;
+                    mm_pagetab_t pt = x86_mm_pagetab_alloc(dst, &phys);
+                    assert(pt);
+
+                    memcpy(pt, pt_src, 4096);
+
+                    dst[pdi] = phys | (X86_MM_FLG_PR | X86_MM_FLG_US | X86_MM_FLG_RW);
+                }
+            }
+        }
+    }
 }
 
 static uintptr_t x86_mm_alloc_4k(uintptr_t *phys) {

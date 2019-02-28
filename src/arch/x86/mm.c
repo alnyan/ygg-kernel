@@ -189,21 +189,67 @@ static uintptr_t x86_mm_find_cont_region(mm_pagedir_t pd, uintptr_t start, uintp
 
 void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t vaddr, int count, uint32_t flags) {
     // FIXME: does not support 4K
+    uint32_t ps = (flags & MM_FLG_HUGE) ? 0x400000 : 0x1000;
+
     for (int i = 0; i < count; ++i) {
-        uint32_t ent = pd[(vaddr >> 22) + i];
+        uint32_t page = vaddr + i * ps;
+        uint32_t pdi = page >> 22;
+        uint32_t ent = pd[pdi];
 
         if (!(ent & X86_MM_FLG_PR)) {
-            panic("Trying to unmap a non-present page: %p\n", vaddr + (i << 22));
+            panic("Trying to unmap a non-present page: %p\n", page);
         } else {
+            if (ent & X86_MM_FLG_PS) {
+                if (!(flags & MM_FLG_HUGE)) {
+                    panic("Trying to unmap a 4K virtual address with 4M real page\n ");
+                }
 #ifdef ENABLE_MAP_TRACE
-            kdebug("unmap %p[%d (%p)]\n", pd, (vaddr >> 22) + i, vaddr + (i << 22));
+                kdebug("unmap %p[%d (%p)]\n", pd, pdi, page);
 #endif
+                if (flags & MM_UFLG_PF) {
+                    x86_mm_claim_page(ent & -0x400000, 0x400000);
+                }
 
-            if (flags & MM_UFLG_PF) {
-                x86_mm_claim_page(ent & -0x400000, 0x400000);
+                pd[pdi] = 0;
+            } else {
+                if ((flags & MM_FLG_HUGE)) {
+                    panic("Trying to unmap a 4M virtual address with real page table\n");
+                }
+
+                mm_pagetab_t pt = (mm_pagetab_t) x86_mm_reverse_lookup(ent & -0x1000);
+                assert((uintptr_t) pt != MM_NADDR);
+
+                uint32_t pti = (page >> 12) & 0x3FF;
+
+                if (!(pt[pti] & X86_MM_FLG_PR)) {
+                    panic("Trying to unmap a non-present page: %p\n", page);
+                }
+
+#ifdef ENABLE_MAP_TRACE
+                kdebug("unmap %p[%d (%p)]:\n", pd, pdi, page & -0x400000);
+                kdebug(" -> %p[%d (%p)]\n", pt, pti, page);
+#endif
+                ent = pt[pti];
+
+                if (flags & MM_UFLG_PF) {
+                    x86_mm_claim_page(ent & -0x1000, 0x1000);
+                }
+
+                pt[pti] = 0;
+
+                // TODO: refcount
+                int r = 0;
+                for (int j = 0; j < 1024; ++j) {
+                    if (pt[j] & X86_MM_FLG_PR) {
+                        r = 1;
+                        break;
+                    }
+                }
+
+                if (!r) {
+                    kwarn("TODO: free pagetab\n");
+                }
             }
-
-            pd[(vaddr >> 22) + i] = 0;
         }
     }
 }

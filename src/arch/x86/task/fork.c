@@ -19,32 +19,93 @@ extern int x86_task_setup_stack(struct x86_task *t,
     uint32_t ebp3p,
     int flag);
 
+#define TASK_COPY_VIRT_BASE     0xF0000000
+
 static void task_copy_pages(mm_pagedir_t dst, const mm_pagedir_t src) {
-    mm_clone(dst, mm_kernel);
+    mm_clone(dst, mm_kernel, MM_CLONE_FLG_KERNEL);
 
-    // XXX: The following method is reeeeaaaaalllyyy stupid
-    for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
-        if (src[i] & 1) {
-            // TODO: handle 4K pages
-            if (!(src[i] & (1 << 7))) {
-                panic("NYI\n");
+    // Copy sections and stack
+    for (uint32_t pdi = 0; pdi < (KERNEL_VIRT_BASE - 1) >> 22; ++pdi) {
+        if (src[pdi] & X86_MM_FLG_PR) {
+            if (src[pdi] & X86_MM_FLG_PS) {
+                // Copy 4M page
+                uint32_t src_phys = src[pdi] & -MM_PAGESZ_HUGE;
+                uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ_HUGE);
+
+                // Map it into dst
+                dst[pdi] = dst_phys | (src[pdi] & 0x3FFFFF);
+
+                assert(dst_phys != MM_NADDR);
+
+                assert(!(mm_kernel[TASK_COPY_VIRT_BASE >> 22] & X86_MM_FLG_PR));
+
+                mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE, dst_phys, MM_FLG_RW | MM_FLG_HUGE);
+                mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_HUGE, src_phys, MM_FLG_HUGE);
+
+                memcpy((void *) TASK_COPY_VIRT_BASE, (const void *) (TASK_COPY_VIRT_BASE + MM_PAGESZ_HUGE), MM_PAGESZ_HUGE);
+
+                mm_unmap_cont_region(mm_kernel, TASK_COPY_VIRT_BASE, 1, MM_FLG_HUGE);
+                mm_unmap_cont_region(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_HUGE, 1, MM_FLG_HUGE);
+            } else {
+                // Copy 4K table
+                mm_pagetab_t src_pt = (mm_pagetab_t) x86_mm_reverse_lookup(src[pdi] & -0x1000);
+                assert((uintptr_t) src_pt != MM_NADDR);
+                uintptr_t dst_pt_phys;
+                mm_pagetab_t dst_pt = x86_mm_pagetab_alloc(dst, &dst_pt_phys);
+                assert(dst_pt);
+
+                assert(!(mm_kernel[TASK_COPY_VIRT_BASE >> 22] & X86_MM_FLG_PR));
+
+                // Map it into dst
+                dst[pdi] = dst_pt_phys | (src[pdi] & 0x3FFFFF);
+
+                for (uint32_t pti = 0; pti < 1024; ++pti) {
+                    if (src_pt[pti] & X86_MM_FLG_PR) {
+                        // Allocate 4K page
+                        uintptr_t src_phys = src_pt[pti] & -MM_PAGESZ_SMALL;
+                        uintptr_t dst_phys = mm_alloc_phys_page(MM_PAGESZ_SMALL);
+                        assert(dst_phys != MM_NADDR);
+
+                        // Map page into table
+                        dst_pt[pti] = dst_phys | (src_pt[pti] & 0xFFF);
+
+                        mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE, dst_phys, 0);
+                        mm_map_page(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL, src_phys, 0);
+
+                        memcpy((void *) TASK_COPY_VIRT_BASE, (const void *) (TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL), MM_PAGESZ_SMALL);
+
+                        mm_unmap_cont_region(mm_kernel, TASK_COPY_VIRT_BASE, 1, 0);
+                        mm_unmap_cont_region(mm_kernel, TASK_COPY_VIRT_BASE + MM_PAGESZ_SMALL, 1, 0);
+                    }
+                }
+
             }
-
-            uint32_t src_phys = src[i] & -MM_PAGESZ;
-            uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ);
-
-            assert(dst_phys != MM_NADDR);
-            dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
-
-            // Map both of them somewhere
-            mm_map_page(mm_kernel, 0xF0000000, dst_phys, MM_FLG_RW);
-            mm_map_page(mm_kernel, 0xF0000000 + MM_PAGESZ, src_phys, 0);
-
-            memcpy((void *) 0xF0000000, (const void *) (0xF0000000 + MM_PAGESZ), MM_PAGESZ);
-
-            mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
         }
     }
+
+    // XXX: The following method is reeeeaaaaalllyyy stupid
+    //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE - 1) >> 22; ++i) {
+    //    if (src[i] & 1) {
+    //        // TODO: handle 4K pages
+    //        if (!(src[i] & (1 << 7))) {
+    //            panic("NYI\n");
+    //        }
+
+    //        uint32_t src_phys = src[i] & -MM_PAGESZ;
+    //        uint32_t dst_phys = mm_alloc_phys_page(MM_PAGESZ);
+
+    //        assert(dst_phys != MM_NADDR);
+    //        dst[i] = dst_phys | (src[i] & (MM_PAGESZ - 1));
+
+    //        // Map both of them somewhere
+    //        mm_map_page(mm_kernel, 0xF0000000, dst_phys, MM_FLG_RW);
+    //        mm_map_page(mm_kernel, 0xF0000000 + MM_PAGESZ, src_phys, 0);
+
+    //        memcpy((void *) 0xF0000000, (const void *) (0xF0000000 + MM_PAGESZ), MM_PAGESZ);
+
+    //        mm_unmap_cont_region(mm_kernel, 0xF0000000, 2, 0);
+    //    }
+    //}
 }
 
 task_t *task_fork(task_t *t) {
@@ -150,7 +211,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     mm_pagedir_t pd = mm_pagedir_alloc(NULL);
     assert(pd);
 
-    mm_clone(pd, mm_kernel);
+    mm_clone(pd, mm_kernel, MM_CLONE_FLG_KERNEL);
 
     uintptr_t entry = elf_load(pd, file_mem, 0);
 

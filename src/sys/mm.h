@@ -4,33 +4,41 @@
 
 #define MM_ALIGN_UP(p, a)   (((p) + (a) - 1) & ~((a) - 1))
 
-#define MM_FLG_RW   (1 << 0)
-#define MM_FLG_US   (1 << 1)
-#define MM_FLG_HUGE  (1 << 2)
+#define MM_FLG_WR           (1 << 1)
+#define MM_FLG_US           (1 << 2)
+#define MM_FLG_PS           (1 << 7)
 
-#define MM_CLONE_FLG_KERNEL     (1 << 0)
+#define MM_FLG_NOPHYS       (1 << 30)
+#define MM_FLG_DMA          (1 << 31)
 
-// Unmap flags
-// 0x01: free physical pages
-#define MM_UFLG_PF   (1 << 0)
+#define MM_FLG_CLONE_KERNEL (1 << 0)
+#define MM_FLG_CLONE_USER   (1 << 1)
+#define MM_FLG_CLONE_HW     (1 << 2)
 
 #if defined(ARCH_X86)
 #include "arch/x86/mm.h"
 #endif
 
-uintptr_t mm_alloc_kernel_pages(mm_pagedir_t pd, int count, uint32_t aflags);
-uintptr_t mm_alloc_phys_page(size_t sz);
-void mm_unmap_cont_region(mm_pagedir_t pd, uintptr_t addr, int count, uint32_t uflags);
-void mm_dump_pages(mm_pagedir_t pd);
+void mm_init(void);
 
-int mm_map_page(mm_pagedir_t pd, uintptr_t vaddr, uintptr_t paddr, uint32_t flags);
-uintptr_t mm_lookup(mm_pagedir_t pd, uintptr_t vaddr, uint32_t flags, uint32_t *rflags);
+uintptr_t mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags);
+int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t count, uint32_t flags);
+int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags);
+uintptr_t mm_translate(mm_space_t pd, uintptr_t vaddr, uint32_t *rflags);
 
-mm_pagedir_t mm_pagedir_alloc(uintptr_t *phys);
-void mm_pagedir_free(mm_pagedir_t pd);
-void mm_clone(mm_pagedir_t dst, const mm_pagedir_t src, uint32_t flags);
+int mm_memcpy_kernel_to_user(mm_space_t dst_pd, void *dst, const void *src, size_t count);
+int mm_memcpy_user_to_kernel(mm_space_t src_pd, void *dst, const void *src, size_t count);
+ssize_t mm_strncpy_user_to_kernel(mm_space_t src_pd, void *dst, const void *src, size_t count);
 
-// void mm_set_kernel(void);
-void mm_set(mm_pagedir_t pd);
+uintptr_t mm_alloc_physical_page(uint32_t flags);
+void mm_free_physical_page(uintptr_t page, uint32_t flags);
 
-void mm_dump_stats(void);
+mm_space_t mm_create_space(uintptr_t *phys);
+void mm_destroy_space(mm_space_t pd);
+void mm_space_clone(mm_space_t dst, const mm_space_t src, uint32_t flags);
+int mm_space_fork(mm_space_t dst, const mm_space_t src, uint32_t flags);
+void mm_set(mm_space_t pd);
+
+void mm_dump_stats(int level);
+void mm_dump_map(int level, mm_space_t pd);
+

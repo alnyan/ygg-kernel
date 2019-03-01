@@ -32,28 +32,32 @@ CFLAGS=-ffreestanding \
 LDFLAGS=-nostdlib -nostartfiles
 LDFLAGS_POST=
 
-OBJS+=build/kernel.o \
-	  build/sys/debug.o \
-	  build/sys/mem.o \
-	  build/sys/string.o \
-	  build/sys/elf.o \
-	  build/dev/initrd.o \
-	  build/sys/panic.o \
-	  build/sys/heap.o \
-	  build/sys/ctype.o \
-	  build/sys/vfs.o \
-	  build/dev/devfs.o \
-	  build/dev/tty.o \
-	  build/sys/dev.o \
-	  build/sys/task.o \
-	  build/dev/pseudo.o \
-	  build/sys/time.o \
-	  build/net/eth/eth.o \
-	  build/net/arp.o \
-	  build/net/inet.o \
-	  build/dev/net.o \
-	  build/sys/atoi.o \
-	  build/dev/procfs.o
+OBJS=build/kernel.o \
+	 build/sys/string.o \
+	 build/sys/ctype.o \
+	 build/sys/debug.o
+# OBJS+=build/kernel.o \
+# 	  build/sys/debug.o \
+# 	  build/sys/mem.o \
+# 	  build/sys/string.o \
+# 	  build/sys/elf.o \
+# 	  build/dev/initrd.o \
+# 	  build/sys/panic.o \
+# 	  build/sys/heap.o \
+# 	  build/sys/ctype.o \
+# 	  build/sys/vfs.o \
+# 	  build/dev/devfs.o \
+# 	  build/dev/tty.o \
+# 	  build/sys/dev.o \
+# 	  build/sys/task.o \
+# 	  build/dev/pseudo.o \
+# 	  build/sys/time.o \
+# 	  build/net/eth/eth.o \
+# 	  build/net/arp.o \
+# 	  build/net/inet.o \
+# 	  build/dev/net.o \
+# 	  build/sys/atoi.o \
+# 	  build/dev/procfs.o
 
 DIRS+=build/sys \
 	  build/dev \

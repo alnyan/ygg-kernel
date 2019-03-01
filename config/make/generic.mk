@@ -35,7 +35,8 @@ LDFLAGS_POST=
 OBJS=build/kernel.o \
 	 build/sys/string.o \
 	 build/sys/ctype.o \
-	 build/sys/debug.o
+	 build/sys/debug.o \
+	 build/sys/mem.o
 # OBJS+=build/kernel.o \
 # 	  build/sys/debug.o \
 # 	  build/sys/mem.o \

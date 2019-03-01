@@ -17,6 +17,7 @@
 #define kwarn(f, ...) debugf(DEBUG_WARN, "[%s] " f, __func__, ##__VA_ARGS__)
 #define kerror(f, ...) debugf(DEBUG_ERROR, "[%s] " f, __func__, ##__VA_ARGS__)
 #define kfatal(f, ...) debugf(DEBUG_FATAL, "[%s] " f, __func__, ##__VA_ARGS__)
+#define kprint(l, f, ...) debugf(l, "[%s] " f, __func__, ##__VA_ARGS__)
 
 void debugc(int level, char c);
 void debugs(int level, const char *s);

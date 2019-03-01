@@ -15,6 +15,8 @@
 void kernel_main(void) {
     irq_disable();
 
+    mm_init();
+
     kdebug("Booting kernel\n");
 //    // Init basic stuff so we can at least print something
 //    hw_early_init();

@@ -51,9 +51,11 @@ void fmtsiz(size_t sz, char *out) {
         out[l++] = '.';
         out[l++] = '0' + r;
 
-        out[l++] = ' ';
         out[l++] = s_fmtsiz_pwrs[pwr - 1];
+
+        out[l++] = 'i';
     }
 
+    out[l++] = 'B';
     out[l++] = 0;
 }

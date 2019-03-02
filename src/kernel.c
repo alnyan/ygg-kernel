@@ -9,6 +9,7 @@
 #include "arch/hw.h"
 #include "sys/elf.h"
 #include "sys/mm.h"
+#include "sys/heap.h"
 #include "dev/net.h"
 #include "util.h"
 
@@ -30,6 +31,7 @@ void kernel_main(void) {
 //    procfs_init();
     tty_init();
 //    // Will create basic device set
+    heap_dump();
     devfs_populate();
 //
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
@@ -52,18 +54,18 @@ void kernel_main(void) {
     vfs_closedir(dir);
 
     // Test ELF loading
-    uintptr_t test_phys;
-    mm_space_t test_pd = mm_create_space(&test_phys);
-    mm_space_clone(test_pd, mm_kernel, MM_FLG_CLONE_KERNEL);
+    // uintptr_t test_phys;
+    // mm_space_t test_pd = mm_create_space(&test_phys);
+    // mm_space_clone(test_pd, mm_kernel, MM_FLG_CLONE_KERNEL);
 
-    uintptr_t elf_ptr = vfs_getm("/bin/hello");
-    assert(elf_ptr != MM_NADDR);
+    // uintptr_t elf_ptr = vfs_getm("/bin/hello");
+    // assert(elf_ptr != MM_NADDR);
 
-    uintptr_t entry = elf_load(test_pd, elf_ptr, 0);
+    // uintptr_t entry = elf_load(test_pd, elf_ptr, 0);
 
-    kdebug("entry is %p\n", entry);
+    // kdebug("entry is %p\n", entry);
 
-    mm_dump_map(DEBUG_DEFAULT, test_pd);
+    // mm_dump_map(DEBUG_DEFAULT, test_pd);
 //
 //    ////
 //

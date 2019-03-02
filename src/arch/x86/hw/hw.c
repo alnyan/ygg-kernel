@@ -74,6 +74,5 @@ void hw_init(void) {
 
     x86_ps2_init();
 
-
-    // x86_task_init();
+    x86_task_init();
 }

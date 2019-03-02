@@ -84,56 +84,6 @@
 //
 //     return NULL;
 // }
-//
-// void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
-//     // Temp: just check we're entering here from kernel
-//     uint32_t cr3_0;
-//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-//
-//     assert(task);
-//     struct x86_task *t = (struct x86_task *) task;
-//     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-//     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-//     assert((uintptr_t) task_pd != MM_NADDR);
-//
-//     assert(task_pd[(uint32_t) src >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_RW | X86_MM_FLG_US));
-//
-//     asm volatile ("mov %0, %%cr3"::"a"(cr3));
-//
-//     if (sz == MM_NADDR) {
-//         strcpy(dst, src);
-//     } else {
-//         memcpy(dst, src, sz);
-//     }
-//
-//     asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
-// }
-//
-// void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
-//     // Temp: just check we're entering here from kernel
-//     uint32_t cr3_0;
-//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-//
-//     assert(task);
-//     struct x86_task *t = (struct x86_task *) task;
-//     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-//     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-//     assert((uintptr_t) task_pd != MM_NADDR);
-//
-//     assert(task_pd[(uint32_t) dst >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_US));
-//
-//     asm volatile ("mov %0, %%cr3"::"a"(cr3));
-//
-//     if (sz == MM_NADDR) {
-//         strcpy(dst, src);
-//     } else {
-//         memcpy(dst, src, sz);
-//     }
-//
-//     asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
-// }
 
 // Idle task (kernel-space) stuff
 static struct x86_task x86_task_idle;
@@ -165,68 +115,102 @@ static int x86_tasking_entry = 1;
 // Assembly function which uses no stack and just loops with sti; hlt;
 extern void x86_task_idle_func(void *arg);
 
-int x86_task_setup_stack(struct x86_task *t,
-        void (*entry)(void *),
-        void *arg,
-        mm_pagedir_t pd,
-        uint32_t ebp0,
-        uint32_t ebp3,
-        uint32_t ebp3p,
-        int flag) {
-    uint32_t cr3;
-
-    cr3 = mm_lookup(mm_kernel, (uintptr_t) pd, MM_FLG_HUGE, NULL);
-    assert(cr3 != MM_NADDR);
-
-    uint32_t *esp0;
-    uint32_t *esp3;
-
-    if (!(flag & X86_TASK_IDLE)) {
-        t->ebp3 = ebp3;
+void x86_task_dump_context(struct x86_task *task) {
+    if (task->ctl) {
+        kdebug("--- General task info ---\n");
+        kdebug("PID = %u\n", task->ctl->pid);
     }
-    // Create kernel-space stack for state storage
-    t->ebp0 = ebp0;
-    esp0 = (uint32_t *) t->ebp0;
 
-    if (flag & X86_TASK_IDLE) {
-        // Init kernel idle task
-        *--esp0 = 0x0;              // No SS3 for idle task
-        *--esp0 = 0x0;              // No ESP3 for idle task
-        *--esp0 = 0x248;            // EFLAGS
-        *--esp0 = 0x08;             // CS
+    if (task->pd) {
+        kdebug("--- Task address space ---\n");
+        mm_dump_map(DEBUG_DEFAULT, task->pd);
+    }
+
+    if (task->esp0) {
+        struct x86_task_context *ctx = (struct x86_task_context *) task->esp0;
+
+        kdebug("--- Task context ---\n");
+        kdebug("CS:EIP = %02x:%p\n", ctx->iret.cs, ctx->iret.eip);
+        if (ctx->iret.cs != 0x08) {
+            kdebug("SS:ESP = %02x:%p\n", ctx->iret.ss, ctx->iret.esp);
+        }
+    }
+}
+
+int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint32_t flags) {
+    struct x86_task_context *ctx;
+    uintptr_t cr3;
+
+    if (!task->esp0) {
+        // Create task's kernel stack
+        uintptr_t ebp0 = (uintptr_t) heap_alloc(18 * 4) + 18 * 4;
+        assert(ebp0);
+        ctx = (struct x86_task_context *) (ebp0 - 18 * 4);
+        memset(ctx, 0, sizeof(struct x86_task_context));
+
+        task->ebp0 = ebp0;
+        task->esp0 = ebp0 - 18 * 4;
     } else {
-        // Init userspace task
-        // Map stack page
-        // TODO: cases when stack occupies several pages
-        mm_map_page(mm_kernel, ebp3 - MM_PAGESZ_SMALL, ebp3p, MM_FLG_RW | MM_FLG_US);
-
-        esp3 = (uint32_t *) t->ebp3;
-
-        *--esp3 = (uint32_t) arg;   // Push thread arg
-        *--esp3 = 0x12345678;       // Push some funny return address
-
-        mm_unmap_cont_region(mm_kernel, ebp3 - MM_PAGESZ_SMALL, 1, 0);
-
-        *--esp0 = 0x23;             // SS
-        *--esp0 = (uint32_t) esp3;  // ESP
-        *--esp0 = 0x248;            // EFLAGS
-        *--esp0 = 0x1B;             // CS
-    }
-    *--esp0 = (uint32_t) entry; // EIP
-
-    // Push GP regs
-    for (int i = 0; i < 8; ++i) {
-        *--esp0 = 0;
+        ctx = (struct x86_task_context *) task->esp0;
     }
 
-    *--esp0 = cr3;              // CR3
+    if (!task->pd) {
+        task->pd = mm_create_space(&cr3);
+        mm_space_clone(task->pd, mm_kernel, MM_FLG_CLONE_KERNEL);
 
-    // Push segs
-    for (int i = 0; i < 4; ++i) {
-        *--esp0 = (flag & X86_TASK_IDLE) ? 0x10 : 0x23;
+        ctx->cr3 = cr3;
+    } else {
+        assert((cr3 = mm_translate(mm_kernel, (uintptr_t) task->pd, NULL)) != MM_NADDR);
+
+        if (!ctx->cr3) {
+            ctx->cr3 = cr3;
+        }
     }
 
-    t->esp0 = (uint32_t) esp0;
+    if (!(flags & X86_TASK_NOGP)) {
+        memset(&ctx->gp, 0, 8 * 4);
+    }
+
+    if (!(flags & X86_TASK_NOENT)) {
+        ctx->iret.cs = (flags & X86_TASK_IDLE) ? 0x08 : 0x1B;
+        ctx->iret.eip = entry;
+    }
+
+    ctx->iret.eflags = 0x248;
+
+    if (!(flags & (X86_TASK_NOESP3 | X86_TASK_IDLE))) {
+        uint32_t *esp3;
+
+        if (!task->esp3_bottom) {
+            // Allocate user stack
+            task->esp3_bottom = 0x80000000;
+            if (!task->esp3_size) {
+                task->esp3_size = 8;
+            }
+            assert(mm_map_range(task->pd, task->esp3_bottom, task->esp3_size, MM_FLG_US | MM_FLG_WR));
+        }
+
+        esp3 = (uint32_t *) (task->esp3_bottom + task->esp3_size * 0x1000);
+
+        // TODO: arg
+        //*--esp3 = (uint32_t) arg;
+        // *--esp3 = 0x12345678;
+
+        ctx->iret.ss = 0x23;
+        ctx->iret.esp = (uintptr_t) esp3;
+    }
+
+    if (flags & X86_TASK_IDLE) {
+        ctx->segs.ds = 0x10;
+        ctx->segs.es = 0x10;
+        ctx->segs.fs = 0x10;
+        ctx->segs.gs = 0x10;
+    } else {
+        ctx->segs.ds = 0x23;
+        ctx->segs.es = 0x23;
+        ctx->segs.fs = 0x23;
+        ctx->segs.gs = 0x23;
+    }
 
     return 0;
 }
@@ -237,14 +221,14 @@ void x86_task_init(void) {
     x86_task_idle.next = NULL;
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;
-    x86_task_setup_stack(&x86_task_idle,
-            x86_task_idle_func,
-            NULL,
-            mm_kernel,
-            (uint32_t) &x86_task_idle_stack[X86_TASK_TOTAL_STACK],
-            0,
-            0,
-            X86_TASK_IDLE);
+
+    x86_task_idle.ebp0 = (uintptr_t) &x86_task_idle_stack + 18 * 4;
+    x86_task_idle.esp0 = (uintptr_t) &x86_task_idle_stack;
+    x86_task_idle.esp3_size = 0;
+    x86_task_idle.esp3_bottom = 0;
+    x86_task_idle.pd = mm_kernel;
+
+    x86_task_set_context(&x86_task_idle, (uintptr_t) x86_task_idle_func, NULL, X86_TASK_IDLE | X86_TASK_NOESP3);
 
     x86_task_current = &x86_task_idle;
     x86_task_first = &x86_task_idle;
@@ -252,7 +236,7 @@ void x86_task_init(void) {
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {
-    mm_set(mm_kernel);
+    // TODO: mm_set(mm_kernel);
 
     if (x86_tasking_entry) {
         x86_tasking_entry = 0;
@@ -285,7 +269,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 panic_irq("Attempted to kill init!\n", regs);
             }
 
-            task_destroy(t);
+            // TODO: task_destroy(t);
 
             continue;
         }

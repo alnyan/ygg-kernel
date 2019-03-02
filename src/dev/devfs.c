@@ -106,6 +106,7 @@ void devfs_init(void) {
 
 void devfs_add(dev_t *dev, const char *p, uintptr_t param) {
     struct devfs_node *node = (struct devfs_node *) heap_alloc(sizeof(struct devfs_node));
+    assert(node);
 
     node->dev = dev;
     node->dev_param = param;

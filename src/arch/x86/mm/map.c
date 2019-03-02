@@ -196,7 +196,9 @@ uintptr_t mm_translate(mm_space_t pd, uintptr_t addr, uint32_t *rflags) {
     }
 
     if (pd[pdi] & X86_MM_FLG_PS) {
-        *rflags = (pd[pdi] & (MM_FLG_US | MM_FLG_WR)) | MM_FLG_PS;
+        if (rflags) {
+            *rflags = (pd[pdi] & (MM_FLG_US | MM_FLG_WR)) | MM_FLG_PS;
+        }
         return (pd[pdi] & -0x400000) | (addr & 0x3FFFFF);
     }
 
@@ -208,7 +210,9 @@ uintptr_t mm_translate(mm_space_t pd, uintptr_t addr, uint32_t *rflags) {
         return MM_NADDR;
     }
 
-    *rflags = (pt[pti] & (MM_FLG_US | MM_FLG_WR));
+    if (rflags) {
+        *rflags = (pt[pti] & (MM_FLG_US | MM_FLG_WR));
+    }
     return (pt[pti] & -0x1000) | (addr & 0xFFF);
 }
 

@@ -5,31 +5,26 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/mm.o \
 	  build/arch/x86/hw/com.o \
 	  build/arch/x86/panic.o \
-	  build/arch/x86/regs.o
+	  build/arch/x86/regs.o \
+	  build/arch/x86/hw/console.o \
+	  build/arch/x86/hw/hw.o \
+	  build/arch/x86/hw/cpuid_s.o \
+	  build/arch/x86/hw/cpuid.o \
+	  build/arch/x86/hw/gdt.o
 
-# OBJS+=build/arch/x86/hw/hw.o \
-#	  build/arch/x86/hw/com.o \
-#	  build/arch/x86/hw/gdt.o \
 #	  build/arch/x86/hw/ints.o \
 #	  build/arch/x86/hw/ints_s.o \
 #	  build/arch/x86/hw/pic8259.o \
 #	  build/arch/x86/hw/timer.o \
-#	  build/arch/x86/mm.o \
 #	  build/arch/x86/task/task.o \
 #	  build/arch/x86/hw/irq0.o \
-#	  build/arch/x86/regs.o \
 #	  build/arch/x86/hw/ps2.o \
 #	  build/arch/x86/hw/irqs_s.o \
-#	  build/arch/x86/multiboot.o \
-#	  build/arch/x86/hw/console.o \
 #	  build/arch/x86/syscall.o \
-#	  build/arch/x86/panic.o \
 #	  build/arch/x86/task/task_s.o \
 #	  build/arch/x86/task/fork.o \
 #	  build/arch/x86/mmalloc.o \
 #	  build/arch/x86/pm.o \
-#	  build/arch/x86/hw/cpuid.o \
-#	  build/arch/x86/hw/cpuid_s.o \
 #	  build/arch/x86/hw/rtc.o \
 #	  build/arch/x86/hw/acpi.o \
 #	  build/arch/x86/hw/hpet.o \

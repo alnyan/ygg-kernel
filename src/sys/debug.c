@@ -26,7 +26,7 @@ void debugc(int level, char c) {
 	    com_send(X86_COM0, c);
     }
     if (level >= s_debug_disp_level) {
-        // x86_con_putc(c);
+        x86_con_putc(c);
     }
 #endif
 }

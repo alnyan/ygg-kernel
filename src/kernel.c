@@ -18,12 +18,12 @@ void kernel_main(void) {
     mm_init();
 
     kdebug("Booting kernel\n");
-//    // Init basic stuff so we can at least print something
-//    hw_early_init();
-//    // Init printing
-//    debug_init();
-//    // Proceed on hw-specific details of init
-//    hw_init();
+    // Init basic stuff so we can at least print something
+    hw_early_init();
+    // Init printing
+    debug_init();
+    // Proceed on hw-specific details of init
+    hw_init();
 //
 //    // Now the kernel-stuff kicks in
 //    devfs_init();

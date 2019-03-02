@@ -13,7 +13,7 @@
 
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
-    while (1);
+    panic("Syscalls are not implemented yet\n");
     // if (regs->gp.eax != SYSCALL_NR_WRITE && regs->gp.eax != SYSCALL_NR_READ) {
     //     // mm_set_kernel();
     //     mm_set(mm_kernel);

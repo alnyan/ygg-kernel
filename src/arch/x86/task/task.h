@@ -48,7 +48,7 @@ struct x86_task {
 extern struct x86_task *x86_task_current;
 extern struct x86_task *x86_task_first;
 
-void x86_task_dump_context(struct x86_task *task);
+void x86_task_dump_context(int level, struct x86_task *task);
 int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint32_t flags);
 
 void x86_task_switch(x86_irq_regs_t *regs);

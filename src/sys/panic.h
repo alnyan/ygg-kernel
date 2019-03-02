@@ -15,6 +15,7 @@
 
 void panicf_irq(const char *fmt, const x86_irq_regs_t *regs, ...);
 void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...);
+void panic_reg(void);
 #endif
 
 #define panic_hlt() do { __idle_halt(); } while (1)

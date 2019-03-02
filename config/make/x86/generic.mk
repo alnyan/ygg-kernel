@@ -28,11 +28,9 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/hw/timer.o \
 	  build/arch/x86/task/task.o \
 	  build/arch/x86/task/task_s.o \
+	  build/arch/x86/task/fork.o \
 	  build/arch/x86/syscall.o
 
-#	  build/arch/x86/task/fork.o \
-#	  build/arch/x86/mmalloc.o \
-#	  build/arch/x86/pm.o \
 #	  build/arch/x86/hw/pci.o \
 
 ifneq ($(ENABLE_VESA_FBCON),)

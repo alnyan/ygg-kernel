@@ -15,14 +15,14 @@
 #include "sys/mem.h"
 #include "sys/time.h"
 
-// task_t *task_create(void) {
-//     struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
-//     memset(t, 0, sizeof(struct x86_task *));
-//     t->ctl = task_ctl_create();
-//     t->next = NULL;
-//
-//     return (task_t *) t;
-// }
+task_t *task_create(void) {
+    struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
+    memset(t, 0, sizeof(struct x86_task *));
+    t->ctl = task_ctl_create();
+    t->next = NULL;
+
+    return (task_t *) t;
+}
 //
 // void task_destroy(task_t *t) {
 //     mm_set(mm_kernel);
@@ -115,24 +115,24 @@ static int x86_tasking_entry = 1;
 // Assembly function which uses no stack and just loops with sti; hlt;
 extern void x86_task_idle_func(void *arg);
 
-void x86_task_dump_context(struct x86_task *task) {
+void x86_task_dump_context(int level, struct x86_task *task) {
     if (task->ctl) {
-        kdebug("--- General task info ---\n");
-        kdebug("PID = %u\n", task->ctl->pid);
+        kprint(level, "--- General task info ---\n");
+        kprint(level, "PID = %u\n", task->ctl->pid);
     }
 
     if (task->pd) {
-        kdebug("--- Task address space ---\n");
+        kprint(level, "--- Task address space ---\n");
         mm_dump_map(DEBUG_DEFAULT, task->pd);
     }
 
     if (task->esp0) {
         struct x86_task_context *ctx = (struct x86_task_context *) task->esp0;
 
-        kdebug("--- Task context ---\n");
-        kdebug("CS:EIP = %02x:%p\n", ctx->iret.cs, ctx->iret.eip);
+        kprint(level, "--- Task context ---\n");
+        kprint(level, "CS:EIP = %02x:%p\n", ctx->iret.cs, ctx->iret.eip);
         if (ctx->iret.cs != 0x08) {
-            kdebug("SS:ESP = %02x:%p\n", ctx->iret.ss, ctx->iret.esp);
+            kprint(level, "SS:ESP = %02x:%p\n", ctx->iret.ss, ctx->iret.esp);
         }
     }
 }
@@ -187,7 +187,7 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
             if (!task->esp3_size) {
                 task->esp3_size = 8;
             }
-            assert(mm_map_range(task->pd, task->esp3_bottom, task->esp3_size, MM_FLG_US | MM_FLG_WR));
+            assert(mm_map_range(task->pd, task->esp3_bottom, task->esp3_size, MM_FLG_US | MM_FLG_WR) == 0);
         }
 
         esp3 = (uint32_t *) (task->esp3_bottom + task->esp3_size * 0x1000);

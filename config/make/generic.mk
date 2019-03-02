@@ -47,9 +47,9 @@ OBJS=build/kernel.o \
 	 build/dev/initrd.o \
  	 build/sys/dev.o \
  	 build/sys/atoi.o \
+ 	 build/sys/task.o \
 	 build/dev/tty.o
 #	 build/dev/procfs.o \
-# 	  build/sys/task.o \
 # 	  build/net/eth/eth.o \
 # 	  build/net/arp.o \
 # 	  build/net/inet.o \

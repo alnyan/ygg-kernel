@@ -8,7 +8,7 @@ void panicf(const char *fmt, ...) {
     debugfv(DEBUG_FATAL, fmt, args);
     va_end(args);
 
-    kfatal("--- (No dumps provided) ---\n");
+    panic_reg();
 
     panic_hlt();
 }

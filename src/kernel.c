@@ -69,9 +69,9 @@ void kernel_main(void) {
 //
 //    ////
 //
-//#if defined(ENABLE_TASK)
-//    assert(task_fexecve("/bin/init", NULL, NULL));
-//#endif
+#if defined(ENABLE_TASK)
+    assert(task_fexecve("/bin/init", NULL, NULL));
+#endif
 //
 //    // mm_dump_stats();
 //

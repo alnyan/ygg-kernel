@@ -38,8 +38,8 @@ OBJS=build/kernel.o \
 	 build/sys/debug.o \
 	 build/sys/mem.o \
 	 build/sys/panic.o \
-	 build/sys/time.o
-# 	  build/sys/elf.o \
+	 build/sys/time.o \
+ 	 build/sys/elf.o
 # 	  build/dev/initrd.o \
 # 	  build/sys/heap.o \
 # 	  build/sys/vfs.o \

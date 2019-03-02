@@ -15,125 +15,125 @@
 #include "sys/mem.h"
 #include "sys/time.h"
 
-task_t *task_create(void) {
-    struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
-    memset(t, 0, sizeof(struct x86_task *));
-    t->ctl = task_ctl_create();
-    t->next = NULL;
-
-    return (task_t *) t;
-}
-
-void task_destroy(task_t *t) {
-    mm_set(mm_kernel);
-    struct x86_task *task = (struct x86_task *) t;
-
-    // Unmapping sub-kernel pages
-    mm_pagedir_t task_pd;
-    uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
-    task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-    assert((uintptr_t) task_pd != MM_NADDR);
-
-    //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
-    //    if (task_pd[i] & 1) {
-    //        mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF | MM_FLG_HUGE);
-    //    }
-    //}
-
-    // Close file descriptors
-    for (int i = 0; i < 4; ++i) {
-        if (task->ctl->fds[i]) {
-            vfs_close(task->ctl->fds[i]);
-        }
-    }
-
-    // Free stacks
-    heap_free((void *) (task->ebp0 - 18 * 4));
-
-    // Free pagedir
-    mm_pagedir_free(task_pd);
-
-    // Free data structures
-    task_ctl_free(task->ctl);
-    heap_free(task);
-}
-
-void task_set_sleep(task_t *t, const struct timespec *ts) {
-    uint64_t delta = ts->tv_sec * SYSTICK_DES_RES + ts->tv_nsec * (1000000 / SYSTICK_DES_RES);
-    ((struct x86_task *) t)->ctl->sleep_deadline = delta + systime;
-}
-
-void task_busy(void *task) {
-    ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
-}
-
-void task_nobusy(void *task) {
-    ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
-}
-
-task_t *task_by_pid(int pid) {
-    for (struct x86_task *t = x86_task_first; t; t = t->next) {
-        if (t->ctl) {
-            if (t->ctl->pid == pid) {
-                return t;
-            }
-        } else if (pid == 0) {
-            return t;
-        }
-    }
-
-    return NULL;
-}
-
-void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
-    // Temp: just check we're entering here from kernel
-    uint32_t cr3_0;
-    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-
-    assert(task);
-    struct x86_task *t = (struct x86_task *) task;
-    uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-    mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-    assert((uintptr_t) task_pd != MM_NADDR);
-
-    assert(task_pd[(uint32_t) src >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_RW | X86_MM_FLG_US));
-
-    asm volatile ("mov %0, %%cr3"::"a"(cr3));
-
-    if (sz == MM_NADDR) {
-        strcpy(dst, src);
-    } else {
-        memcpy(dst, src, sz);
-    }
-
-    asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
-}
-
-void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
-    // Temp: just check we're entering here from kernel
-    uint32_t cr3_0;
-    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-
-    assert(task);
-    struct x86_task *t = (struct x86_task *) task;
-    uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
-    mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-    assert((uintptr_t) task_pd != MM_NADDR);
-
-    assert(task_pd[(uint32_t) dst >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_US));
-
-    asm volatile ("mov %0, %%cr3"::"a"(cr3));
-
-    if (sz == MM_NADDR) {
-        strcpy(dst, src);
-    } else {
-        memcpy(dst, src, sz);
-    }
-
-    asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
-}
+// task_t *task_create(void) {
+//     struct x86_task *t = (struct x86_task *) heap_alloc(sizeof(struct x86_task));
+//     memset(t, 0, sizeof(struct x86_task *));
+//     t->ctl = task_ctl_create();
+//     t->next = NULL;
+//
+//     return (task_t *) t;
+// }
+//
+// void task_destroy(task_t *t) {
+//     mm_set(mm_kernel);
+//     struct x86_task *task = (struct x86_task *) t;
+//
+//     // Unmapping sub-kernel pages
+//     mm_pagedir_t task_pd;
+//     uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
+//     task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+//     assert((uintptr_t) task_pd != MM_NADDR);
+//
+//     //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
+//     //    if (task_pd[i] & 1) {
+//     //        mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF | MM_FLG_HUGE);
+//     //    }
+//     //}
+//
+//     // Close file descriptors
+//     for (int i = 0; i < 4; ++i) {
+//         if (task->ctl->fds[i]) {
+//             vfs_close(task->ctl->fds[i]);
+//         }
+//     }
+//
+//     // Free stacks
+//     heap_free((void *) (task->ebp0 - 18 * 4));
+//
+//     // Free pagedir
+//     mm_pagedir_free(task_pd);
+//
+//     // Free data structures
+//     task_ctl_free(task->ctl);
+//     heap_free(task);
+// }
+//
+// void task_set_sleep(task_t *t, const struct timespec *ts) {
+//     uint64_t delta = ts->tv_sec * SYSTICK_DES_RES + ts->tv_nsec * (1000000 / SYSTICK_DES_RES);
+//     ((struct x86_task *) t)->ctl->sleep_deadline = delta + systime;
+// }
+//
+// void task_busy(void *task) {
+//     ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+// }
+//
+// void task_nobusy(void *task) {
+//     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
+// }
+//
+// task_t *task_by_pid(int pid) {
+//     for (struct x86_task *t = x86_task_first; t; t = t->next) {
+//         if (t->ctl) {
+//             if (t->ctl->pid == pid) {
+//                 return t;
+//             }
+//         } else if (pid == 0) {
+//             return t;
+//         }
+//     }
+//
+//     return NULL;
+// }
+//
+// void task_copy_to_user(task_t *task, userspace void *dst, const void *src, size_t sz) {
+//     // Temp: just check we're entering here from kernel
+//     uint32_t cr3_0;
+//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+//
+//     assert(task);
+//     struct x86_task *t = (struct x86_task *) task;
+//     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
+//     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+//     assert((uintptr_t) task_pd != MM_NADDR);
+//
+//     assert(task_pd[(uint32_t) src >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_RW | X86_MM_FLG_US));
+//
+//     asm volatile ("mov %0, %%cr3"::"a"(cr3));
+//
+//     if (sz == MM_NADDR) {
+//         strcpy(dst, src);
+//     } else {
+//         memcpy(dst, src, sz);
+//     }
+//
+//     asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
+// }
+//
+// void task_copy_from_user(task_t *task, void *dst, const userspace void *src, size_t sz) {
+//     // Temp: just check we're entering here from kernel
+//     uint32_t cr3_0;
+//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+//
+//     assert(task);
+//     struct x86_task *t = (struct x86_task *) task;
+//     uint32_t cr3 = *((uint32_t *) (t->ebp0 - 14 * 4));
+//     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+//     assert((uintptr_t) task_pd != MM_NADDR);
+//
+//     assert(task_pd[(uint32_t) dst >> 22] & (X86_MM_FLG_PR | X86_MM_FLG_US));
+//
+//     asm volatile ("mov %0, %%cr3"::"a"(cr3));
+//
+//     if (sz == MM_NADDR) {
+//         strcpy(dst, src);
+//     } else {
+//         memcpy(dst, src, sz);
+//     }
+//
+//     asm volatile ("mov %0, %%cr3"::"a"(cr3_0));
+// }
 
 // Idle task (kernel-space) stuff
 static struct x86_task x86_task_idle;

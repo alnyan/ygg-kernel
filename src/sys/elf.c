@@ -44,38 +44,42 @@ int elf_load(mm_pagedir_t dst, uintptr_t src_addr, size_t src_len) {
                 // Just alloc pages for the section
                 // TODO: This is platform-specific code and needs to be moved somewhere
                 kdebug(" %s load is %p\n", name, shdr->sh_addr);
-                uintptr_t page_start = shdr->sh_addr & -MM_PAGESZ_HUGE;
-                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, MM_PAGESZ_HUGE);
-                size_t page_count = (page_end - page_start) / MM_PAGESZ_HUGE;
+                uintptr_t page_start = shdr->sh_addr & -0x1000;
+                uintptr_t page_end = MM_ALIGN_UP(shdr->sh_addr + shdr->sh_size, 0x1000);
+                size_t page_count = (page_end - page_start) / 0x1000;
 
                 if (page_count != 1) {
                     panic("NYI\n");
                 }
 
-                uintptr_t page_phys = mm_lookup(dst, page_start, MM_FLG_HUGE, NULL);
+                uint32_t rflags;
+                uintptr_t page_phys = mm_translate(dst, page_start, &rflags);
+                assert(!(rflags & MM_FLG_PS));
 
                 if (page_phys == MM_NADDR) {
-                    uintptr_t page;
-                    assert((page = mm_alloc_phys_page(MM_PAGESZ_HUGE)) != MM_NADDR);
-                    mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US | MM_FLG_HUGE);
-                    page_phys = page;
+                    // uintptr_t page;
+                    // assert((page = mm_alloc_phys_page(MM_PAGESZ_HUGE)) != MM_NADDR);
+                    // mm_map_page(dst, page_start, page, MM_FLG_RW | MM_FLG_US | MM_FLG_HUGE);
+
+                    assert(mm_map_range(dst, page_start, 1, MM_FLG_WR | MM_FLG_US) == 0);
+                    //page_phys = page;
                 }
 
                 // Map the page into kernel space
                 // 0x400000 is the base for write access
                 // TODO: maybe use copy_to_user
-                mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW | MM_FLG_HUGE);
+                // mm_map_page(mm_kernel, 0x400000, page_phys, MM_FLG_RW | MM_FLG_HUGE);
 
-                if (shdr->sh_type == SHT_PROGBITS) {
-                    memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE),
-                           (void *) (src_addr + shdr->sh_offset),
-                           shdr->sh_size);
-                } else {
-                    memset((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE), 0, shdr->sh_size);
-                }
+                // if (shdr->sh_type == SHT_PROGBITS) {
+                //     memcpy((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE),
+                //            (void *) (src_addr + shdr->sh_offset),
+                //            shdr->sh_size);
+                // } else {
+                //     memset((void *) (shdr->sh_addr - page_start + MM_PAGESZ_HUGE), 0, shdr->sh_size);
+                // }
 
-                // Unmap page
-                mm_unmap_cont_region(mm_kernel, 0x400000, 1, MM_FLG_HUGE);
+                // // Unmap page
+                // mm_unmap_cont_region(mm_kernel, 0x400000, 1, MM_FLG_HUGE);
             }
         }
     }

@@ -2,7 +2,10 @@ LINKER=config/ld/x86/generic.ld
 
 BOOT_OBJS+=build/arch/x86/boot.o
 OBJS+=build/arch/x86/multiboot.o \
-	  build/arch/x86/mm.o \
+	  build/arch/x86/mm/phys.o \
+	  build/arch/x86/mm/space.o \
+	  build/arch/x86/mm/map.o \
+	  build/arch/x86/mm/mm.o \
 	  build/arch/x86/hw/com.o \
 	  build/arch/x86/panic.o \
 	  build/arch/x86/regs.o \
@@ -46,7 +49,7 @@ USR_LINKER=config/ld/x86/user.ld
 DIRS+=build/arch/x86/hw \
 	  build/arch/x86/task \
 	  build/arch/x86/hw/vesa \
-	  build/usr
+	  build/arch/x86/mm
 
 LD=$(CC)
 CFLAGS+=-DARCH_X86

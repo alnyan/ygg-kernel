@@ -246,7 +246,7 @@ int x86_acpi_init(void) {
 
         uint32_t hpet_phys = hpet_s->base_addr.addr;
         uint32_t hpet_addr = ACPI_MAP_VIRT + 0x400000;
-        assert(mm_map_range_linear(mm_kernel, hpet_addr, hpet_phys, 1, MM_FLG_WR) != MM_NADDR);
+        assert(mm_map_range_linear(mm_kernel, hpet_addr, hpet_phys, 1, MM_FLG_WR) == 0);
 
         kdebug(" * HPET virtual mapped addr: %p\n", hpet_addr);
 

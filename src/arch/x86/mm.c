@@ -8,6 +8,7 @@
 
 #define X86_MM_FLG_PR       (1 << 0)
 #define X86_MM_FLG_WR       (1 << 1)
+#define X86_MM_FLG_US       (1 << 2)
 #define X86_MM_FLG_PS       (1 << 7)
 
 // Number of pages of addressable physical space. 1GiB for now.
@@ -39,7 +40,8 @@ static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
             x86_page_pool[i].index_last = 0;
 
             // Map vaddr -> paddr in kernel address space
-            mm_kernel[x86_page_pool[i].vaddr >> 22] = x86_page_pool[i].paddr | (X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_WR);
+            //mm_kernel[x86_page_pool[i].vaddr >> 22] = x86_page_pool[i].paddr | (X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_WR);
+            mm_map_range_pages(mm_kernel, x86_page_pool[i].vaddr, &x86_page_pool[i].paddr, 1, MM_FLG_PS | MM_FLG_WR);
 
             memsetl(x86_page_pool[i].bitmap, 0, 1024 / 32);
         }
@@ -56,6 +58,7 @@ static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
                     if (phys) {
                         *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
                     }
+                    kdebug("Allocated pool page\n");
                     return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
                 }
             }
@@ -72,6 +75,7 @@ static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
                     if (phys) {
                         *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
                     }
+                    kdebug("Allocated pool page\n");
                     return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
                 }
             }
@@ -227,11 +231,89 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
         uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PS | X86_MM_FLG_PR;
         for (int i = 0; i < count; ++i) {
             // assert(!(pd[(start >> 22) + i] & X86_MM_FLG_PR));
+            kdebug("map %p[%d (%p)] = %p\n", pd, (start >> 22) + i, start + (i << 22), pages[i]);
             pd[(start >> 22) + i] = pages[i] | dst_flags;
         }
         return 0;
+    } else {
+        uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PR;
+        uint32_t *table_info = (uint32_t *) pd[1023];
+        for (int i = 0; i < count; ++i) {
+            uintptr_t vpage = start + i * 0x1000;
+            uint32_t pdi = vpage >> 22;
+            uint32_t pti = (vpage >> 12) & 0x3FF;
+
+            uint32_t pde = pd[pdi];
+
+            if (pde & X86_MM_FLG_PR) {
+                // Lookup table address in table info structure
+                // assert(table_info[pdi]);
+                mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
+                // assert((table_info[pdi] & 0xFFF) != 0xFFF);
+                ++table_info[pdi];
+
+                kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, pages[i]);
+                pt[pti] = pages[i] | dst_flags;
+            } else {
+                uintptr_t phys;
+                mm_pagetab_t pt = (mm_pagetab_t) x86_page_pool_allocate(&phys);
+                // assert((uintptr_t) pt != MM_NADDR);
+                table_info[pdi] = (uintptr_t) pt | 1;
+
+                kdebug("map %p[%d (%p)] = table %p\n", pd, pdi, pdi << 22, pt);
+                pd[pdi] = phys | (X86_MM_FLG_PR | X86_MM_FLG_WR | X86_MM_FLG_US);
+
+                kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, pages[i]);
+                pt[pti] = pages[i] | dst_flags;
+            }
+        }
+
+        return 0;
     }
 
+    return -1;
+}
+
+int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
+    if (flags & MM_FLG_PS) {
+        for (int i = 0; i < count; ++i) {
+            uint32_t pdi = (start >> 22) + i;
+            // assert(pd[(start >> 22) + i] & (X86_MM_FLG_PR | X86_MM_FLG_PS));
+            kdebug("umap %p[%d (%p)]\n", pd, pdi, pdi << 22);
+
+            if (!(flags & MM_FLG_NOPHYS)) {
+                mm_free_physical_page(pd[pdi] & -0x400000, MM_FLG_PS);
+            }
+
+            pd[pdi] = 0;
+        }
+    } else {
+        uint32_t *table_info = (uint32_t *) pd[1023];
+        for (int i = 0; i < count; ++i) {
+            uintptr_t vpage = start + i * 0x1000;
+            uint32_t pdi = vpage >> 22;
+            uint32_t pti = (vpage >> 12) & 0x3FF;
+
+            // uint32_t pde = pd[pdi];
+
+            // assert(pde & X86_MM_FLG_PR);
+            // assert(table_info[pdi]);
+            mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
+
+            if (!(flags & MM_FLG_NOPHYS)) {
+                mm_free_physical_page(pt[pti] & -0x1000, 0);
+            }
+            // assert((table_info[pdi] & 0xFFF) != 0);
+            kdebug("umap %p[%d (%p)] = table %p[%d (%p)]\n", pd, pdi, pdi << 22, pt, pti, vpage);
+            pt[pti] = 0;
+            if (((--table_info[pdi]) & 0xFFF) == 0) {
+                kdebug("umap table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt);
+                pd[pdi] = 0;
+                table_info[pdi] = 0;
+                x86_page_pool_free((uintptr_t) pt);
+            }
+        }
+    }
     return -1;
 }
 
@@ -240,10 +322,19 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
 void mm_dump_map(int level, mm_space_t pd) {
     kprint(level, "---- Address space dump ----\n");
     kprint(level, "L0 @ %p\n", pd);
+    uint32_t *table_info = (uint32_t *) pd[1023];
     for (uint32_t pdi = 0; pdi < 1023; ++pdi) {
         if (pd[pdi] & X86_MM_FLG_PR) {
             if (pd[pdi] & X86_MM_FLG_PS) {
                 kprint(level, "\t%p .. %p -> %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x400000);
+            } else {
+                kprint(level, "\t%p .. %p -> L1 %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x1000);
+                mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
+                for (uint32_t pti = 0; pti < 1024; ++pti) {
+                    if (pt[pti] & X86_MM_FLG_PR) {
+                        kprint(level, "\t\t%p .. %p -> %p\n", (pdi << 22) | (pti << 12), ((pdi << 22) | (pti << 12)) + 0x1000, pt[pti] & -0x1000);
+                    }
+                }
             }
         }
     }
@@ -303,6 +394,13 @@ void mm_init(void) {
     // Set mm_kernel to page directory from boot stage
     extern uint32_t boot_page_directory[1024];
     mm_kernel = boot_page_directory;
+
+    // Attach table_info structure to mm_kernel
+    uint32_t *kernel_table_info = (uint32_t *) x86_page_pool_allocate(NULL);
+    // assert((uintptr_t) kernel_table_info != MM_NADDR);
+    memsetl(kernel_table_info, 0, 1024);
+    mm_kernel[1023] = (uint32_t) kernel_table_info;
+    mm_kernel[0] = (uint32_t) mm_kernel;
 
     mm_dump_map(DEBUG_DEFAULT, mm_kernel);
 }

@@ -33,10 +33,15 @@ int mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
             assert(table_info[pdi]);
             mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
             assert((table_info[pdi] & 0xFFF) != 0xFFF);
-            ++table_info[pdi];
 
-            kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, page_phys);
-            pt[pti] = page_phys | dst_flags;
+            if (!(pt[pti] & X86_MM_FLG_PR)) {
+                ++table_info[pdi];
+
+                kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, page_phys);
+                pt[pti] = page_phys | dst_flags;
+            } else {
+                assert(flags & MM_FLG_MERGE);
+            }
         } else {
             uintptr_t pt_phys;
             mm_pagetab_t pt = (mm_pagetab_t) x86_page_pool_allocate(&pt_phys);

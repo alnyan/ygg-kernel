@@ -41,15 +41,29 @@ void kernel_main(void) {
 //    net_load_config("/etc/network.conf");
 //    net_dump_ifaces();
 //
-//    vfs_dirent_t ent;
-//    vfs_dir_t *dir;
-//    assert(dir = vfs_opendir("/dev"));
-//
-//    while (vfs_readdir(dir, &ent) == 0) {
-//        vfs_dirent_dump(&ent);
-//    }
-//
-//    vfs_closedir(dir);
+    vfs_dirent_t ent;
+    vfs_dir_t *dir;
+    assert(dir = vfs_opendir("/bin"));
+
+    while (vfs_readdir(dir, &ent) == 0) {
+        vfs_dirent_dump(&ent);
+    }
+
+    vfs_closedir(dir);
+
+    // Test ELF loading
+    uintptr_t test_phys;
+    mm_space_t test_pd = mm_create_space(&test_phys);
+    mm_space_clone(test_pd, mm_kernel, MM_FLG_CLONE_KERNEL);
+
+    uintptr_t elf_ptr = vfs_getm("/bin/hello");
+    assert(elf_ptr != MM_NADDR);
+
+    uintptr_t entry = elf_load(test_pd, elf_ptr, 0);
+
+    kdebug("entry is %p\n", entry);
+
+    mm_dump_map(DEBUG_DEFAULT, test_pd);
 //
 //    ////
 //

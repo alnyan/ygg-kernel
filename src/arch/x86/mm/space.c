@@ -115,6 +115,39 @@ void mm_destroy_space(mm_space_t pd) {
 
 ////
 
+void mm_space_clone(mm_space_t dst, const mm_space_t src, uint32_t flags) {
+    memsetl(&dst[1], 0, 1022);
+
+    uint32_t *src_table_info = (uint32_t *) src[1023];
+    uint32_t *dst_table_info = (uint32_t *) dst[1023];
+
+    memsetl(dst_table_info, 0, 1024);
+
+    if (flags & MM_FLG_CLONE_KERNEL) {
+        for (uint32_t pdi = KERNEL_VIRT_BASE >> 22; pdi < 1024; ++pdi) {
+            if (!(src[pdi] & (1 << 0) /* X86_MM_FLG_PR */)) {
+                continue;
+            }
+
+            if (src[pdi] & (1 << 7) /* X86_MM_FLG_PS */) {
+                dst[pdi] = src[pdi];
+            } else {
+                assert(src_table_info[pdi]);
+                mm_pagetab_t src_pt = (mm_pagetab_t) (src_table_info[pdi] & -0x1000);
+                uintptr_t dst_pt_phys;
+                mm_pagetab_t dst_pt = (mm_pagetab_t) x86_page_pool_allocate(&dst_pt_phys);
+                assert((uintptr_t) dst_pt != MM_NADDR);
+
+                dst_table_info[pdi] = ((uintptr_t) dst_pt) | (src_table_info[pdi] & 0xFFF);
+                dst[pdi] = dst_pt_phys | ((1 << 0) | (1 << 1) | (1 << 2) /* X86_MM_FLG_PR | X86_MM_FLG_WR | X86_MM_FLG_US */);
+                memcpy(dst_pt, src_pt, 4096);
+            }
+        }
+    }
+}
+
+////
+
 void x86_mm_pool_init(void) {
     // Mark all pages in physical space as unavailable
     memset(x86_page_pool, 0, sizeof(x86_page_pool));

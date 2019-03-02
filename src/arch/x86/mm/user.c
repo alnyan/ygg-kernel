@@ -18,12 +18,22 @@ int mm_memcpy_kernel_to_user(mm_space_t pd, void *dst, const void *src, size_t c
             user_end = 0x1000;
         }
 
+        uint32_t user_rflags;
+        uintptr_t user_page_phys = mm_translate(pd, user_page, &user_rflags);
+        assert(user_page_phys != MM_NADDR);
+        assert(!(user_rflags & MM_FLG_PS));
+
+        // Map the page
+        mm_map_range_pages(mm_kernel, user_page, &user_page_phys, 1, MM_FLG_WR);
+
         memcpy((void *) (user_page + user_start),
                (const void *) ((uintptr_t) src + copied),
                user_end - user_start);
 
         copied += user_end - user_start;
+
+        mm_umap_range(mm_kernel, user_page, 1, 0);
     }
 
-    return -1;
+    return 0;
 }

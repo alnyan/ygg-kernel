@@ -8,6 +8,7 @@
 #define MM_FLG_US           (1 << 2)
 #define MM_FLG_PS           (1 << 7)
 
+#define MM_FLG_MERGE        (1 << 29)
 #define MM_FLG_NOPHYS       (1 << 30)
 #define MM_FLG_DMA          (1 << 31)
 

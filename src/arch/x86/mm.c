@@ -273,6 +273,32 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
     return -1;
 }
 
+uintptr_t mm_map_range_linear(mm_space_t pd, uintptr_t start, uintptr_t pstart, size_t count, uint32_t flags) {
+    if (flags & MM_FLG_PS) {
+        start &= -0x400000;
+
+        for (int i = 0; i < count; ++i) {
+            uintptr_t ppage = pstart + i * 0x400000;
+            if (mm_map_range_pages(pd, start + i * 0x400000, &ppage, 1, flags) != 0) {
+                // TODO: free previously mapped pages
+                return MM_NADDR;
+            }
+        }
+    } else {
+        start &= -0x1000;
+
+        for (int i = 0; i < count; ++i) {
+            uintptr_t ppage = pstart + i * 0x1000;
+            if (mm_map_range_pages(pd, start + i * 0x1000, &ppage, 1, flags) != 0) {
+                // TODO: free previously mapped pages
+                return MM_NADDR;
+            }
+        }
+    }
+
+    return start;
+}
+
 int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
     if (flags & MM_FLG_PS) {
         for (int i = 0; i < count; ++i) {

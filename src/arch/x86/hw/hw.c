@@ -48,22 +48,22 @@ void hw_early_init(void) {
 void hw_init(void) {
     // x86_mm_init();
     x86_cpuid_init();
-    // x86_acpi_init();
+    x86_acpi_init();
 
     gdt_init();
-    // ints_init();
+    ints_init();
 
     // x86_pci_init();
 
-    // if (!hpet_available() || hpet_init() != 0) {
-    //     x86_rtc_init();
-    //     x86_rtc_reload();
-    //     x86_timer_init(100);
-    // } else {
-    //     x86_timer_func = hpet_timer_func;
-    // }
+    if (!hpet_available() || hpet_init() != 0) {
+        x86_rtc_init();
+        x86_rtc_reload();
+        x86_timer_init(100);
+    } else {
+        x86_timer_func = hpet_timer_func;
+    }
 
-    // x86_ps2_init();
+    x86_ps2_init();
 
     // x86_initrd_init();
 

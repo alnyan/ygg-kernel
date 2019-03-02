@@ -60,7 +60,6 @@ void hpet_timer_func(void) {
 
     if (systime - systime_prev >= SYSTICK_DES_RES) {
         systime_prev = systime;
-
     }
 
     hpet->intr |= 1;

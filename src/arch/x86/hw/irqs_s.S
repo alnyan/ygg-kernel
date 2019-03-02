@@ -80,6 +80,7 @@ irq_handler 1
 irq_handler 8
 irq_handler 11
 
+#ifdef ENABLE_TASK
 .global x86_irq_syscall
 x86_irq_syscall:
     // Store current task's context
@@ -140,4 +141,4 @@ x86_irq_syscall:
     popal
 
     iret
-
+#endif

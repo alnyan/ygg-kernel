@@ -10,26 +10,26 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/hw/hw.o \
 	  build/arch/x86/hw/cpuid_s.o \
 	  build/arch/x86/hw/cpuid.o \
-	  build/arch/x86/hw/gdt.o
+	  build/arch/x86/hw/gdt.o \
+	  build/arch/x86/hw/acpi.o \
+	  build/arch/x86/hw/hpet.o \
+	  build/arch/x86/hw/ints.o \
+	  build/arch/x86/hw/ints_s.o \
+	  build/arch/x86/hw/pic8259.o \
+	  build/arch/x86/hw/irqs_s.o \
+	  build/arch/x86/hw/irq0.o \
+	  build/arch/x86/hw/periph_irq.o \
+	  build/arch/x86/hw/rtc.o \
+	  build/arch/x86/hw/ps2.o \
+	  build/arch/x86/hw/timer.o
 
-#	  build/arch/x86/hw/ints.o \
-#	  build/arch/x86/hw/ints_s.o \
-#	  build/arch/x86/hw/pic8259.o \
-#	  build/arch/x86/hw/timer.o \
 #	  build/arch/x86/task/task.o \
-#	  build/arch/x86/hw/irq0.o \
-#	  build/arch/x86/hw/ps2.o \
-#	  build/arch/x86/hw/irqs_s.o \
 #	  build/arch/x86/syscall.o \
 #	  build/arch/x86/task/task_s.o \
 #	  build/arch/x86/task/fork.o \
 #	  build/arch/x86/mmalloc.o \
 #	  build/arch/x86/pm.o \
-#	  build/arch/x86/hw/rtc.o \
-#	  build/arch/x86/hw/acpi.o \
-#	  build/arch/x86/hw/hpet.o \
 #	  build/arch/x86/hw/pci.o \
-#	  build/arch/x86/hw/periph_irq.o
 
 ifneq ($(ENABLE_VESA_FBCON),)
 OBJS+=build/arch/x86/hw/vesa/font8x8.o

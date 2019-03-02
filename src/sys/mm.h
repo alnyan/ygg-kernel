@@ -19,9 +19,13 @@
 #include "arch/x86/mm.h"
 #endif
 
+extern mm_space_t mm_kernel;
+
 void mm_init(void);
 
 uintptr_t mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags);
+uintptr_t mm_map_range_linear(mm_space_t pd, uintptr_t start, uintptr_t pstart, size_t count, uint32_t flags);
+uintptr_t mm_map_range_alloc_linear(mm_space_t pd, uintptr_t pstart, size_t count, uint32_t flags);
 int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t count, uint32_t flags);
 int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags);
 uintptr_t mm_translate(mm_space_t pd, uintptr_t vaddr, uint32_t *rflags);

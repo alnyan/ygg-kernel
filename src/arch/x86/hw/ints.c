@@ -165,7 +165,9 @@ void ints_init(void) {
     x86_idt_set(40, (uint32_t) x86_irq_8, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
     x86_idt_set(43, (uint32_t) x86_irq_11, 0x08, IDT_FLG_P | IDT_FLG_R0 | IDT_FLG_INT32);
 
+#if defined(ENABLE_TASK)
     x86_idt_set(128, (uint32_t) x86_irq_syscall, 0x08, IDT_FLG_P | IDT_FLG_R3 | IDT_FLG_INT32);
+#endif
 
     s_idtr.offset = (uint32_t) s_idt;
     s_idtr.size = sizeof(s_idt) - 1;

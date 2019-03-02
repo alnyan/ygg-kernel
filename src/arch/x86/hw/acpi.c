@@ -163,7 +163,9 @@ int x86_acpi_init(void) {
     uint32_t rsdt_p = rsdt;
     kdebug("RSDT physical address is %p\n", rsdt);
     // Map RSDT
-    mm_map_page(mm_kernel, ACPI_MAP_VIRT, rsdt & -MM_PAGESZ, MM_FLG_RW | MM_FLG_HUGE);
+    uintptr_t rsdt_page = rsdt_p & -0x400000;
+    mm_map_range_pages(mm_kernel, ACPI_MAP_VIRT, &rsdt_page, 1, MM_FLG_PS | MM_FLG_WR);
+
     rsdt = (rsdt & 0x3FFFFF) | ACPI_MAP_VIRT;
     kdebug("RSDT virtual address is %p\n", rsdt);
 
@@ -220,7 +222,7 @@ int x86_acpi_init(void) {
 
         if (fadt_s->century != 0) {
             kdebug(" * RTC supports Century register\n");
-            x86_rtc_set_century_addr(fadt_s->century);
+            // x86_rtc_set_century_addr(fadt_s->century);
         }
 
         if ((facs = fadt_s->firmware_ctrl)) {
@@ -242,8 +244,9 @@ int x86_acpi_init(void) {
         kdebug(" * Base addr: %c:%lp\n", hpet_s->base_addr.space ? 'I' : 'M', hpet_s->base_addr.addr);
         assert(hpet_s->base_addr.space == 0 /* Non-memory mappings not supported yet */);
 
-        uint32_t hpet_addr = hpet_s->base_addr.addr;
-        assert((hpet_addr = x86_mm_map_hw(hpet_addr, 256)) != MM_NADDR);
+        uint32_t hpet_phys = hpet_s->base_addr.addr;
+        uint32_t hpet_addr = ACPI_MAP_VIRT + 0x400000;
+        assert(mm_map_range_linear(mm_kernel, hpet_addr, hpet_phys, 1, MM_FLG_WR) != MM_NADDR);
 
         kdebug(" * HPET virtual mapped addr: %p\n", hpet_addr);
 

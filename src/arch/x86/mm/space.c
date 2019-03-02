@@ -85,7 +85,11 @@ void x86_page_pool_free(uintptr_t vaddr) {
 }
 
 mm_space_t mm_create_space(uintptr_t *phys) {
-    uintptr_t vaddr = x86_page_pool_allocate(phys);
+    uintptr_t phys2;
+    uintptr_t vaddr = x86_page_pool_allocate(&phys2);
+    if (phys) {
+        *phys = phys2;
+    }
     if (vaddr == MM_NADDR) {
         return NULL;
     }
@@ -100,7 +104,7 @@ mm_space_t mm_create_space(uintptr_t *phys) {
     // physical address.
     // Assuming `space` is already 0x1000-aligned, we can be sure that it
     // won't be available to user/kernel addressing, as 0th bit is 0.
-    space[0] = (uintptr_t) space;
+    space[0] = (uintptr_t) phys2;
 
     // The 1023 entry is a virtual address of table information block
     space[1023] = table_info;

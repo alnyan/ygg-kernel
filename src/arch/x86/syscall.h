@@ -15,16 +15,16 @@
 #define SYSOP_SYNC              0x00
 
 #define SYSCALL_NR_EXIT         0x01
-#define SYSCALL_NR_FORK         0x02
 SYSCALL_DECL1(exit, int);
+#define SYSCALL_NR_FORK         0x02
 SYSCALL_DECL0(fork);
 
 #define SYSCALL_NR_READ         0x03
 #define SYSCALL_NR_WRITE        0x04
+SYSCALL_DECL3(write, int, const userspace void *, size_t);
 #define SYSCALL_NR_OPEN         0x05
-#define SYSCALL_NR_CLOSE        0x06
-// sys_write/sys_read are special and are defined specially
 SYSCALL_DECL3(open, const userspace char *, int, uint32_t);
+#define SYSCALL_NR_CLOSE        0x06
 SYSCALL_DECL1(close, int);
 
 #define SYSCALL_NR_EXECVE       0x0B

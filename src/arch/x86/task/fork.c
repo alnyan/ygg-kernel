@@ -209,10 +209,10 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     task->pd = pd;
     task->esp3_size = 4;
 
-    // vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
-    // assert(fd_tty_wr);
-    // fd_tty_wr->task = task;
-    // ((struct x86_task *) task)->ctl->fds[0] = fd_tty_wr;
+    vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
+    assert(fd_tty_wr);
+    fd_tty_wr->task = task;
+    task->ctl->fds[0] = fd_tty_wr;
 
     // vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
     // assert(fd_tty_rd);

@@ -13,7 +13,6 @@
 
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
-    panic("Syscalls are not implemented yet\n");
     // if (regs->gp.eax != SYSCALL_NR_WRITE && regs->gp.eax != SYSCALL_NR_READ) {
     //     // mm_set_kernel();
     //     mm_set(mm_kernel);
@@ -21,6 +20,19 @@ void x86_syscall(x86_irq_regs_t *regs) {
     //     // TODO: set mm_current to actual PD
     // }
     // struct x86_task *task = x86_task_current;
+    mm_set(mm_kernel);
+
+    switch (regs->gp.eax) {
+    case SYSCALL_NR_EXIT:
+        sys_exit(regs->gp.ebx);
+        x86_task_switch(regs);
+        break;
+    case SYSCALL_NR_WRITE:
+        regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
+        break;
+    default:
+        panic("Invalid syscall\n");
+    }
 
     // switch (regs->gp.eax) {
     // case SYSCALL_NR_EXIT:
@@ -124,11 +136,53 @@ void x86_syscall(x86_irq_regs_t *regs) {
     // }
 }
 
-// SYSCALL_DEFINE1(exit, int res) {
-//     // Exit code is stored in %ebx on task's stack
-//     x86_task_current->flag |= TASK_FLG_STOP;
-//     return 0;
-// }
+SYSCALL_DEFINE1(exit, int res) {
+    // Exit code is stored in %ebx on task's stack
+    x86_task_current->flag |= TASK_FLG_STOP;
+    return 0;
+}
+
+SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
+    // TODO: async write
+    if (fd < 0 || fd >= 4) {
+        return -1;
+    }
+
+    vfs_file_t *fp;
+
+    if (!(fp = x86_task_current->ctl->fds[fd])) {
+        return -1;
+    }
+
+    static char tmp_buf[512];
+    size_t bytes_left = len;
+    ssize_t bytes_written = 0;
+
+    // TODO: vfs_write_user
+    while (bytes_left) {
+        size_t bytes_copy = bytes_left;
+        if (bytes_copy > sizeof(tmp_buf)) {
+            bytes_copy = sizeof(tmp_buf);
+        }
+        assert(mm_memcpy_user_to_kernel(x86_task_current->pd, tmp_buf, buf, bytes_copy) == 0);
+
+        ssize_t res = vfs_write(fp, tmp_buf, bytes_copy);
+
+        if (res != bytes_copy) {
+            if (bytes_written == 0) {
+                bytes_written = res;
+            }
+
+            break;
+        } else {
+            bytes_written += res;
+            bytes_left -= bytes_copy;
+        }
+    }
+
+    return bytes_written;
+}
+
 //
 // SYSCALL_DEFINE0(fork) {
 //     task_t *res = task_fork(x86_task_current);

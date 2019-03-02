@@ -411,7 +411,7 @@ int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
     if (*f->op_res == f->op_len) {
         f->op_buf = NULL;
         if (f->task) {
-            // XXX: task_nobusy(f->task);
+            task_nobusy(f->task);
         }
         return 1;
     }

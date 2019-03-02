@@ -23,54 +23,30 @@ task_t *task_create(void) {
 
     return (task_t *) t;
 }
-//
-// void task_destroy(task_t *t) {
-//     mm_set(mm_kernel);
-//     struct x86_task *task = (struct x86_task *) t;
-//
-//     // Unmapping sub-kernel pages
-//     mm_pagedir_t task_pd;
-//     uint32_t cr3 = *((uint32_t *) (task->ebp0 - 14 * 4));
-//     task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-//     assert((uintptr_t) task_pd != MM_NADDR);
-//
-//     //for (uint32_t i = 0; i < (KERNEL_VIRT_BASE >> 22) - 1; ++i) {
-//     //    if (task_pd[i] & 1) {
-//     //        mm_unmap_cont_region(task_pd, i << 22, 1, MM_UFLG_PF | MM_FLG_HUGE);
-//     //    }
-//     //}
-//
-//     // Close file descriptors
-//     for (int i = 0; i < 4; ++i) {
-//         if (task->ctl->fds[i]) {
-//             vfs_close(task->ctl->fds[i]);
-//         }
-//     }
-//
-//     // Free stacks
-//     heap_free((void *) (task->ebp0 - 18 * 4));
-//
-//     // Free pagedir
-//     mm_pagedir_free(task_pd);
-//
-//     // Free data structures
-//     task_ctl_free(task->ctl);
-//     heap_free(task);
-// }
-//
-// void task_set_sleep(task_t *t, const struct timespec *ts) {
-//     uint64_t delta = ts->tv_sec * SYSTICK_DES_RES + ts->tv_nsec * (1000000 / SYSTICK_DES_RES);
-//     ((struct x86_task *) t)->ctl->sleep_deadline = delta + systime;
-// }
-//
-// void task_busy(void *task) {
-//     ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
-// }
-//
-// void task_nobusy(void *task) {
-//     ((struct x86_task *) task)->flag &= ~TASK_FLG_BUSY;
-// }
-//
+
+void task_destroy(task_t *t) {
+    mm_set(mm_kernel);
+    struct x86_task *task = (struct x86_task *) t;
+
+    // TODO: move to task_ctl_free()
+    // Close file descriptors
+    for (int i = 0; i < 4; ++i) {
+        if (task->ctl->fds[i]) {
+            vfs_close(task->ctl->fds[i]);
+        }
+    }
+
+    // Free stacks
+    heap_free((void *) task->esp0);
+
+    // Free pagedir
+    mm_destroy_space(task->pd);
+
+    // Free data structures
+    task_ctl_free(task->ctl);
+    heap_free(task);
+}
+
 // task_t *task_by_pid(int pid) {
 //     for (struct x86_task *t = x86_task_first; t; t = t->next) {
 //         if (t->ctl) {
@@ -123,7 +99,7 @@ void x86_task_dump_context(int level, struct x86_task *task) {
 
     if (task->pd) {
         kprint(level, "--- Task address space ---\n");
-        mm_dump_map(DEBUG_DEFAULT, task->pd);
+        mm_dump_map(level, task->pd);
     }
 
     if (task->esp0) {
@@ -236,7 +212,7 @@ void x86_task_init(void) {
 }
 
 void x86_task_switch(x86_irq_regs_t *regs) {
-    // TODO: mm_set(mm_kernel);
+    mm_set(mm_kernel);
 
     if (x86_tasking_entry) {
         x86_tasking_entry = 0;
@@ -269,7 +245,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 panic_irq("Attempted to kill init!\n", regs);
             }
 
-            // TODO: task_destroy(t);
+            task_destroy(t);
 
             continue;
         }

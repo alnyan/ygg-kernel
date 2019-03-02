@@ -4,7 +4,7 @@
 
 void _start(void *arg) {
     // Do something for testing
-    exit(0);
+    write(STDOUT_FILENO, "Hello\n", 6);
 
     while (1) {}
 

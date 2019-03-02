@@ -23,6 +23,7 @@ typedef struct {
 #if defined(ARCH_X86)
 #include "arch/x86/task/task.h"
 #define task_space(t)   ((mm_space_t) (((struct x86_task *) t)->pd))
+#define task_ctl(t)     (((struct x86_task *) t)->ctl)
 #endif
 
 task_t *task_fork(task_t *src);

@@ -223,13 +223,13 @@ void mm_dump_map(int level, mm_space_t pd) {
     for (uint32_t pdi = 0; pdi < 1023; ++pdi) {
         if (pd[pdi] & X86_MM_FLG_PR) {
             if (pd[pdi] & X86_MM_FLG_PS) {
-                kprint(level, "\t%p .. %p -> %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x400000);
+                kprint(level, " %p .. %p -> %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x400000);
             } else {
-                kprint(level, "\t%p .. %p -> L1 %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x1000);
+                kprint(level, " %p .. %p -> L1 %p\n", pdi << 22, (pdi << 22) + 0x400000, pd[pdi] & -0x1000);
                 mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
                 for (uint32_t pti = 0; pti < 1024; ++pti) {
                     if (pt[pti] & X86_MM_FLG_PR) {
-                        kprint(level, "\t\t%p .. %p -> %p\n", (pdi << 22) | (pti << 12), ((pdi << 22) | (pti << 12)) + 0x1000, pt[pti] & -0x1000);
+                        kprint(level, "   %p .. %p -> %p\n", (pdi << 22) | (pti << 12), ((pdi << 22) | (pti << 12)) + 0x1000, pt[pti] & -0x1000);
                     }
                 }
             }

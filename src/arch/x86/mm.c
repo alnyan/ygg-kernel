@@ -7,6 +7,7 @@
 #include "arch/hw.h"
 
 #define X86_MM_FLG_PR       (1 << 0)
+#define X86_MM_FLG_WR       (1 << 1)
 #define X86_MM_FLG_PS       (1 << 7)
 
 // Number of pages of addressable physical space. 1GiB for now.
@@ -23,27 +24,95 @@ mm_space_t mm_kernel;
 
 static struct {
     uint32_t bitmap[1024 / 32];
+    uint32_t index_last;
     uintptr_t vaddr;
     uintptr_t paddr;
 } x86_page_pool[X86_MM_PAGE_POOL];
 
 /// Allocate a single 4KiB page from paging structure pool
-static uintptr_t x86_page_pool_allocate(void) {
+static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
     for (int i = 0; i < X86_MM_PAGE_POOL; ++i) {
         // Paging pool is not initialized
         if (!x86_page_pool[i].vaddr) {
             x86_page_pool[i].paddr = mm_alloc_physical_page(MM_FLG_PS);
-            x86_page_pool[i].vaddr = KERNEL_VIRT_BASE + (i << 22);
+            x86_page_pool[i].vaddr = KERNEL_VIRT_BASE + (4 << 22) + (i << 22);
+            x86_page_pool[i].index_last = 0;
+
+            // Map vaddr -> paddr in kernel address space
+            mm_kernel[x86_page_pool[i].vaddr >> 22] = x86_page_pool[i].paddr | (X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_WR);
+
+            memsetl(x86_page_pool[i].bitmap, 0, 1024 / 32);
+        }
+
+        for (uint32_t j = x86_page_pool[i].index_last; j < 1024; ++j) {
+            if (x86_page_pool[i].bitmap[j] == 0xFFFFFFFF) {
+                continue;
+            }
+
+            for (uint32_t k = 0; k < 32; ++k) {
+                if (!(x86_page_pool[i].bitmap[j] & ((uint32_t) 1 << k))) {
+                    x86_page_pool[i].bitmap[j] |= (uint32_t) 1 << k;
+                    x86_page_pool[i].index_last = j;
+                    if (phys) {
+                        *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
+                    }
+                    return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
+                }
+            }
+        }
+        for (uint32_t j = 0; j < x86_page_pool[i].index_last; ++j) {
+            if (x86_page_pool[i].bitmap[j] == 0xFFFFFFFF) {
+                continue;
+            }
+
+            for (uint32_t k = 0; k < 32; ++k) {
+                if (!(x86_page_pool[i].bitmap[j] & ((uint32_t) 1 << k))) {
+                    x86_page_pool[i].bitmap[j] |= (uint32_t) 1 << k;
+                    x86_page_pool[i].index_last = j;
+                    if (phys) {
+                        *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
+                    }
+                    return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
+                }
+            }
         }
     }
 
     return MM_NADDR;
 }
 
+mm_space_t mm_create_space(uintptr_t *phys) {
+    uintptr_t vaddr = x86_page_pool_allocate(phys);
+    if (vaddr == MM_NADDR) {
+        return NULL;
+    }
+    mm_space_t space = (mm_space_t) vaddr;
+    memsetl(space, 0, 1024);
+
+    uintptr_t table_info = x86_page_pool_allocate(NULL);
+    memsetl((void *) table_info, 0, 1024);
+
+    // The 0 entry of the directory is a virtual address of itself
+    // So that we don't need to perform any reverse lookups of its
+    // physical address.
+    // Assuming `space` is already 0x1000-aligned, we can be sure that it
+    // won't be available to user/kernel addressing, as 0th bit is 0.
+    space[0] = (uintptr_t) space;
+
+    // The 1023 entry is a virtual address of table information block
+    space[1] = table_info;
+
+    // Set '1' refcount for the directory
+    ((uint32_t *) table_info)[1023] = 1;
+
+    return space;
+}
+
 ////
 
 static uint32_t x86_physical_page_bitmap[X86_MM_PHYS_MAX / 8];
 static uintptr_t x86_physical_page_alloc_last = 0;
+static size_t x86_physical_page_count = 0;
 
 // Allocates a single 4KiB page
 static uintptr_t x86_mm_alloc_physical_page(void) {
@@ -55,7 +124,7 @@ static uintptr_t x86_mm_alloc_physical_page(void) {
             continue;
         }
 
-        for (uint8_t j = 0; j < 31; ++j) {
+        for (uint8_t j = 0; j < 32; ++j) {
             if (!(x86_physical_page_bitmap[i] & ((uint32_t) 1 << j))) {
                 uintptr_t page = (i << 17) | ((uint32_t) j << 12);
                 x86_physical_page_bitmap[i] |= ((uint32_t) 1 << j);
@@ -73,7 +142,7 @@ static uintptr_t x86_mm_alloc_physical_page(void) {
             continue;
         }
 
-        for (uint8_t j = 0; j < 31; ++j) {
+        for (uint8_t j = 0; j < 32; ++j) {
             if (!(x86_physical_page_bitmap[i] & ((uint32_t) 1 << j))) {
                 uintptr_t page = (i << 17) | ((uint32_t) j << 12);
                 x86_physical_page_bitmap[i] |= ((uint32_t) 1 << j);
@@ -87,11 +156,18 @@ static uintptr_t x86_mm_alloc_physical_page(void) {
 }
 
 static uintptr_t x86_mm_alloc_physical_page_huge(void) {
-    for (uint32_t i = 0; i < X86_MM_PHYS_MAX / 8; ++i) {
-        if (x86_physical_page_bitmap[i] == 0) {
+    for (uint32_t i = 0; i < X86_MM_PHYS_MAX / 8; i += 32) {
+        int f = 0;
+        for (uint32_t j = 0; j < 32; ++j) {
+            if (x86_physical_page_bitmap[i + j] != 0) {
+                f = 1;
+                break;
+            }
+        }
+        if (!f) {
             uintptr_t page = (i << 17);
             x86_physical_page_alloc_last = page + 0x400000;
-            return x86_physical_page_alloc_last;
+            return page;
         }
     }
 
@@ -99,6 +175,7 @@ static uintptr_t x86_mm_alloc_physical_page_huge(void) {
 }
 
 static void x86_mm_add_physical_page(uintptr_t page) {
+    ++x86_physical_page_count;
     x86_physical_page_bitmap[page >> 17] &= ~((uint32_t) 1 << ((page >> 12) & 0x1F));
 }
 
@@ -116,10 +193,27 @@ uintptr_t mm_alloc_physical_page(uint32_t flags) {
 
 void mm_free_physical_page(uintptr_t page, uint32_t flags) {
     if (flags & MM_FLG_PS) {
+        x86_physical_page_count += 32;
         x86_physical_page_bitmap[page >> 17] = 0;
     } else {
+        ++x86_physical_page_count;
         x86_physical_page_bitmap[page >> 17] &= ~((uint32_t) 1 << ((page >> 12) & 0x1F));
     }
+}
+
+////
+
+int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t count, uint32_t flags) {
+    if (flags & MM_FLG_PS) {
+        uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PS | X86_MM_FLG_PR;
+        for (int i = 0; i < count; ++i) {
+            // assert(!(pd[(start >> 22) + i] & X86_MM_FLG_PR));
+            pd[(start >> 22) + i] = pages[i] | dst_flags;
+        }
+        return 0;
+    }
+
+    return -1;
 }
 
 ////
@@ -139,6 +233,7 @@ void mm_dump_map(int level, mm_space_t pd) {
 void mm_init(void) {
     // Mark all pages in physical space as unavailable
     memsetl(x86_physical_page_bitmap, 0xFFFFFFFF, sizeof(x86_physical_page_bitmap) / 4);
+    memset(x86_page_pool, 0, sizeof(x86_page_pool));
 
     kdebug("Physical memory layout:\n");
     static const char *mmap_memory_types[] = {

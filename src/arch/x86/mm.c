@@ -40,7 +40,6 @@ static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
             x86_page_pool[i].index_last = 0;
 
             // Map vaddr -> paddr in kernel address space
-            //mm_kernel[x86_page_pool[i].vaddr >> 22] = x86_page_pool[i].paddr | (X86_MM_FLG_PR | X86_MM_FLG_PS | X86_MM_FLG_WR);
             mm_map_range_pages(mm_kernel, x86_page_pool[i].vaddr, &x86_page_pool[i].paddr, 1, MM_FLG_PS | MM_FLG_WR);
 
             memsetl(x86_page_pool[i].bitmap, 0, 1024 / 32);
@@ -92,14 +91,14 @@ static void x86_page_pool_free(uintptr_t vaddr) {
             if (x86_page_pool[i].vaddr <= vaddr && vaddr - x86_page_pool[i].vaddr < 0x400000) {
                 uint32_t index = (vaddr - x86_page_pool[i].vaddr) >> 17;
                 uint32_t bit = ((vaddr - x86_page_pool[i].vaddr) >> 12) & 0x1F;
-                // assert(x86_page_pool[i].bitmap[index] & ((uint32_t) 1 << bit));
+                assert(x86_page_pool[i].bitmap[index] & ((uint32_t) 1 << bit));
 
                 x86_page_pool[i].bitmap[index] &= ~((uint32_t) 1 << bit);
                 return;
             }
         }
     }
-    // panic("The page does not belong to any of pools");
+    panic("The page does not belong to any of pools");
 }
 
 mm_space_t mm_create_space(uintptr_t *phys) {
@@ -230,7 +229,7 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
     if (flags & MM_FLG_PS) {
         uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PS | X86_MM_FLG_PR;
         for (int i = 0; i < count; ++i) {
-            // assert(!(pd[(start >> 22) + i] & X86_MM_FLG_PR));
+            assert(!(pd[(start >> 22) + i] & X86_MM_FLG_PR));
             kdebug("map %p[%d (%p)] = %p\n", pd, (start >> 22) + i, start + (i << 22), pages[i]);
             pd[(start >> 22) + i] = pages[i] | dst_flags;
         }
@@ -247,9 +246,9 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
 
             if (pde & X86_MM_FLG_PR) {
                 // Lookup table address in table info structure
-                // assert(table_info[pdi]);
+                assert(table_info[pdi]);
                 mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
-                // assert((table_info[pdi] & 0xFFF) != 0xFFF);
+                assert((table_info[pdi] & 0xFFF) != 0xFFF);
                 ++table_info[pdi];
 
                 kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, pages[i]);
@@ -257,7 +256,7 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
             } else {
                 uintptr_t phys;
                 mm_pagetab_t pt = (mm_pagetab_t) x86_page_pool_allocate(&phys);
-                // assert((uintptr_t) pt != MM_NADDR);
+                assert((uintptr_t) pt != MM_NADDR);
                 table_info[pdi] = (uintptr_t) pt | 1;
 
                 kdebug("map %p[%d (%p)] = table %p\n", pd, pdi, pdi << 22, pt);
@@ -278,7 +277,7 @@ int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) 
     if (flags & MM_FLG_PS) {
         for (int i = 0; i < count; ++i) {
             uint32_t pdi = (start >> 22) + i;
-            // assert(pd[(start >> 22) + i] & (X86_MM_FLG_PR | X86_MM_FLG_PS));
+            assert(pd[(start >> 22) + i] & (X86_MM_FLG_PR | X86_MM_FLG_PS));
             kdebug("umap %p[%d (%p)]\n", pd, pdi, pdi << 22);
 
             if (!(flags & MM_FLG_NOPHYS)) {
@@ -294,16 +293,16 @@ int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) 
             uint32_t pdi = vpage >> 22;
             uint32_t pti = (vpage >> 12) & 0x3FF;
 
-            // uint32_t pde = pd[pdi];
+            uint32_t pde = pd[pdi];
 
-            // assert(pde & X86_MM_FLG_PR);
-            // assert(table_info[pdi]);
+            assert(pde & X86_MM_FLG_PR);
+            assert(table_info[pdi]);
             mm_pagetab_t pt = (mm_pagetab_t) (table_info[pdi] & -0x1000);
 
             if (!(flags & MM_FLG_NOPHYS)) {
                 mm_free_physical_page(pt[pti] & -0x1000, 0);
             }
-            // assert((table_info[pdi] & 0xFFF) != 0);
+            assert((table_info[pdi] & 0xFFF) != 0);
             kdebug("umap %p[%d (%p)] = table %p[%d (%p)]\n", pd, pdi, pdi << 22, pt, pti, vpage);
             pt[pti] = 0;
             if (((--table_info[pdi]) & 0xFFF) == 0) {
@@ -361,7 +360,7 @@ void mm_init(void) {
     for (struct multiboot_mmap_entry *it = (struct multiboot_mmap_entry *) (KERNEL_VIRT_BASE + x86_multiboot_info->mmap_addr);
          (uintptr_t) it < KERNEL_VIRT_BASE + x86_multiboot_info->mmap_addr + x86_multiboot_info->mmap_length;
          it = (struct multiboot_mmap_entry *) ((uintptr_t) it + it->size + sizeof(it->size))) {
-        // assert(it->type < 5);
+        assert(it->type < 5);
 
         kdebug("%lp .. %lp: %s\n", it->addr, it->len + it->addr, mmap_memory_types[it->type]);
 
@@ -397,7 +396,7 @@ void mm_init(void) {
 
     // Attach table_info structure to mm_kernel
     uint32_t *kernel_table_info = (uint32_t *) x86_page_pool_allocate(NULL);
-    // assert((uintptr_t) kernel_table_info != MM_NADDR);
+    assert((uintptr_t) kernel_table_info != MM_NADDR);
     memsetl(kernel_table_info, 0, 1024);
     mm_kernel[1023] = (uint32_t) kernel_table_info;
     mm_kernel[0] = (uint32_t) mm_kernel;

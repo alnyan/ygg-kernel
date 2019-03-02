@@ -119,52 +119,52 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
         asm volatile ("movl %%cr3, %0":"=a"(cr3));
 
         kfatal("CR3 = %p\n", cr3);
-        if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
-            kfatal("\t(Is kernel)\n");
+        // if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
+        //     kfatal("\t(Is kernel)\n");
 
-            uint32_t pde = mm_kernel[cr2 >> 22];
-            if (pde & 1) {
-                kfatal("\tEntry for CR2 is present in PD\n");
-            } else {
-                kfatal("\tEntry is not mapped in kernel PD\n");
-            }
-        } else {
-            kfatal("\tOffender task PID: %u\n", x86_task_current->ctl->pid);
-        }
+        //     uint32_t pde = mm_kernel[cr2 >> 22];
+        //     if (pde & 1) {
+        //         kfatal("\tEntry for CR2 is present in PD\n");
+        //     } else {
+        //         kfatal("\tEntry is not mapped in kernel PD\n");
+        //     }
+        // } else {
+        //     kfatal("\tOffender task PID: %u\n", x86_task_current->ctl->pid);
+        // }
 
-        if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
-            kfatal("---- Page directory ----\n");
-            mm_dump_pages(mm_kernel);
-        } else {
-            mm_pagedir_t pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
+        // if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
+        //     kfatal("---- Page directory ----\n");
+        //     mm_dump_pages(mm_kernel);
+        // } else {
+        //     mm_pagedir_t pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
 
-            if ((uintptr_t) pd != MM_NADDR) {
-                uintptr_t phys_addr = MM_NADDR;
+        //     if ((uintptr_t) pd != MM_NADDR) {
+        //         uintptr_t phys_addr = MM_NADDR;
 
-                if (pd[cr2 >> 22] & X86_PF_FLG_PR) {
-                    if (pd[cr2 >> 22] & X86_MM_FLG_PS) {
-                        phys_addr = (pd[cr2 >> 22] & -0x400000) | (cr2 & 0x3FFFFF);
-                    } else {
-                        mm_pagetab_t pt = (mm_pagetab_t) x86_mm_reverse_lookup(pd[cr2 >> 22] & -0x1000);
+        //         if (pd[cr2 >> 22] & X86_PF_FLG_PR) {
+        //             if (pd[cr2 >> 22] & X86_MM_FLG_PS) {
+        //                 phys_addr = (pd[cr2 >> 22] & -0x400000) | (cr2 & 0x3FFFFF);
+        //             } else {
+        //                 mm_pagetab_t pt = (mm_pagetab_t) x86_mm_reverse_lookup(pd[cr2 >> 22] & -0x1000);
 
-                        if ((uintptr_t) pt != MM_NADDR) {
-                            phys_addr = (pt[(cr2 >> 12) & 0x3FF] & -0x1000) | (cr2 & 0xFFF);
-                        }
-                    }
-                }
+        //                 if ((uintptr_t) pt != MM_NADDR) {
+        //                     phys_addr = (pt[(cr2 >> 12) & 0x3FF] & -0x1000) | (cr2 & 0xFFF);
+        //                 }
+        //             }
+        //         }
 
-                if (phys_addr == MM_NADDR) {
-                    kfatal("\tFault address is not mapped in task's PD\n");
-                } else {
-                    kfatal("\tFault physical address is %p\n", phys_addr);
-                }
+        //         if (phys_addr == MM_NADDR) {
+        //             kfatal("\tFault address is not mapped in task's PD\n");
+        //         } else {
+        //             kfatal("\tFault physical address is %p\n", phys_addr);
+        //         }
 
-                kfatal("---- Page directory ----\n");
-                mm_dump_pages(pd);
-            } else {
-                kfatal("\tFailed to find virtual address of task's page directory\n");
-            }
-        }
+        //         kfatal("---- Page directory ----\n");
+        //         mm_dump_pages(pd);
+        //     } else {
+        //         kfatal("\tFailed to find virtual address of task's page directory\n");
+        //     }
+        // }
     }
 
     kfatal("--- Register dump ---\n");

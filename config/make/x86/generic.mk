@@ -3,7 +3,9 @@ LINKER=config/ld/x86/generic.ld
 BOOT_OBJS+=build/arch/x86/boot.o
 OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/mm.o \
-	  build/arch/x86/hw/com.o
+	  build/arch/x86/hw/com.o \
+	  build/arch/x86/panic.o \
+	  build/arch/x86/regs.o
 
 # OBJS+=build/arch/x86/hw/hw.o \
 #	  build/arch/x86/hw/com.o \

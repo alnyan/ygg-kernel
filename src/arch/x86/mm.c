@@ -81,6 +81,23 @@ static uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
     return MM_NADDR;
 }
 
+static void x86_page_pool_free(uintptr_t vaddr) {
+    for (int i = 0; i < X86_MM_PAGE_POOL; ++i) {
+        // Lookup the pool the page belongs to
+        if (x86_page_pool[i].vaddr) {
+            if (x86_page_pool[i].vaddr <= vaddr && vaddr - x86_page_pool[i].vaddr < 0x400000) {
+                uint32_t index = (vaddr - x86_page_pool[i].vaddr) >> 17;
+                uint32_t bit = ((vaddr - x86_page_pool[i].vaddr) >> 12) & 0x1F;
+                // assert(x86_page_pool[i].bitmap[index] & ((uint32_t) 1 << bit));
+
+                x86_page_pool[i].bitmap[index] &= ~((uint32_t) 1 << bit);
+                return;
+            }
+        }
+    }
+    // panic("The page does not belong to any of pools");
+}
+
 mm_space_t mm_create_space(uintptr_t *phys) {
     uintptr_t vaddr = x86_page_pool_allocate(phys);
     if (vaddr == MM_NADDR) {
@@ -100,12 +117,14 @@ mm_space_t mm_create_space(uintptr_t *phys) {
     space[0] = (uintptr_t) space;
 
     // The 1023 entry is a virtual address of table information block
-    space[1] = table_info;
-
-    // Set '1' refcount for the directory
-    ((uint32_t *) table_info)[1023] = 1;
+    space[1023] = table_info;
 
     return space;
+}
+
+void mm_destroy_space(mm_space_t pd) {
+    x86_page_pool_free(pd[1023]);
+    x86_page_pool_free((uintptr_t) pd);
 }
 
 ////

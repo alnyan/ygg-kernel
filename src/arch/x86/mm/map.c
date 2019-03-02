@@ -55,6 +55,8 @@ int mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
 }
 
 int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t count, uint32_t flags) {
+    assert(!(start & 0xFFF));
+
     if (flags & MM_FLG_PS) {
         uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PS | X86_MM_FLG_PR;
         for (int i = 0; i < count; ++i) {
@@ -105,6 +107,9 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
 }
 
 int mm_map_range_linear(mm_space_t pd, uintptr_t start, uintptr_t pstart, size_t count, uint32_t flags) {
+    assert(!(start & 0xFFF));
+    assert(!(pstart & 0xFFF));
+
     if (flags & MM_FLG_PS) {
         start &= -0x400000;
 
@@ -131,6 +136,8 @@ int mm_map_range_linear(mm_space_t pd, uintptr_t start, uintptr_t pstart, size_t
 }
 
 int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
+    assert(!(start & 0xFFF));
+
     if (flags & MM_FLG_PS) {
         for (int i = 0; i < count; ++i) {
             uint32_t pdi = (start >> 22) + i;

@@ -5,6 +5,7 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/mm/phys.o \
 	  build/arch/x86/mm/space.o \
 	  build/arch/x86/mm/map.o \
+	  build/arch/x86/mm/user.o \
 	  build/arch/x86/mm/mm.o \
 	  build/arch/x86/hw/com.o \
 	  build/arch/x86/panic.o \

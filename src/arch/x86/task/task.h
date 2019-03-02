@@ -24,6 +24,7 @@ struct x86_task {
     uint32_t ebp0;
     uint32_t ebp3;
     uint32_t flag;
+    uint32_t pd;
     task_ctl_t *ctl;
     struct x86_task *next;
 };

@@ -401,7 +401,8 @@ int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
     size_t sz = count > f->op_len ? f->op_len : count;
 
     if (f->task) {
-        task_copy_to_user(f->task, (void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
+        mm_memcpy_kernel_to_user(task_space(f->task), (void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
+        // task_copy_to_user(f->task, (void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
     } else {
         memcpy((void *) ((uintptr_t) f->op_buf + *f->op_res), src, sz);
     }
@@ -410,7 +411,7 @@ int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
     if (*f->op_res == f->op_len) {
         f->op_buf = NULL;
         if (f->task) {
-            task_nobusy(f->task);
+            // XXX: task_nobusy(f->task);
         }
         return 1;
     }

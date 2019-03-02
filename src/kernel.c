@@ -24,16 +24,16 @@ void kernel_main(void) {
     debug_init();
     // Proceed on hw-specific details of init
     hw_init();
-//
-//    // Now the kernel-stuff kicks in
-//    devfs_init();
+
+    // Now the kernel-stuff kicks in
+    devfs_init();
 //    procfs_init();
-//    tty_init();
+    tty_init();
 //    // Will create basic device set
-//    devfs_populate();
+    devfs_populate();
 //
-//    assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
-//    assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+    assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
+    assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
 //    assert(vfs_mount(NULL, "/proc", vfs_procfs, 0) == 0);
 //
 //    // Load network device config

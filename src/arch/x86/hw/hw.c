@@ -13,6 +13,7 @@
 #include "../mm.h"
 #include "dev/initrd.h"
 #include "sys/heap.h"
+#include "sys/mm.h"
 #include "cpuid.h"
 #include "rtc.h"
 #include "acpi.h"
@@ -28,22 +29,22 @@ void hw_early_init(void) {
     x86_con_init();
 }
 
-// static void x86_initrd_init(void) {
-//     struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
-//     kdebug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
-//
-//     if (x86_multiboot_info->mods_count != 1) {
-//         panic("Kernel expected 1 module, but there're %d\n", x86_multiboot_info->mods_count);
-//     }
-//
-//     uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
-//     size_t mod_size = mod_list->mod_end - mod_list->mod_start;
-//
-//     kdebug("Init module: %p .. %p\n", mod_base, mod_base + mod_size);
-//     heap_remove_region(mod_base, mod_size);
-//
-//     initrd_init(mod_base, mod_size);
-// }
+static void x86_initrd_init(void) {
+    struct multiboot_mod_list *mod_list = (struct multiboot_mod_list *) (KERNEL_VIRT_BASE + x86_multiboot_info->mods_addr);
+    kdebug("Multiboot provided kernel with %d modules\n", x86_multiboot_info->mods_count);
+
+    if (x86_multiboot_info->mods_count != 1) {
+        panic("Kernel expected 1 module, but there're %d\n", x86_multiboot_info->mods_count);
+    }
+
+    uintptr_t mod_base = KERNEL_VIRT_BASE + mod_list->mod_start;
+    size_t mod_size = mod_list->mod_end - mod_list->mod_start;
+
+    kdebug("Init module: %p .. %p\n", mod_base, mod_base + mod_size);
+    heap_remove_region(mod_base, mod_size);
+
+    initrd_init(mod_base, mod_size);
+}
 
 void hw_init(void) {
     // x86_mm_init();
@@ -52,6 +53,14 @@ void hw_init(void) {
 
     gdt_init();
     ints_init();
+
+    // Setup heap
+    extern void _kernel_end_virt();
+    uintptr_t heap_start = (uintptr_t) _kernel_end_virt + 0x1000;
+    uintptr_t heap_end = MM_ALIGN_UP(heap_start, 0x400000);
+    kdebug("heap start: %p, heap end: %p\n", heap_start, heap_end);
+    heap_add_region(heap_start, heap_end);
+    x86_initrd_init();
 
     // x86_pci_init();
 
@@ -65,7 +74,6 @@ void hw_init(void) {
 
     x86_ps2_init();
 
-    // x86_initrd_init();
 
     // x86_task_init();
 }

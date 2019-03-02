@@ -20,6 +20,11 @@ typedef struct {
 #define TASK_FLG_WAIT           (1 << 2)
 #define TASK_FLG_BUSY           (1 << 3)
 
+#if defined(ARCH_X86)
+#include "arch/x86/task/task.h"
+#define task_space(t)   ((mm_space_t) (((struct x86_task *) t)->pd))
+#endif
+
 task_t *task_fork(task_t *src);
 task_t *task_fexecve(const char *path, const char **argp, const char **envp);
 int task_execve(task_t *dst, const char *path, const char **argp, const char **envp);
@@ -38,8 +43,8 @@ task_t *task_create(void);
 int task_init(task_t *t, task_entry_func entry, void *arg, uint32_t flags);
 void task_destroy(task_t *t);
 
-void task_copy_to_user(task_t *t, userspace void *dst, const void *src, size_t siz);
-void task_copy_from_user(task_t *t, void *dst, const userspace void *src, size_t siz);
+// void task_copy_to_user(task_t *t, userspace void *dst, const void *src, size_t siz);
+// void task_copy_from_user(task_t *t, void *dst, const userspace void *src, size_t siz);
 
 // TODO: move this to sched.h?
 void task_enable();

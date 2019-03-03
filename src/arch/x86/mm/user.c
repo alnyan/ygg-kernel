@@ -77,7 +77,7 @@ ssize_t mm_strncpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, siz
     uintptr_t user_begin = (uintptr_t) src & -0x1000;
     size_t copied = 0;
 
-    for (size_t i = 0; i < MM_ALIGN_UP(count, 0x1000) / 0x1000; ++i) {
+    for (size_t i = 0; i < MM_ALIGN_UP(count, 0x1000) / 0x1000 + 1; ++i) {
         uintptr_t user_page = user_begin + i * 0x1000;
 
         uintptr_t user_start = ((uintptr_t) src > user_page) ? (uintptr_t) src - user_page : 0;
@@ -106,6 +106,8 @@ ssize_t mm_strncpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, siz
 
         mm_umap_range(mm_kernel, user_page, 1, MM_FLG_NOPHYS);
     }
+
+    ((char *) dst)[copied] = 0;
 
     return copied;
 }

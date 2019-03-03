@@ -34,6 +34,8 @@ void x86_syscall(x86_irq_regs_t *regs) {
         sys_close((int) regs->gp.ebx);
         break;
     case SYSCALL_NR_READ:
+        // TODO: make device report "async"/"blocking" states before reading
+        mm_set(task_space(x86_task_current));
         if ((res = sys_read(
                         (int) regs->gp.ebx,
                         (userspace void *) regs->gp.ecx,

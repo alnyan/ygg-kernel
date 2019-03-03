@@ -47,19 +47,19 @@ void task_destroy(task_t *t) {
     heap_free(task);
 }
 
-// task_t *task_by_pid(int pid) {
-//     for (struct x86_task *t = x86_task_first; t; t = t->next) {
-//         if (t->ctl) {
-//             if (t->ctl->pid == pid) {
-//                 return t;
-//             }
-//         } else if (pid == 0) {
-//             return t;
-//         }
-//     }
-//
-//     return NULL;
-// }
+task_t *task_by_pid(int pid) {
+    for (struct x86_task *t = x86_task_first; t; t = t->next) {
+        if (t->ctl) {
+            if (t->ctl->pid == pid) {
+                return t;
+            }
+        } else if (pid == 0) {
+            return t;
+        }
+    }
+
+    return NULL;
+}
 
 // Idle task (kernel-space) stuff
 static struct x86_task x86_task_idle;

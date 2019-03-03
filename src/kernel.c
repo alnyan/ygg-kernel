@@ -28,7 +28,7 @@ void kernel_main(void) {
 
     // Now the kernel-stuff kicks in
     devfs_init();
-//    procfs_init();
+    procfs_init();
     tty_init();
 //    // Will create basic device set
     heap_dump();
@@ -36,7 +36,7 @@ void kernel_main(void) {
 //
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
-//    assert(vfs_mount(NULL, "/proc", vfs_procfs, 0) == 0);
+    assert(vfs_mount(NULL, "/proc", vfs_procfs, 0) == 0);
 //
 //    // Load network device config
 //    net_init();

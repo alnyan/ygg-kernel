@@ -72,3 +72,41 @@ int mm_memcpy_kernel_to_user(mm_space_t pd, void *dst, const void *src, size_t c
 
     return 0;
 }
+
+ssize_t mm_strncpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, size_t count) {
+    uintptr_t user_begin = (uintptr_t) src & -0x1000;
+    size_t copied = 0;
+
+    for (size_t i = 0; i < MM_ALIGN_UP(count, 0x1000) / 0x1000; ++i) {
+        uintptr_t user_page = user_begin + i * 0x1000;
+
+        uintptr_t user_start = ((uintptr_t) src > user_page) ? (uintptr_t) src - user_page : 0;
+        uintptr_t user_end = ((uintptr_t) src + count - user_page);
+        if (user_end > 0x1000) {
+            user_end = 0x1000;
+        }
+
+        uint32_t user_rflags;
+        uintptr_t user_page_phys = mm_translate(pd, user_page, &user_rflags);
+        assert(user_page_phys != MM_NADDR);
+        assert(!(user_rflags & MM_FLG_PS));
+
+        // Map the page
+        mm_map_range_pages(mm_kernel, user_page, &user_page_phys, 1, MM_FLG_WR);
+
+        for (size_t off = user_start; off < user_end; ++off) {
+            if (!((const char *) user_page)[off] || (copied == count - 1)) {
+                ((char *) dst)[copied++] = 0;
+                mm_umap_range(mm_kernel, user_page, 1, MM_FLG_NOPHYS);
+                return copied;
+            }
+
+            ((char *) dst)[copied++] = ((const char *) user_page)[off];
+        }
+
+        mm_umap_range(mm_kernel, user_page, 1, MM_FLG_NOPHYS);
+    }
+
+    return copied;
+}
+

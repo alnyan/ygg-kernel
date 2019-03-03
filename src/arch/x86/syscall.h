@@ -4,12 +4,14 @@
 #include "sys/attr.h"
 #include "sys/time.h"
 
-#define SYSCALL_DECL0(name)      int sys_##name(void)
-#define SYSCALL_DEFINE0(name)    int sys_##name(void)
-#define SYSCALL_DECL1(name, x)   int sys_##name(x)
-#define SYSCALL_DEFINE1(name, x) int sys_##name(x)
-#define SYSCALL_DECL3(name, x, y, z)   int sys_##name(x, y, z)
-#define SYSCALL_DEFINE3(name, x, y, z) int sys_##name(x, y, z)
+#define SYSCALL_DECL0(name)                 int sys_##name(void)
+#define SYSCALL_DEFINE0(name)               int sys_##name(void)
+#define SYSCALL_DECL1(name, x)              int sys_##name(x)
+#define SYSCALL_DEFINE1(name, x)            int sys_##name(x)
+#define SYSCALL_DECL3(name, x, y, z)        int sys_##name(x, y, z)
+#define SYSCALL_DEFINE3(name, x, y, z)      int sys_##name(x, y, z)
+#define SYSCALL_DECL4(name, x, y, z, w)     int sys_##name(x, y, z, w)
+#define SYSCALL_DEFINE4(name, x, y, z, w)   int sys_##name(x, y, z, w)
 
 #define SYSOP_ASYNC             0x01
 #define SYSOP_SYNC              0x00
@@ -20,6 +22,7 @@ SYSCALL_DECL1(exit, int);
 SYSCALL_DECL0(fork);
 
 #define SYSCALL_NR_READ         0x03
+SYSCALL_DECL4(read, int, userspace void *, size_t, ssize_t *);
 #define SYSCALL_NR_WRITE        0x04
 SYSCALL_DECL3(write, int, const userspace void *, size_t);
 #define SYSCALL_NR_OPEN         0x05

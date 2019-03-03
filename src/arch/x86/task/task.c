@@ -156,6 +156,7 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
     ctx->iret.eflags = 0x248;
 
     if (!(flags & (X86_TASK_NOESP3 | X86_TASK_IDLE))) {
+        // FIXME: for some reason sometimes stack doesn't get set for tasks
         uint32_t *esp3;
 
         if (!task->esp3_bottom) {

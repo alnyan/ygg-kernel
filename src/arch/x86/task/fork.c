@@ -130,6 +130,11 @@ task_t *task_fork(task_t *t) {
     fd_tty_wr->task = dst;
     dst->ctl->fds[0] = fd_tty_wr;
 
+    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
+    assert(fd_tty_rd);
+    fd_tty_rd->task = dst;
+    dst->ctl->fds[1] = fd_tty_rd;
+
     memcpy(dst_ctx, src_ctx, 18 * 4);
 
     dst->flag = 0;
@@ -227,10 +232,10 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     fd_tty_wr->task = task;
     task->ctl->fds[0] = fd_tty_wr;
 
-    // vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
-    // assert(fd_tty_rd);
-    // fd_tty_rd->task = task;
-    // ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
+    vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
+    assert(fd_tty_rd);
+    fd_tty_rd->task = task;
+    ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
 
     assert(x86_task_set_context(task, entry, NULL, 0) == 0);
 

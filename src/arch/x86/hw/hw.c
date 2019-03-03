@@ -74,5 +74,9 @@ void hw_init(void) {
 
     x86_ps2_init();
 
+#if defined(ENABLE_VESA_FBCON)
+    x86_vesa_con_init();
+#endif
+
     x86_task_init();
 }

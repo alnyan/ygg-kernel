@@ -111,6 +111,12 @@ void x86_task_dump_context(int level, struct x86_task *task) {
         if (ctx->iret.cs != 0x08) {
             kprint(level, "SS:ESP = %02x:%p\n", ctx->iret.ss, ctx->iret.esp);
         }
+
+        kprint(level, "--- Task registers ---\n");
+        kprint(level, "eax = %p (%d)\n", ctx->gp.eax, ctx->gp.eax);
+        kprint(level, "ecx = %p (%d)\n", ctx->gp.ecx, ctx->gp.ecx);
+        kprint(level, "edx = %p (%d)\n", ctx->gp.edx, ctx->gp.edx);
+        kprint(level, "ebx = %p (%d)\n", ctx->gp.ebx, ctx->gp.ebx);
     }
 }
 
@@ -168,6 +174,7 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
             assert(mm_map_range(task->pd, task->esp3_bottom, task->esp3_size, MM_FLG_US | MM_FLG_WR) == 0);
         }
 
+        kdebug("TASK ESP3_BOTTOM = %p\n", task->esp3_bottom);
         esp3 = (uint32_t *) (task->esp3_bottom + task->esp3_size * 0x1000);
 
         // TODO: arg

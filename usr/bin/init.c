@@ -69,17 +69,17 @@ void _start(void *arg) {
                 closedir(f);
             }
         } else if (!strcmp(line, "test")) {
-            // int f = open("/proc/test", 0, O_RDONLY);
+            int f = open("/proc/test", 0, O_RDONLY);
 
-            // if (f == -1) {
-            //     printf("open failed\n");
-            // } else {
-            //     printf("open succeeded\n");
-            //     int v;
-            //     printf("read returned %d\n", read(f, &v, sizeof(int)));
-            //     printf(" = %d\n", v);
-            //     close(f);
-            // }
+            if (f == -1) {
+                printf("open failed\n");
+            } else {
+                printf("open succeeded\n");
+                int v;
+                printf("read returned %d\n", read(f, &v, sizeof(int)));
+                printf(" = %d\n", v);
+                close(f);
+            }
         }
     }
 

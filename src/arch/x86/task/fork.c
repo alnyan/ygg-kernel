@@ -211,6 +211,7 @@ task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     assert(task);
 
     task->pd = pd;
+    task->esp3_bottom = 0;
     task->esp3_size = 4;
 
     vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);

@@ -48,12 +48,12 @@ OBJS=build/kernel.o \
  	 build/sys/dev.o \
  	 build/sys/atoi.o \
  	 build/sys/task.o \
+	 build/net/eth/eth.o \
+	 build/net/arp.o \
+	 build/net/inet.o \
+	 build/dev/net.o \
 	 build/dev/tty.o
 #	 build/dev/procfs.o \
-# 	  build/net/eth/eth.o \
-# 	  build/net/arp.o \
-# 	  build/net/inet.o \
-# 	  build/dev/net.o \
 
 DIRS+=build/sys \
 	  build/dev \

@@ -31,9 +31,8 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/task/fork.o \
 	  build/arch/x86/syscall.o \
 	  build/arch/x86/hw/pfault_s.o \
-	  build/arch/x86/hw/pfault.o
-
-#	  build/arch/x86/hw/pci.o \
+	  build/arch/x86/hw/pfault.o \
+	  build/arch/x86/hw/pci.o
 
 ifneq ($(ENABLE_VESA_FBCON),)
 OBJS+=build/arch/x86/hw/vesa/font8x8.o

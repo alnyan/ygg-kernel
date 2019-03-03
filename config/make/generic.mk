@@ -12,6 +12,8 @@ endif
 
 ifeq ($(DISABLE_TASK),)
 DEFINES+=-DENABLE_TASK
+OBJS+=build/sys/task.o \
+ 	  build/sys/elf.o
 endif
 
 ifeq ($(DISABLE_HEAP_ALLOC_COUNT),)
@@ -32,14 +34,13 @@ CFLAGS=-ffreestanding \
 LDFLAGS=-nostdlib -nostartfiles
 LDFLAGS_POST=
 
-OBJS=build/kernel.o \
+OBJS+=build/kernel.o \
 	 build/sys/string.o \
 	 build/sys/ctype.o \
 	 build/sys/debug.o \
 	 build/sys/mem.o \
 	 build/sys/panic.o \
 	 build/sys/time.o \
- 	 build/sys/elf.o \
 	 build/sys/vfs.o \
 	 build/sys/heap.o \
 	 build/dev/devfs.o \
@@ -47,12 +48,12 @@ OBJS=build/kernel.o \
 	 build/dev/initrd.o \
  	 build/sys/dev.o \
  	 build/sys/atoi.o \
- 	 build/sys/task.o \
 	 build/net/eth/eth.o \
 	 build/net/arp.o \
 	 build/net/inet.o \
 	 build/dev/net.o \
 	 build/dev/tty.o
+
 #	 build/dev/procfs.o \
 
 DIRS+=build/sys \

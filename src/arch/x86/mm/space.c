@@ -148,6 +148,7 @@ void mm_space_clone(mm_space_t dst, const mm_space_t src, uint32_t flags) {
     }
 }
 
+#if defined(ENABLE_TASK)
 int mm_space_fork(mm_space_t dst, const mm_space_t src, uint32_t flags) {
     if (flags & MM_FLG_CLONE_KERNEL) {
         // Kernel pages do not need to be copied
@@ -187,6 +188,7 @@ int mm_space_fork(mm_space_t dst, const mm_space_t src, uint32_t flags) {
 
     return 0;
 }
+#endif
 
 ////
 

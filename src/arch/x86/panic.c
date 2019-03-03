@@ -92,10 +92,12 @@ static void x86_crash_backtrace(uint32_t eeip, const uint32_t *stack, int depth)
 #endif
 
 void panic_reg(void) {
+#if defined(ENABLE_TASK)
     if (x86_task_current) {
         kfatal("Offender task:\n");
         x86_task_dump_context(DEBUG_FATAL, x86_task_current);
     }
+#endif
 }
 
 // Implements IRQ and ISR-specific panics, which dump registers
@@ -109,10 +111,12 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
     kfatal("Exception code: #%u\n", regs->int_no);
     kfatal("Error code: %d (0x%x)\n", regs->err_code);
 
+#if defined(ENABLE_TASK)
     if (x86_task_current) {
         kfatal("Offender task:\n");
         x86_task_dump_context(DEBUG_FATAL, x86_task_current);
     }
+#endif
 
     kfatal("--- Register dump ---\n");
     x86_dump_gp_regs(DEBUG_FATAL, &regs->gp);

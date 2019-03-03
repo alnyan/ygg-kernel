@@ -5,7 +5,6 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/mm/phys.o \
 	  build/arch/x86/mm/space.o \
 	  build/arch/x86/mm/map.o \
-	  build/arch/x86/mm/user.o \
 	  build/arch/x86/mm/mm.o \
 	  build/arch/x86/hw/com.o \
 	  build/arch/x86/panic.o \
@@ -26,13 +25,17 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/hw/rtc.o \
 	  build/arch/x86/hw/ps2.o \
 	  build/arch/x86/hw/timer.o \
-	  build/arch/x86/task/task.o \
-	  build/arch/x86/task/task_s.o \
-	  build/arch/x86/task/fork.o \
-	  build/arch/x86/syscall.o \
 	  build/arch/x86/hw/pfault_s.o \
 	  build/arch/x86/hw/pfault.o \
 	  build/arch/x86/hw/pci.o
+
+ifeq ($(DISABLE_TASK),)
+OBJS+=build/arch/x86/task/task.o \
+	  build/arch/x86/task/task_s.o \
+	  build/arch/x86/task/fork.o \
+	  build/arch/x86/syscall.o \
+	  build/arch/x86/mm/user.o
+endif
 
 ifneq ($(ENABLE_VESA_FBCON),)
 OBJS+=build/arch/x86/hw/vesa/font8x8.o

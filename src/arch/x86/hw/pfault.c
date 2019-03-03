@@ -12,6 +12,7 @@ static void x86_page_fault_dump(int crash, int level, x86_irq_regs_t *regs) {
 
     kprint(level, " Address: %p\n", cr2);
 
+#if defined(ENABLE_TASK)
     if (regs->iret.cs == 0x08) {
         kprint(level, "Kernel error\n");
     } else {
@@ -22,6 +23,7 @@ static void x86_page_fault_dump(int crash, int level, x86_irq_regs_t *regs) {
             x86_task_dump_context(level, x86_task_current);
         }
     }
+#endif
 
     kprint(level, "---- Register dump ----\n");
     x86_dump_gp_regs(level, &regs->gp);
@@ -36,6 +38,7 @@ void x86_page_fault(x86_irq_regs_t *regs) {
     if (regs->iret.cs == 0x08) {
         x86_page_fault_dump(1, DEBUG_FATAL, regs);
     } else {
+#if defined(ENABLE_TASK)
         // Debug dump
         x86_page_fault_dump(0, DEBUG_DEFAULT, regs);
 
@@ -44,5 +47,8 @@ void x86_page_fault(x86_irq_regs_t *regs) {
         // This will indicate an error
         regs->gp.ecx = TASK_EXIT_SEGV;
         x86_task_switch(regs);
+#else
+        while (1);
+#endif
     }
 }

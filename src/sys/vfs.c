@@ -389,6 +389,7 @@ int vfs_mount(const char *src, const char *dst, vfs_t *fs_type, uint32_t opts) {
 
 ////
 
+#if defined(ENABLE_TASK)
 int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
     assert(f && f->op_buf && f->op_res);
 
@@ -418,3 +419,4 @@ int vfs_send_read_res(vfs_file_t *f, const void *src, size_t count) {
 
     return 0;
 }
+#endif

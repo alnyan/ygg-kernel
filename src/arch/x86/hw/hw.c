@@ -78,5 +78,7 @@ void hw_init(void) {
     x86_vesa_con_init();
 #endif
 
+#if defined(ENABLE_TASK)
     x86_task_init();
+#endif
 }

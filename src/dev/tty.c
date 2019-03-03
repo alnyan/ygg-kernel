@@ -89,9 +89,10 @@ void tty_type(int n, char c) {
     if (tty->pending) {
         assert(tty->pending->op_buf);
         assert(tty->pending->op_res);
-
+#if defined(ENABLE_TASK)
         if (vfs_send_read_res(tty->pending, &c, 1) == 1) {
             tty->pending = NULL;
         }
+#endif
     }
 }

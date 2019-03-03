@@ -160,47 +160,33 @@ task_t *task_fork(task_t *t) {
     // return dst;
 }
 
-// int task_execve(task_t *dst, const char *path, const char **argp, const char **envp) {
-//     assert(!argp && !envp);     // These are not supported yet
-//
-//     uint32_t cr3_0;
-//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-//
-//     // Task stack
-//     uint32_t ebp0 = ((struct x86_task *) dst)->ebp0;
-//     uint32_t ebp3 = ((struct x86_task *) dst)->ebp3;
-//
-//     // TODO: allow loading from sources other than ramdisk
-//     uintptr_t file_mem = vfs_getm(path);
-//     assert(file_mem != MM_NADDR);
-//
-//     // Pagedir
-//     uint32_t cr3 = *((uint32_t *) (((struct x86_task *) dst)->ebp0 - 14 * 4));
-//     mm_pagedir_t task_pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-//     assert((uintptr_t) task_pd != MM_NADDR);
-//
-//     uint32_t ebp3p = mm_lookup(task_pd, ebp3 - MM_PAGESZ_SMALL, 0, NULL);
-//     assert(ebp3p != MM_NADDR);
-//
-//     // TODO: cleanup unused pages
-//     uintptr_t entry = elf_load(task_pd, file_mem, 0);
-//
-//     assert(entry != MM_NADDR);
-//
-//     assert(x86_task_setup_stack(
-//         (struct x86_task *) dst,
-//         (void(*)(void *)) entry,
-//         NULL,
-//         task_pd,
-//         ebp0,
-//         ebp3,
-//         ebp3p,
-//         0
-//     ) == 0);
-//
-//     return -1;
-// }
+int task_execve(task_t *dst, const char *path, const char **argp, const char **envp) {
+    assert(!argp && !envp);     // These are not supported yet
+    struct x86_task *task = (struct x86_task *) dst;
+
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
+    struct x86_task_context *ctx = (struct x86_task_context *) task->esp0;
+    assert(ctx);
+
+    mm_space_t pd = task->pd;
+    assert(pd);
+
+    // TODO: allow loading from sources other than ramdisk
+    uintptr_t file_mem = vfs_getm(path);
+    assert(file_mem != MM_NADDR);
+
+    uintptr_t entry = elf_load(pd, file_mem, 0);
+    assert(entry != MM_NADDR);
+
+    memset(&ctx->gp, 0, sizeof(x86_gp_regs_t));
+
+    assert(x86_task_set_context(task, entry, NULL, 0) == 0);
+
+    return -1;
+}
 
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
     uint32_t cr3_0;

@@ -49,6 +49,11 @@ void x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
         break;
 
+    case SYSCALL_NR_EXECVE:
+        regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
+                                  (const userspace char **) regs->gp.ecx,
+                                  (const userspace char **) regs->gp.edx);
+        break;
     case SYSCALL_NRX_FEXECVE:
         regs->gp.eax = sys_fexecve((const userspace char *) regs->gp.ebx,
                                    (const userspace char **) regs->gp.ecx,
@@ -68,12 +73,6 @@ void x86_syscall(x86_irq_regs_t *regs) {
     default:
         panic_irq("Invalid syscall\n", regs);
     }
-
-    // case SYSCALL_NR_EXECVE:
-    //     regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
-    //                               (const userspace char **) regs->gp.ecx,
-    //                               (const userspace char **) regs->gp.edx);
-    //     break;
 }
 
 SYSCALL_DEFINE1(exit, int res) {
@@ -130,7 +129,7 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
         if (bytes_copy > sizeof(tmp_buf)) {
             bytes_copy = sizeof(tmp_buf);
         }
-        assert(mm_memcpy_user_to_kernel(x86_task_current->pd, tmp_buf, buf, bytes_copy) == 0);
+        assert(mm_memcpy_user_to_kernel(task_space(x86_task_current), tmp_buf, buf, bytes_copy) == 0);
 
         ssize_t res = vfs_write(fp, tmp_buf, bytes_copy);
 
@@ -221,6 +220,14 @@ SYSCALL_DEFINE1(close, int fd) {
     return 0;
 }
 
+SYSCALL_DEFINE3(execve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
+    // Not supported yet
+    assert(!argp || !envp);
+    char path_tmp[256];
+    mm_strncpy_user_to_kernel(task_space(x86_task_current), path_tmp, path, sizeof(path_tmp));
+    return task_execve(x86_task_current, path_tmp, argp, envp);
+}
+
 SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
     // Not supported yet
     assert(!argp || !envp);
@@ -242,10 +249,3 @@ SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
     return 0;
 }
 
-// SYSCALL_DEFINE3(execve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
-//     // Not supported yet
-//     assert(!argp || !envp);
-//     char path_tmp[256];
-//     task_copy_from_user(x86_task_current, path_tmp, path, MM_NADDR);
-//     return task_execve(x86_task_current, path_tmp, argp, envp);
-// }

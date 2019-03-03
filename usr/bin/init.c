@@ -46,7 +46,7 @@ void _start(void *arg) {
             switch (fork()) {
             case 0:
                 write(STDOUT_FILENO, "Hello!\n", 6);
-                // execve("/bin/hello", NULL, NULL);
+                execve("/bin/hello", NULL, NULL);
                 exit(1);
             case -1:
                 printf("fork() failed\n");

@@ -30,19 +30,19 @@ void kernel_main(void) {
     devfs_init();
     procfs_init();
     tty_init();
-//    // Will create basic device set
+    // Will create basic device set
     heap_dump();
     devfs_populate();
-//
+
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
     assert(vfs_mount(NULL, "/proc", vfs_procfs, 0) == 0);
-//
-//    // Load network device config
-//    net_init();
-//    net_load_config("/etc/network.conf");
-//    net_dump_ifaces();
-//
+
+    // Load network device config
+    net_init();
+    net_load_config("/etc/network.conf");
+    net_dump_ifaces();
+
     vfs_dirent_t ent;
     vfs_dir_t *dir;
     assert(dir = vfs_opendir("/bin"));
@@ -53,31 +53,13 @@ void kernel_main(void) {
 
     vfs_closedir(dir);
 
-    // Test ELF loading
-    // uintptr_t test_phys;
-    // mm_space_t test_pd = mm_create_space(&test_phys);
-    // mm_space_clone(test_pd, mm_kernel, MM_FLG_CLONE_KERNEL);
-
-    // uintptr_t elf_ptr = vfs_getm("/bin/hello");
-    // assert(elf_ptr != MM_NADDR);
-
-    // uintptr_t entry = elf_load(test_pd, elf_ptr, 0);
-
-    // kdebug("entry is %p\n", entry);
-
-    // mm_dump_map(DEBUG_DEFAULT, test_pd);
-//
-//    ////
-//
 #if defined(ENABLE_TASK)
     assert(task_fexecve("/bin/init", NULL, NULL));
 #endif
-//
-//    // mm_dump_stats();
-//
-//    // This is where we're ready to accept the first interrupt and start multitasking mode
-//    net_post_config();
-//
+
+    // This is where we're ready to accept the first interrupt and start multitasking mode
+    net_post_config();
+
     irq_enable();
     while (1) {
         __idle();

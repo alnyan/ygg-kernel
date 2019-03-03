@@ -62,8 +62,6 @@ void hw_init(void) {
     heap_add_region(heap_start, heap_end);
     x86_initrd_init();
 
-    // x86_pci_init();
-
     if (!hpet_available() || hpet_init() != 0) {
         x86_rtc_init();
         x86_rtc_reload();
@@ -71,6 +69,8 @@ void hw_init(void) {
     } else {
         x86_timer_func = hpet_timer_func;
     }
+
+    x86_pci_init();
 
     x86_ps2_init();
 

@@ -114,74 +114,9 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
         x86_task_dump_context(DEBUG_FATAL, x86_task_current);
     }
 
-    if (regs->int_no == 14) {
-        uint32_t cr2;
-        asm volatile ("movl %%cr2, %0":"=a"(cr2));
-
-        kfatal("--- Page fault ---\n");
-
-        kfatal("Flags: %c%c%c%c\n",
-                (regs->err_code & X86_PF_FLG_PR) ? 'P' : '-',
-                (regs->err_code & X86_PF_FLG_RW) ? 'W' : 'R',
-                (regs->err_code & X86_PF_FLG_US) ? 'U' : '-',
-                (regs->err_code & X86_PF_FLG_ID) ? 'I' : 'D');
-        kfatal("CR2 = %p\n", cr2);
-
-        uint32_t cr3;
-        asm volatile ("movl %%cr3, %0":"=a"(cr3));
-
-        kfatal("CR3 = %p\n", cr3);
-        // if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
-        //     kfatal("\t(Is kernel)\n");
-
-        //     uint32_t pde = mm_kernel[cr2 >> 22];
-        //     if (pde & 1) {
-        //         kfatal("\tEntry for CR2 is present in PD\n");
-        //     } else {
-        //         kfatal("\tEntry is not mapped in kernel PD\n");
-        //     }
-        // } else {
-        //     kfatal("\tOffender task PID: %u\n", x86_task_current->ctl->pid);
-        // }
-
-        // if (cr3 == (uintptr_t) mm_kernel - KERNEL_VIRT_BASE) {
-        //     kfatal("---- Page directory ----\n");
-        //     mm_dump_pages(mm_kernel);
-        // } else {
-        //     mm_pagedir_t pd = (mm_pagedir_t) x86_mm_reverse_lookup(cr3);
-
-        //     if ((uintptr_t) pd != MM_NADDR) {
-        //         uintptr_t phys_addr = MM_NADDR;
-
-        //         if (pd[cr2 >> 22] & X86_PF_FLG_PR) {
-        //             if (pd[cr2 >> 22] & X86_MM_FLG_PS) {
-        //                 phys_addr = (pd[cr2 >> 22] & -0x400000) | (cr2 & 0x3FFFFF);
-        //             } else {
-        //                 mm_pagetab_t pt = (mm_pagetab_t) x86_mm_reverse_lookup(pd[cr2 >> 22] & -0x1000);
-
-        //                 if ((uintptr_t) pt != MM_NADDR) {
-        //                     phys_addr = (pt[(cr2 >> 12) & 0x3FF] & -0x1000) | (cr2 & 0xFFF);
-        //                 }
-        //             }
-        //         }
-
-        //         if (phys_addr == MM_NADDR) {
-        //             kfatal("\tFault address is not mapped in task's PD\n");
-        //         } else {
-        //             kfatal("\tFault physical address is %p\n", phys_addr);
-        //         }
-
-        //         kfatal("---- Page directory ----\n");
-        //         mm_dump_pages(pd);
-        //     } else {
-        //         kfatal("\tFailed to find virtual address of task's page directory\n");
-        //     }
-        // }
-    }
-
     kfatal("--- Register dump ---\n");
-    x86_dump_gp_regs(&regs->gp);
-    x86_dump_iret_regs(&regs->iret);
+    x86_dump_gp_regs(DEBUG_FATAL, &regs->gp);
+    x86_dump_iret_regs(DEBUG_FATAL, &regs->iret);
 
 #if defined(ENABLE_KERNEL_MAP)
     if (regs->iret.cs == 0x08) {
@@ -202,8 +137,8 @@ void panicf_irq(const char *fmt, const x86_irq_regs_t *regs, ...) {
     va_end(args);
 
     kfatal("--- Register dump ---\n");
-    x86_dump_gp_regs(&regs->gp);
-    x86_dump_iret_regs(&regs->iret);
+    x86_dump_gp_regs(DEBUG_FATAL, &regs->gp);
+    x86_dump_iret_regs(DEBUG_FATAL, &regs->iret);
 
     panic_hlt();
 }

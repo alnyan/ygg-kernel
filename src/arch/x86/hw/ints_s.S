@@ -26,7 +26,6 @@ x86_isr_generic:
     // ebp          <esp + 08>
     // esi          <esp + 04>
     // edi          <esp + 00>
-    // TODO: check (using code) if the error is recoverable, push the whole context if it is
     movl %esp, %esi
 
     // Now select which stack to use (we may overwrite some important info if we use kernel stack
@@ -87,7 +86,6 @@ x86_isr_stub    10
 x86_isr_stub    11
 x86_isr_stub    12
 x86_isr_stub    13
-x86_isr_stub    14
 x86_isr_stub_nc 15
 x86_isr_stub_nc 16
 x86_isr_stub    17

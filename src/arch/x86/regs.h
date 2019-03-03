@@ -14,5 +14,5 @@ typedef struct {
     uint32_t ds, es, fs, gs;
 } x86_seg_regs_t;
 
-void x86_dump_gp_regs(const x86_gp_regs_t *regs);
-void x86_dump_iret_regs(const x86_iret_regs_t *regs);
+void x86_dump_gp_regs(int level, const x86_gp_regs_t *regs);
+void x86_dump_iret_regs(int level, const x86_iret_regs_t *regs);

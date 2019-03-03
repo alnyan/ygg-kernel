@@ -19,6 +19,7 @@ void x86_syscall(x86_irq_regs_t *regs) {
 
     switch (regs->gp.eax) {
     case SYSCALL_NR_EXIT:
+        regs->gp.ebx &= 0xFF;
         sys_exit(regs->gp.ebx);
         x86_task_switch(regs);
         break;

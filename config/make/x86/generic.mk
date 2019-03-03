@@ -29,7 +29,9 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/task/task.o \
 	  build/arch/x86/task/task_s.o \
 	  build/arch/x86/task/fork.o \
-	  build/arch/x86/syscall.o
+	  build/arch/x86/syscall.o \
+	  build/arch/x86/hw/pfault_s.o \
+	  build/arch/x86/hw/pfault.o
 
 #	  build/arch/x86/hw/pci.o \
 

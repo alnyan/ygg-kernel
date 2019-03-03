@@ -238,9 +238,21 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 x86_task_last = tp;
             }
 
-            kdebug("Task %d exited with status %d\n",
-                    t->ctl->pid,
-                    *((uint32_t *) (t->ebp0 - 8 * 4)));
+            int res = *((int *) (t->ebp0 - 8 * 4));
+
+            if (res < 1000) {
+                kdebug("Task %d exited with status %d\n", t->ctl->pid, res);
+            } else {
+                kwarn("Task %d exited because of an error:\n", t->ctl->pid);
+                switch (res) {
+                case TASK_EXIT_SEGV:
+                    kwarn("  Address space violation\n");
+                    break;
+                default:
+                    kwarn("  Unspecified\n");
+                    break;
+                }
+            }
 
             // Attempted to kill root process
             if (t->ctl->pid == 1) {

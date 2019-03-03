@@ -4,6 +4,10 @@
 #include "sys/attr.h"
 #include "sys/time.h"
 
+#define TASK_EXIT_CODE(n)       (n & 0xFF)
+// Exit codes 1000 >= are allocated for error statuses
+#define TASK_EXIT_SEGV          1000
+
 typedef void task_t;
 typedef void *(*task_entry_func)(void *);
 typedef int pid_t;

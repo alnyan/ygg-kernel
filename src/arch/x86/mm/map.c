@@ -37,7 +37,9 @@ int mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
             if (!(pt[pti] & X86_MM_FLG_PR)) {
                 ++table_info[pdi];
 
+#if defined(ENABLE_MAP_TRACE)
                 kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, page_phys);
+#endif
                 pt[pti] = page_phys | dst_flags;
             } else {
                 assert(flags & MM_FLG_MERGE);
@@ -48,10 +50,14 @@ int mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) {
             assert((uintptr_t) pt != MM_NADDR);
             table_info[pdi] = (uintptr_t) pt | 1;
 
+#if defined(ENABLE_MAP_TRACE)
             kdebug("map %p[%d (%p)] = table %p\n", pd, pdi, pdi << 22, pt);
+#endif
             pd[pdi] = pt_phys | (X86_MM_FLG_PR | X86_MM_FLG_WR | X86_MM_FLG_US);
 
+#if defined(ENABLE_MAP_TRACE)
             kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, page_phys);
+#endif
             pt[pti] = page_phys | dst_flags;
         }
     }
@@ -66,7 +72,9 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
         uint32_t dst_flags = (flags & (MM_FLG_WR | MM_FLG_US)) | X86_MM_FLG_PS | X86_MM_FLG_PR;
         for (int i = 0; i < count; ++i) {
             assert(!(pd[(start >> 22) + i] & X86_MM_FLG_PR));
+#if defined(ENABLE_MAP_TRACE)
             kdebug("map %p[%d (%p)] = %p\n", pd, (start >> 22) + i, start + (i << 22), pages[i]);
+#endif
             pd[(start >> 22) + i] = pages[i] | dst_flags;
         }
         return 0;
@@ -89,7 +97,9 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
                 assert((table_info[pdi] & 0xFFF) != 0xFFF);
                 ++table_info[pdi];
 
+#if defined(ENABLE_MAP_TRACE)
                 kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, pages[i]);
+#endif
                 pt[pti] = pages[i] | dst_flags;
             } else {
                 uintptr_t phys;
@@ -97,10 +107,14 @@ int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t 
                 assert((uintptr_t) pt != MM_NADDR);
                 table_info[pdi] = (uintptr_t) pt | 1;
 
+#if defined(ENABLE_MAP_TRACE)
                 kdebug("map %p[%d (%p)] = table %p\n", pd, pdi, pdi << 22, pt);
+#endif
                 pd[pdi] = phys | (X86_MM_FLG_PR | X86_MM_FLG_WR | X86_MM_FLG_US);
 
+#if defined(ENABLE_MAP_TRACE)
                 kdebug("map %p[%d (%p)] = table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt, pti, vpage, pages[i]);
+#endif
                 pt[pti] = pages[i] | dst_flags;
             }
         }
@@ -147,7 +161,9 @@ int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) 
         for (int i = 0; i < count; ++i) {
             uint32_t pdi = (start >> 22) + i;
             assert(pd[(start >> 22) + i] & (X86_MM_FLG_PR | X86_MM_FLG_PS));
+#if defined(ENABLE_MAP_TRACE)
             kdebug("umap %p[%d (%p)]\n", pd, pdi, pdi << 22);
+#endif
 
             if (!(flags & MM_FLG_NOPHYS)) {
                 mm_free_physical_page(pd[pdi] & -0x400000, MM_FLG_PS);
@@ -172,10 +188,14 @@ int mm_umap_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags) 
                 mm_free_physical_page(pt[pti] & -0x1000, 0);
             }
             assert((table_info[pdi] & 0xFFF) != 0);
+#if defined(ENABLE_MAP_TRACE)
             kdebug("umap %p[%d (%p)] = table %p[%d (%p)]\n", pd, pdi, pdi << 22, pt, pti, vpage);
+#endif
             pt[pti] = 0;
             if (((--table_info[pdi]) & 0xFFF) == 0) {
+#if defined(ENABLE_MAP_TRACE)
                 kdebug("umap table %p[%d (%p)] = %p\n", pd, pdi, pdi << 22, pt);
+#endif
                 pd[pdi] = 0;
                 table_info[pdi] = 0;
                 x86_page_pool_free((uintptr_t) pt);

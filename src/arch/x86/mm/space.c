@@ -40,7 +40,6 @@ uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
                     if (phys) {
                         *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
                     }
-                    kdebug("Allocated pool page\n");
                     return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
                 }
             }
@@ -57,7 +56,6 @@ uintptr_t x86_page_pool_allocate(uintptr_t *phys) {
                     if (phys) {
                         *phys = x86_page_pool[i].paddr + (j << 17) + (k << 12);
                     }
-                    kdebug("Allocated pool page\n");
                     return x86_page_pool[i].vaddr + (j << 17) + (k << 12);
                 }
             }
@@ -148,6 +146,46 @@ void mm_space_clone(mm_space_t dst, const mm_space_t src, uint32_t flags) {
             }
         }
     }
+}
+
+int mm_space_fork(mm_space_t dst, const mm_space_t src, uint32_t flags) {
+    if (flags & MM_FLG_CLONE_KERNEL) {
+        // Kernel pages do not need to be copied
+        mm_space_clone(dst, src, MM_FLG_CLONE_KERNEL);
+    }
+
+    mm_dump_map(DEBUG_DEFAULT, src);
+    uint32_t *src_table_info = (uint32_t *) src[1023];
+
+    if (flags & MM_FLG_CLONE_USER) {
+        // For now, just physically copy the pages
+        for (uint32_t pdi = 1; pdi < KERNEL_VIRT_BASE >> 22; ++pdi) {
+            if (!(src[pdi] & (1 << 0) /* X86_MM_FLG_PR */)) {
+                continue;
+            }
+
+            // There shouldn't be any huge pages mapped in userspace
+            assert(!(src[pdi] & (1 << 7) /* X86_MM_FLG_PS */));
+
+            assert(src_table_info[pdi]);
+            mm_pagetab_t src_pt = (mm_pagetab_t) (src_table_info[pdi] & -0x1000);
+
+            for (uint32_t pti = 0; pti < 1024; ++pti) {
+                if (src_pt[pti] & (1 << 0) /* X86_MM_FLG_PR */) {
+                    uintptr_t vpage = (pdi << 22) | (pti << 12);
+
+                    assert(mm_map_range(dst, vpage, 1, (src_pt[pti] & MM_FLG_WR) | MM_FLG_US) == 0);
+
+                    // TODO: don't be lazy here, implement an user-to-user copy
+                    static char tmp_buf[4096];
+                    assert(mm_memcpy_user_to_kernel(src, tmp_buf, (const void *) vpage, 0x1000) == 0);
+                    assert(mm_memcpy_kernel_to_user(dst, (void *) vpage, tmp_buf, 0x1000) == 0);
+                }
+            }
+        }
+    }
+
+    return 0;
 }
 
 ////

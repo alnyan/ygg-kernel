@@ -3,8 +3,22 @@
 #include <unistd.h>
 
 void _start(void *arg) {
-    // Do something for testing
-    write(STDOUT_FILENO, "Hello\n", 6);
+    int f = fork();
+
+    switch (f) {
+    case 0:
+        while (1) {
+            for (uint32_t i = 0; i < 0x2000000; ++i);
+            printf("This is child\n");
+        }
+        break;
+    default:
+        while (1) {
+            for (uint32_t i = 0; i < 0x2000000; ++i);
+            printf("This is parent %d\n", f);
+        }
+        break;
+    }
 
     while (1) {}
 

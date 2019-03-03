@@ -91,57 +91,70 @@ extern int x86_last_pid;
 //     }
 // }
 
-// task_t *task_fork(task_t *t) {
-//     struct x86_task *src = (struct x86_task *) t;
-//
-//     uint32_t cr3_0;
-//     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-//     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-//
-//     // TODO: smarter cloning, don't just blindly clone all sub-kernel pages
-//     //  * Probably use COW
-//     //  * Use some markers to tell, for example, .text-pages from .data ones, as fork()s may share
-//     //   the same code
-//     uint32_t src_cr3 = *((uint32_t *) (src->ebp0 - 14 * 4));
-//     mm_pagedir_t src_pd = (mm_pagedir_t) x86_mm_reverse_lookup(src_cr3);
-//     assert((uintptr_t) src_pd != MM_NADDR);
-//     mm_pagedir_t dst_pd = mm_pagedir_alloc(NULL);
-//     assert(dst_pd);
-//
-//     // Data copying happens here
-//     task_copy_pages(dst_pd, src_pd);
-//
-//     // Clone registers on stack
-//     uint32_t dst_ebp0 = (uint32_t) heap_alloc(18 * 4) + 18 * 4;
-//     memcpy((void *) (dst_ebp0 - 18 * 4), (const void *) (src->ebp0 - 18 * 4), 18 * 4);
-//
-//     // However, we need to replace cr3
-//     uintptr_t dst_pd_phys = mm_lookup(mm_kernel, (uintptr_t) dst_pd, MM_FLG_HUGE, NULL);
-//     assert(dst_pd_phys != MM_NADDR);
-//     //*((uint32_t *) (dst_ebp0 - 14 * 4)) = (mm_kernel[(uintptr_t) dst_pd >> 22] & -0x400000) | ((uintptr_t) dst_pd & 0x3FFFFF);
-//     *((uint32_t *) (dst_ebp0 - 14 * 4)) = dst_pd_phys;
-//     // Fork returns 0
-//     *((uint32_t *) (dst_ebp0 - 6 * 4)) = 0;
-//
-//     // Here comes new task
-//     struct x86_task *dst = (struct x86_task *) task_create();
-//     assert(dst);
-//
-//     // Setup stacks
-//     dst->ebp0 = dst_ebp0;
-//     dst->ebp3 = src->ebp3;
-//     dst->esp0 = dst_ebp0 - 18 * 4;
-//
-//     // TODO: actually clone open descriptors
-//     dst->ctl->fds[0] = vfs_open("/dev/tty0", VFS_FLG_WR);
-//     dst->ctl->fds[1] = vfs_open("/dev/tty0", VFS_FLG_RD);
-//
-//     // Add it to sched
-//     task_enable(dst);
-//
-//     return dst;
-// }
-//
+task_t *task_fork(task_t *t) {
+    uint32_t cr3_0;
+    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
+    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
+
+    struct x86_task *src = (struct x86_task *) t;
+    assert(src->pd);
+    mm_space_t src_pd = src->pd;
+
+    uintptr_t dst_pd_phys;
+    mm_space_t dst_pd = mm_create_space(&dst_pd_phys);
+    assert(dst_pd);
+    assert(mm_space_fork(dst_pd, src_pd, MM_FLG_CLONE_KERNEL | MM_FLG_CLONE_USER) == 0);
+
+    // Here comes new task
+    struct x86_task *dst = (struct x86_task *) task_create();
+    assert(dst);
+
+    dst->pd = dst_pd;
+
+    struct x86_task_context *src_ctx = (struct x86_task_context *) src->esp0;
+    assert(src_ctx);
+
+    struct x86_task_context *dst_ctx = (struct x86_task_context *) heap_alloc(18 * 4);
+    assert(dst_ctx);
+
+    assert(dst->ctl);
+    dst->ctl->pid = ++x86_last_pid;
+
+    dst->esp0 = (uintptr_t) dst_ctx;
+    dst->ebp0 = dst->esp0 + 18 * 4;
+    dst->esp3_bottom = 0x80000000;
+    dst->esp3_size = 4;
+
+    vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
+    assert(fd_tty_wr);
+    fd_tty_wr->task = dst;
+    dst->ctl->fds[0] = fd_tty_wr;
+
+    memcpy(dst_ctx, src_ctx, 18 * 4);
+
+    dst->flag = 0;
+    dst_ctx->gp.eax = 0;
+    dst_ctx->cr3 = dst_pd_phys;
+
+    task_enable(dst);
+
+    return dst;
+
+    // Setup stacks
+    // dst->ebp0 = dst_ebp0;
+    // dst->ebp3 = src->ebp3;
+    // dst->esp0 = dst_ebp0 - 18 * 4;
+
+    // // TODO: actually clone open descriptors
+    // dst->ctl->fds[0] = vfs_open("/dev/tty0", VFS_FLG_WR);
+    // dst->ctl->fds[1] = vfs_open("/dev/tty0", VFS_FLG_RD);
+
+    // // Add it to sched
+    // task_enable(dst);
+
+    // return dst;
+}
+
 // int task_execve(task_t *dst, const char *path, const char **argp, const char **envp) {
 //     assert(!argp && !envp);     // These are not supported yet
 //

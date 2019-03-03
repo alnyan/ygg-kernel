@@ -109,6 +109,11 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
     kfatal("Exception code: #%u\n", regs->int_no);
     kfatal("Error code: %d (0x%x)\n", regs->err_code);
 
+    if (x86_task_current) {
+        kfatal("Offender task:\n");
+        x86_task_dump_context(DEBUG_FATAL, x86_task_current);
+    }
+
     if (regs->int_no == 14) {
         uint32_t cr2;
         asm volatile ("movl %%cr2, %0":"=a"(cr2));

@@ -94,9 +94,11 @@ uintptr_t mm_alloc_physical_page(uint32_t flags) {
 
 void mm_free_physical_page(uintptr_t page, uint32_t flags) {
     if (flags & MM_FLG_PS) {
+        assert(x86_physical_page_bitmap[page >> 17] == 0xFFFFFFFF);
         x86_physical_page_count += 32;
         x86_physical_page_bitmap[page >> 17] = 0;
     } else {
+        assert((x86_physical_page_bitmap[page >> 17] & ((uint32_t) 1 << ((page >> 12) & 0x1F))));
         ++x86_physical_page_count;
         x86_physical_page_bitmap[page >> 17] &= ~((uint32_t) 1 << ((page >> 12) & 0x1F));
     }

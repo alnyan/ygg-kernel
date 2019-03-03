@@ -32,7 +32,7 @@ int mm_memcpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, size_t c
 
         copied += user_end - user_start;
 
-        mm_umap_range(mm_kernel, user_page, 1, 0);
+        mm_umap_range(mm_kernel, user_page, 1, MM_FLG_NOPHYS);
     }
 
     return 0;
@@ -67,7 +67,7 @@ int mm_memcpy_kernel_to_user(mm_space_t pd, void *dst, const void *src, size_t c
 
         copied += user_end - user_start;
 
-        mm_umap_range(mm_kernel, user_page, 1, 0);
+        mm_umap_range(mm_kernel, user_page, 1, MM_FLG_NOPHYS);
     }
 
     return 0;

@@ -27,6 +27,10 @@ void x86_syscall(x86_irq_regs_t *regs) {
         sys_exit(regs->gp.ebx);
         x86_task_switch(regs);
         break;
+    case SYSCALL_NR_FORK:
+        regs->gp.eax = sys_fork();
+        break;
+
     case SYSCALL_NR_WRITE:
         regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
         break;
@@ -183,12 +187,12 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
     return bytes_written;
 }
 
-//
-// SYSCALL_DEFINE0(fork) {
-//     task_t *res = task_fork(x86_task_current);
-//
-//     return res ? ((struct x86_task *) res)->ctl->pid : -1;
-// }
+SYSCALL_DEFINE0(fork) {
+    task_t *res = task_fork(x86_task_current);
+
+    return res ? ((struct x86_task *) res)->ctl->pid : -1;
+}
+
 //
 // SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
 //     struct x86_task *t = x86_task_current;

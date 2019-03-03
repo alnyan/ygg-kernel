@@ -99,6 +99,7 @@ void x86_task_dump_context(int level, struct x86_task *task) {
 
     if (task->pd) {
         kprint(level, "--- Task address space ---\n");
+        kprint(level, "Physical address: %p\n", task->pd[0]);
         mm_dump_map(level, task->pd);
     }
 

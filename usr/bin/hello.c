@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-void _start(void) {
+int main(void) {
     while (1) {
         printf("Hello from #%d!\n", getpid());
         sleep(3);

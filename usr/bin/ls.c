@@ -12,7 +12,7 @@ static char dt_type(int t) {
     }
 }
 
-void _start(void) {
+int main(void) {
     struct dirent ent;
     int d = opendir("/");
 

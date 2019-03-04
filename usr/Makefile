@@ -19,11 +19,21 @@ USR_CFLAGS=-I ../include \
 		   -I lib
 USR_LDFLAGS=-T ../config/ld/x86/user.ld
 
+CRTI=$(O)/crtx/crti.o
+CRTN=$(O)/crtx/crtn.o
+CRTBEGIN=$(shell $(CC) -print-file-name=crtbegin.o)
+CRTEND=$(shell $(CC) -print-file-name=crtend.o)
+CRT0=$(O)/crtx/crt0.o
+CRTX_OBJS=$(CRTI) \
+		  $(CRT0) \
+		  $(CRTN)
+
 DIRS=$(O)/lib \
 	 $(O)/bin \
+	 $(O)/crtx \
 	 $(O)/etc
 
-all: mkdirs $(O)/lib/libusr.a $(O)/init.tar
+all: mkdirs $(O)/lib/libusr.a $(CRTX_OBJS) $(O)/init.tar
 
 mkdirs:
 	mkdir -p $(DIRS)
@@ -38,7 +48,7 @@ $(O)/etc/%: etc/%
 
 $(O)/bin/%: bin/%.c $(O)/lib/libusr.a
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
-	@$(CC) $(USR_CFLAGS) $(USR_LDFLAGS) -o $@ $< $(O)/lib/libusr.a -lgcc
+	@$(CC) $(USR_CFLAGS) $(USR_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc
 
 $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	@printf " AR\t%s\n" "usr/lib/libusr.a"
@@ -48,3 +58,6 @@ $(O)/lib/%.o: lib/%.c $(LIBUSR_HDRS)
 	@printf " CC\t%s\n" "usr/$(<:%.c=%.o)"
 	@$(CC) $(LIBUSR_CFLAGS) -c -o $@ $<
 
+$(O)/crtx/%.o: crtx/%.S
+	@printf " AS\t%s\n" "usr/$(<:%.c=%.o)"
+	@$(CC) -c -o $@ $<

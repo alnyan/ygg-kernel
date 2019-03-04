@@ -48,7 +48,7 @@ int execute(const char *cmd, const char *arg) {
     return 0;
 }
 
-void _start(void) {
+int main(void) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;

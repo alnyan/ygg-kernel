@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #define userspace
+typedef int ssize_t;
 
 #define SYSCALL_DECL0(name)                 int sys_##name(void)
 #define SYSCALL_DEFINE0(name)               int sys_##name(void)
@@ -40,6 +41,7 @@ SYSCALL_DECL3(fexecve, const userspace char *, const userspace char **, const us
 #define SYSCALL_NR_GETPID       0x14
 SYSCALL_DECL0(getpid);
 
+// TODO: export struct timespec
 #define SYSCALL_NR_NANOSLEEP    0xA2
 SYSCALL_DECL1(nanosleep, const userspace struct timespec *);
 

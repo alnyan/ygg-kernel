@@ -1,44 +1,36 @@
-LIBUSR_OBJS=$(O)/lib/printf.o \
-			$(O)/lib/unistd.o \
-			$(O)/lib/string.o \
-			$(O)/lib/vsnprintf.o
-LIBUSR_HDRS=$(shell find lib -name "*.h")
-USR_PROGS=$(O)/bin/init \
+bin_PROGRAMS=$(O)/bin/init \
 		  $(O)/bin/hello \
 		  $(O)/bin/ls
-CONFIGS=$(O)/etc/network.conf
-
-LIBUSR_CFLAGS=-I ../include \
-			  -nostdlib \
-			  -ffreestanding \
-			  -ggdb
-
-USR_CFLAGS=-I ../include \
+bin_CFLAGS=-I ../include \
 		   -nostdlib \
 		   -ffreestanding \
-		   -I lib
-USR_LDFLAGS=-T ../config/ld/x86/user.ld
+		   -I lib/include
+bin_LDFLAGS=-T ../config/ld/x86/user.ld \
+			-nostdlib
 
-CRTI=$(O)/crtx/crti.o
-CRTN=$(O)/crtx/crtn.o
+etc_CONFIGS=$(O)/etc/network.conf
+
+CRTI=$(O)/lib/crt/x86/crti.o
+CRTN=$(O)/lib/crt/x86/crtn.o
 CRTBEGIN=$(shell $(CC) -print-file-name=crtbegin.o)
 CRTEND=$(shell $(CC) -print-file-name=crtend.o)
-CRT0=$(O)/crtx/crt0.o
+CRT0=$(O)/lib/crt/x86/crt0.o
 CRTX_OBJS=$(CRTI) \
 		  $(CRT0) \
 		  $(CRTN)
 
-DIRS=$(O)/lib \
-	 $(O)/bin \
-	 $(O)/crtx \
+DIRS=$(O)/bin \
 	 $(O)/etc
 
-all: mkdirs $(O)/lib/libusr.a $(CRTX_OBJS) $(O)/init.tar
+all: mkdirs libc $(O)/init.tar
 
 mkdirs:
 	mkdir -p $(DIRS)
 
-$(O)/init.tar: $(USR_PROGS) $(CONFIGS)
+libc:
+	@make -s -C lib all O=../$(O)/lib CC=$(CC) AS=$(AS)
+
+$(O)/init.tar: $(bin_PROGRAMS) $(etc_CONFIGS)
 	@printf " ROOTFS\t%s\n" "init.tar"
 	@tar -C $(O) -cf $@ bin etc
 
@@ -46,18 +38,6 @@ $(O)/etc/%: etc/%
 	@printf " CONF\t%s\n" "/$<"
 	@cp "$<" "$@"
 
-$(O)/bin/%: bin/%.c $(O)/lib/libusr.a
+$(O)/bin/%: bin/%.c libc
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
-	@$(CC) $(USR_CFLAGS) $(USR_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc
-
-$(O)/lib/libusr.a: $(LIBUSR_OBJS)
-	@printf " AR\t%s\n" "usr/lib/libusr.a"
-	@$(AR) rcs $@ $(LIBUSR_OBJS)
-
-$(O)/lib/%.o: lib/%.c $(LIBUSR_HDRS)
-	@printf " CC\t%s\n" "usr/$(<:%.c=%.o)"
-	@$(CC) $(LIBUSR_CFLAGS) -c -o $@ $<
-
-$(O)/crtx/%.o: crtx/%.S
-	@printf " AS\t%s\n" "usr/$(<:%.c=%.o)"
-	@$(CC) -c -o $@ $<
+	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc

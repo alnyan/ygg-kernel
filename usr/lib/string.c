@@ -63,3 +63,9 @@ char *strncpy(char *dst, const char *src, size_t l) {
     return dst;
 }
 
+void *memset(void *buf, int c, size_t l) {
+    for (size_t i = 0; i < l; ++i) {
+        ((char *) buf)[i] = (char) c;
+    }
+    return buf;
+}

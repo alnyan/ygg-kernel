@@ -34,10 +34,12 @@ int execute(const char *cmd, const char *arg) {
 
     switch (pid) {
     case 0:
-        execve(cmd, NULL, NULL);
+        if (execve(cmd, NULL, NULL) != 0) {
+            printf("execve() error\n");
+        }
         exit(1);
     case -1:
-        printf("Exec error\n");
+        printf("fork() error\n");
         return -1;
     default:
         break;
@@ -50,6 +52,14 @@ void _start(void) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;
+
+    printf("String: `%s'\n", "Test string");
+    printf("int: %d\n", -123);
+    printf("uint: %u\n", 0xFFFFFFFF);
+    printf("ptr: %p\n", input);
+    printf("hex: %x\n", 0xDEADBEEF);
+    printf("lhex: %X\n", 0xDEADBEEF);
+    printf("char: `%c'\n", '/');
 
     while (1) {
         printf("> ");

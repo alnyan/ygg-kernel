@@ -46,7 +46,6 @@ static uintptr_t initrd_find_file(uintptr_t base, const char *name) {
     size_t filesz;
     int zb = 0;
     tar_t *it = (tar_t *) base;
-    kdebug("find file %s\n", name);
 
     while (1) {
         if (it->name[0] == 0) {

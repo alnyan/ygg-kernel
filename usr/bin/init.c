@@ -1,88 +1,78 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
-void _start(void *arg) {
-    char keybuf;
-    char line[256];
-    size_t pos = 0;
+int readline(char *buf, size_t len) {
+    size_t p = 0;
+    char c;
+    while (p < len - 1) {
+        if (read(STDIN_FILENO, &c, 1) == 1) {
+            if (c >= ' ') {
+                buf[p++] = c;
+                putc(c);
+            } else if (c == '\b') {
+                if (p) {
+                    buf[p--] = 0;
+                    putc('\b');
+                }
+                continue;
+            } else if (c == '\n') {
+                putc('\n');
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    buf[p] = 0;
+    return 0;
+}
+
+int execute(const char *cmd, const char *arg) {
+    pid_t pid = fork();
+
+    switch (pid) {
+    case 0:
+        execve(cmd, NULL, NULL);
+        exit(1);
+    case -1:
+        printf("Exec error\n");
+        return -1;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+void _start(void) {
+    char input[256];
+    char cmd[64];
+    const char *arg = NULL;
 
     while (1) {
         printf("> ");
+        readline(input, sizeof(input));
 
-        while (1) {
-            if (read(STDIN_FILENO, &keybuf, 1) != 1) {
-                exit(-1);
-            }
+        // Split cmd and args
+        arg = strchr(input, ' ');
+        if (arg) {
+            assert(arg - input < 64);
 
-            if (keybuf >= ' ') {
-                line[pos++] = keybuf;
-                write(STDOUT_FILENO, &keybuf, 1);
-            } else if (keybuf == '\b') {
-                if (pos) {
-                    line[pos--] = 0;
-                    write(STDOUT_FILENO, &keybuf, 1);
-                }
-            } else if (keybuf == '\n') {
-                write(STDOUT_FILENO, &keybuf, 1);
-                line[pos] = 0;
-                pos = 0;
-                break;
-            }
+            strncpy(cmd, input, arg - input);
+            cmd[arg - input] = 0;
+            ++arg;
+        } else {
+            assert(strlen(input) < 64);
+
+            strcpy(cmd, input);
         }
 
-        printf("You've typed: \"%s\"\n", line);
+        printf("cmd: %s, arg: %s\n", cmd, arg);
 
-        if (!strcmp(line, "crashme") || !strcmp(line, "exit")) {
-            exit(1234);
-        }
-
-        if (!strcmp(line, "fello")) {
-            fexecve("/bin/hello", NULL, NULL);
-        }
-
-        if (!strcmp(line, "hello")) {
-            // fexecve("/bin/hello", NULL, NULL);
-            switch (fork()) {
-            case 0:
-                write(STDOUT_FILENO, "Hello!\n", 6);
-                execve("/bin/hello", NULL, NULL);
-                exit(1);
-            case -1:
-                printf("fork() failed\n");
-                exit(4321);
-            default:
-                printf("fork() succeeded\n");
-                break;
-            }
-        } else if (!strncmp(line, "ls ", 3)) {
-            const char *arg = line + 3;
-            int f = opendir(arg);
-            if (f == -1) {
-                printf("opendir failed\n");
-            } else {
-                struct dirent ent;
-
-                while (readdir(f, &ent) == 0) {
-                    printf(" %s %c\n", ent.d_name, ent.d_type == DT_REG ? 'R' : 'D');
-                }
-
-                closedir(f);
-            }
-        } else if (!strcmp(line, "test")) {
-            int f = open("/proc/test", 0, O_RDONLY);
-
-            if (f == -1) {
-                printf("open failed\n");
-            } else {
-                printf("open succeeded\n");
-                int v;
-                printf("read returned %d\n", read(f, &v, sizeof(int)));
-                printf(" = %d\n", v);
-                close(f);
-            }
-        }
+        execute(cmd, arg);
     }
 
-    exit(-1);
+    exit(0);
 }

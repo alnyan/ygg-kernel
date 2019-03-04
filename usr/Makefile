@@ -3,7 +3,8 @@ LIBUSR_OBJS=$(O)/lib/printf.o \
 			$(O)/lib/string.o
 LIBUSR_HDRS=$(shell find lib -name "*.h")
 USR_PROGS=$(O)/bin/init \
-		  $(O)/bin/hello
+		  $(O)/bin/hello \
+		  $(O)/bin/ls
 CONFIGS=$(O)/etc/network.conf
 
 DIRS=$(O)/lib \

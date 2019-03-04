@@ -55,8 +55,9 @@ void _start(void *arg) {
                 printf("fork() succeeded\n");
                 break;
             }
-        } else if (!strcmp(line, "ls")) {
-            int f = opendir("/proc");
+        } else if (!strncmp(line, "ls ", 3)) {
+            const char *arg = line + 3;
+            int f = opendir(arg);
             if (f == -1) {
                 printf("opendir failed\n");
             } else {

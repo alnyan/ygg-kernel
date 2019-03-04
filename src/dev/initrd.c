@@ -102,6 +102,30 @@ static int initramfs_opendir(vfs_t *fs, vfs_mount_t *mnt, vfs_dir_t *dir, const 
     return 0;
 }
 
+static int initramfs_check_path_match(const char *p0, const char *p1) {
+    int d0 = 0, d1 = 0;
+    if (strncmp(p0, p1, strlen(p0))) {
+        return -1;
+    }
+
+    if (*p0) {
+        ++d0;
+    }
+
+    for (const char *p = p0; *p; ++p) {
+        if (*p == '/') {
+            ++d0;
+        }
+    }
+    for (const char *p = p1; *p; ++p) {
+        if (*p == '/' && *(p + 1)) {
+            ++d1;
+        }
+    }
+
+    return (d0 == d1) ? 0 : -1;
+}
+
 // XXX: make sure this code filters entries by level and dir name
 static int initramfs_readdir(vfs_t *fs, vfs_dir_t *dir, vfs_dirent_t *ent, uint32_t flags) {
     uintptr_t pos = (uintptr_t) dir->dev_priv;
@@ -112,8 +136,28 @@ static int initramfs_readdir(vfs_t *fs, vfs_dir_t *dir, vfs_dirent_t *ent, uint3
 
     tar_t *hdr = (tar_t *) pos;
     int is_ustar = tar_is_ustar(hdr);
+    int d = 0;
+    for (const char *p = dir->path; *p; ++p) {
+        if (*p == '/') {
+            ++d;
+        }
+    }
 
-    strcpy(ent->d_name, hdr->name);
+    while (initramfs_check_path_match(dir->path, hdr->name)) {
+        if (tar_type(hdr, is_ustar) == TAR_FILE) {
+            size_t entsiz = tar_oct2u32(hdr->size, 12);
+            hdr = &hdr[1 + MM_ALIGN_UP(entsiz, 512) / 512];
+        } else {
+            hdr = &hdr[1];
+        }
+
+        if (!hdr->name[0]) {
+            dir->dev_priv = (void *) MM_NADDR;
+            return -1;
+        }
+    }
+
+    strcpy(ent->d_name, hdr->name + (*dir->path ? (strlen(dir->path) + 1) : 0));
 
     if (tar_type(hdr, is_ustar) == TAR_FILE) {
         ent->d_type = VFS_DT_REG;

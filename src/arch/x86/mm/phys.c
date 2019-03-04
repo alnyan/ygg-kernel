@@ -123,6 +123,18 @@ void x86_mm_phys_init(void) {
          it = (struct multiboot_mmap_entry *) ((uintptr_t) it + it->size + sizeof(it->size))) {
         assert(it->type < 5);
 
+        uint64_t it_end = it->addr;
+        it_end += it->len;
+        if (it_end > 0xFFFFFFFF) {
+            it_end = 0xFFFFFFFF;
+
+            if (it_end > it->addr) {
+                continue;
+            }
+
+            it->len = it_end - it->addr;
+        }
+
         kdebug("%lp .. %lp: %s\n", it->addr, it->len + it->addr, mmap_memory_types[it->type]);
 
         if (it->type == MULTIBOOT_MEMORY_AVAILABLE) {

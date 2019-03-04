@@ -1,6 +1,7 @@
 bin_PROGRAMS=$(O)/bin/init \
 		  $(O)/bin/hello \
-		  $(O)/bin/ls
+		  $(O)/bin/ls \
+		  $(O)/bin/cpuid
 bin_CFLAGS=-I ../include \
 		   -nostdlib \
 		   -ffreestanding \
@@ -40,4 +41,8 @@ $(O)/etc/%: etc/%
 
 $(O)/bin/%: bin/%.c libc
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
+	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc
+
+$(O)/bin/%: bin/%.S libc
+	@printf " AS\t%s\n" "/$(<:%.S=%)"
 	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc

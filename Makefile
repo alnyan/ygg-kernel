@@ -14,7 +14,7 @@ ifneq ($(CONFIG),)
 include $(CONFIG)
 endif
 
-all: pre_build mkdirs build/kernel.bin utils userspace post
+all: pre_build mkdirs build/kernel.bin utils userspace post doc
 
 dump:
 	@echo "Build files:"
@@ -33,6 +33,20 @@ include config/make/$(ARCH)/generic.mk
 endif
 
 include config/make/driver.mk
+
+DOCDIRS+=build/doc/html
+DOCHTML=$(DOCS:doc/%.rst=build/doc/html/%.html)
+
+doc: doc-dirs doc-html
+
+doc-dirs:
+	@$(foreach d,$(DOCDIRS),mkdir -p "$d";)
+
+doc-html: $(DOCHTML)
+
+build/doc/html/%.html: doc/%.rst
+	@printf " HTML\t%s\n" $<
+	@rst2html $< > $@
 
 pre_build:
 	@$(foreach cmd,$(PRE_BUILD_HOOKS),$(cmd))

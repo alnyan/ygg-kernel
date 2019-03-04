@@ -58,3 +58,4 @@ DIRS+=build/sys \
 	  build/dev \
 	  build/net/eth
 
+DOCS+=doc/memory.rst

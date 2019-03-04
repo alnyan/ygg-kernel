@@ -13,8 +13,7 @@ endif
 ifeq ($(DISABLE_TASK),)
 DEFINES+=-DENABLE_TASK
 OBJS+=build/sys/task.o \
- 	  build/sys/elf.o \
-	  build/dev/procfs.o
+ 	  build/sys/elf.o
 endif
 
 ifeq ($(DISABLE_HEAP_ALLOC_COUNT),)

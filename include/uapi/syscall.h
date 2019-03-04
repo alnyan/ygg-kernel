@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "time.h"
 
 #define userspace
 typedef int ssize_t;
@@ -41,7 +42,6 @@ SYSCALL_DECL3(fexecve, const userspace char *, const userspace char **, const us
 #define SYSCALL_NR_GETPID       0x14
 SYSCALL_DECL0(getpid);
 
-// TODO: export struct timespec
 #define SYSCALL_NR_NANOSLEEP    0xA2
 SYSCALL_DECL1(nanosleep, const userspace struct timespec *);
 

@@ -1,14 +1,11 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+// For struct timespec
+#include <uapi/time.h>
 
 typedef int ssize_t;
 typedef int pid_t;
-
-struct timespec {
-    uint64_t tv_sec;
-    uint64_t tv_nsec;
-};
 
 struct dirent {
     uint32_t d_ino;

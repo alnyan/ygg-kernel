@@ -120,6 +120,7 @@ void sleep(unsigned int sec) {
 void puts(const char *s) {
     size_t l = strlen(s);
     write(STDOUT_FILENO, s, l);
+    putc('\n');
 }
 
 void putc(char c) {

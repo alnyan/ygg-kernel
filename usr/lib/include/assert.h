@@ -3,5 +3,5 @@
 
 #define assert(x)   if (!(x)) { \
                         puts("Assertion failed: " #x); \
-                        exit(1); \
+                        abort(); \
                     }

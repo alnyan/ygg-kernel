@@ -98,7 +98,7 @@ int main(void) {
         }
 
         if (!strcmp(cmd, "abrt")) {
-            abort();
+            assert(0);
         }
 
         execute(cmd, arg);

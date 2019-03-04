@@ -2,6 +2,33 @@
 Memory API documentation
 ************************
 
+0. Overview and constants
+#########################
+
+The memory manager in ${KERNEL_NAME} provides functions for management of memory mappings for both
+kernel and userspace functions by utilizing platform MMU, additionally providing features like
+physical page allocation and memory space object management. The API is written to be as detached
+from the target platform as possible, while still providing full control over virtual memory.
+
+Defined global variables:
+   * `mm_space_t mm_kernel` - kernel memory space
+
+Defined constants/flags are:
+   Memory mapping/allocation options:
+      * `MM_FLG_WR`           - write flag
+      * `MM_FLG_US`           - userspace flag
+      * `MM_FLG_PS`           - alternate page size flag
+      * `MM_FLG_MERGE`        - if used with mapping functions, doesn't fail in case of already existing
+        mappings, only adding missing ones
+      * `MM_FLG_NOPHYS`       - if used with unmapping functions, doesn't de-allocate physical pages
+        associated with virtual ranges
+      * `MM_FLG_DMA`          - the mapping is intended for hardware DMA usage
+
+   Address space clone/fork flags:
+      * `MM_FLG_CLONE_KERNEL` - copy kernel virtual memory mappings to destination space
+      * `MM_FLG_CLONE_USER`   - copy/fork userspace memory mappings/regions
+      * `MM_FLG_CLONE_HW`     - copy hardware memory mappings
+
 1. Memory mapping interface
 ###########################
 
@@ -9,22 +36,39 @@ The section defines a platform-independent interface for target device's MMU and
 protection schemes.
 
 
-``uintptr_t mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags)``
-   Changes address space `pd` to create a mapping of contiguous range [`start` .. `start` + `count`)
-   to some region of physical memory, automatically allocating needed pages. `flags` may specify
-   desired write/user/etc. permissions. The function will also differentiate between kernel, user
-   and hardware mapping spaces (e.g. this function will disallow mappings in hardware space).
+``int mm_map_range(mm_space_t pd, uintptr_t start, size_t count, uint32_t flags)``
+   Changes address space `pd` to create a mapping of contiguous range of `count` pages starting at
+   address `start` to some region of physical memory, automatically allocating needed pages. `flags`
+   may specify desired write/user/etc. permissions. The function will also differentiate between
+   kernel, user and hardware mapping spaces (e.g. this function will disallow mappings in hardware
+   space).
 
    `flags`:
       * `MM_FLG_WR`  - allows write access
       * `MM_FLG_US`  - allows access from userspace applications
       * `MM_FLG_DMA` - tells the function that the range is intended for DMA usage,
         which may differ from regular mappings in some platforms (like x86)
+      * `MM_FLG_PS`  - use alternate page size
 
    Returned values:
-      * Address of the first virtual page in the range (which is `start` aligned down to page size)
-        in case of successful mapping
-      * `MM_NADDR` in case the mapping fails for some reason
+      * 0 in case of success
+      * Non-zero values otherwise
+
+``int mm_map_range_linear(mm_space_t pd, uintptr_t vstart, uintptr_t pstart, size_t count, uint32_t flags)``
+   Creates a mapping of contiguous range [`vstart` .. `vstart` + `count` * `PAGE_SIZE`) to physical
+   memory range [`pstart` .. `pstart` + `count` * `PAGE_SIZE`). The size for pages used (`PAGE_SIZE`)
+   is determined by `flags`. The default `PAGE_SIZE` is 4KiB unless specified by `MM_FLG_PS` flag.
+
+   `flags`:
+      * `MM_FLG_WR`  - allows write access
+      * `MM_FLG_US`  - allows access from userspace applications
+      * `MM_FLG_DMA` - tells the function that the range is intended for DMA usage,
+        which may differ from regular mappings in some platforms (like x86)
+      * `MM_FLG_PS`  - use alternate page size
+
+   Returned values:
+      * 0 in case of success
+      * Non-zero values otherwise
 
 ``int mm_map_range_pages(mm_space_t pd, uintptr_t start, uintptr_t *pages, size_t count, uint32_t flags)``
    Creates a mapping of `count` pages for a virtual address range [`start` .. `start` + `count` *

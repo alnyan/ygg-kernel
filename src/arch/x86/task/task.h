@@ -41,6 +41,9 @@ struct x86_task {
     uint32_t esp3_bottom;
     uint32_t esp3_size;
 
+    uint32_t sigeip;
+    uint32_t sigesp;
+
     uint32_t flag;
     mm_space_t pd;
     task_ctl_t *ctl;
@@ -53,6 +56,7 @@ extern struct x86_task *x86_task_first;
 void x86_task_dump_context(int level, struct x86_task *task);
 int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint32_t flags);
 int x86_task_enter_signal(struct x86_task *task);
+int x86_task_exit_signal(struct x86_task *task);
 
 void x86_task_switch(x86_irq_regs_t *regs);
 void x86_task_init(void);

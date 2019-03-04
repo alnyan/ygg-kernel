@@ -4,5 +4,4 @@
 
 void abort(void) {
     raise(SIGABRT);
-    exit(1);
 }

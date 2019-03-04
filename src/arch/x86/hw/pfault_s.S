@@ -15,7 +15,10 @@
 
 .global x86_isr_14
 x86_isr_14:
+    // Stack here:
     cli
+    // TODO: store this error code somehow
+    add $4, %esp
 
     pushal
 
@@ -72,7 +75,7 @@ x86_isr_14:
     movl X86_TASK_STRUCT_ESP0(%esi), %eax
     movl %eax, %edx
 
-    // Write TSS entry, eax + 18 * 4
+    // Write TSS entry, eax + 19 * 4
     addl $(X86_TASK_STACK * 4), %edx
     movl %edx, x86_tss + TSS_ESP0
 

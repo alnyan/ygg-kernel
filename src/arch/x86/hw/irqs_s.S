@@ -114,7 +114,7 @@ x86_irq_syscall:
     movl X86_TASK_STRUCT_ESP0(%esi), %eax
     movl %eax, %edx
 
-    // Write TSS entry, eax + 18 * 4
+    // Write TSS entry, eax + stack size
     addl $(X86_TASK_STACK * 4), %edx
     movl %edx, x86_tss + TSS_ESP0
 

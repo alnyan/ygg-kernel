@@ -125,21 +125,24 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
     struct x86_task_context *sigctx = NULL;
     uintptr_t cr3;
 
+    task->sigesp = 0;
+    task->sigeip = 0;
+
     if (!task->esp0) {
         // Create task's kernel stack
-        uintptr_t ebp0 = (uintptr_t) heap_alloc(18 * 4) + 18 * 4;
+        uintptr_t ebp0 = (uintptr_t) heap_alloc(19 * 4) + 19 * 4;
         assert(ebp0);
-        ctx = (struct x86_task_context *) (ebp0 - 18 * 4);
+        ctx = (struct x86_task_context *) (ebp0 - 19 * 4);
         memset(ctx, 0, sizeof(struct x86_task_context));
 
         task->ebp0 = ebp0;
-        task->esp0 = ebp0 - 18 * 4;
+        task->esp0 = ebp0 - 19 * 4;
     } else {
         ctx = (struct x86_task_context *) task->esp0;
     }
 
     if (!(flags & (X86_TASK_NOSIGCTX | X86_TASK_IDLE))) {
-        sigctx = (struct x86_task_context *) heap_alloc(18 * 4);
+        sigctx = (struct x86_task_context *) heap_alloc(19 * 4);
         assert(sigctx);
         task->ctl->sigctx = sigctx;
     }
@@ -149,32 +152,18 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         mm_space_clone(task->pd, mm_kernel, MM_FLG_CLONE_KERNEL);
 
         ctx->cr3 = cr3;
-        if (sigctx) {
-            sigctx->cr3 = cr3;
-        }
     } else {
         assert((cr3 = mm_translate(mm_kernel, (uintptr_t) task->pd, NULL)) != MM_NADDR);
 
         if (!ctx->cr3) {
             ctx->cr3 = cr3;
         }
-        if (sigctx && !sigctx->cr3) {
-            sigctx->cr3 = cr3;
-        }
     }
 
-    if (sigctx) {
-        memset(&sigctx->gp, 0, 8 * 4);
-    }
     if (!(flags & X86_TASK_NOGP)) {
         memset(&ctx->gp, 0, 8 * 4);
     }
 
-    if (sigctx) {
-        // TODO: replace this with signal header values
-        sigctx->iret.cs = 0x1B;
-        sigctx->iret.eip = 0x0;
-    }
     if (!(flags & X86_TASK_NOENT)) {
         ctx->iret.cs = (flags & X86_TASK_IDLE) ? 0x08 : 0x1B;
         ctx->iret.eip = entry;
@@ -204,11 +193,6 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         ctx->iret.ss = 0x23;
         ctx->iret.esp = (uintptr_t) esp3;
     }
-    if (sigctx) {
-        sigctx->iret.ss = 0x23;
-        // TODO: sys_sigaltstack
-        sigctx->iret.esp = task->esp3_bottom + 0x1000;
-    }
 
     if (flags & X86_TASK_IDLE) {
         ctx->segs.ds = 0x10;
@@ -220,13 +204,6 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         ctx->segs.es = 0x23;
         ctx->segs.fs = 0x23;
         ctx->segs.gs = 0x23;
-
-        if (sigctx) {
-            sigctx->segs.ds = 0x23;
-            sigctx->segs.es = 0x23;
-            sigctx->segs.fs = 0x23;
-            sigctx->segs.gs = 0x23;
-        }
     }
 
     return 0;
@@ -235,13 +212,39 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
 int x86_task_enter_signal(struct x86_task *task) {
     assert(task && task->ctl);
     // If userspace libc defined any signal entry point
-    if (task->ctl->sigctx && ((struct x86_task_context *) (task->ctl->sigctx))->iret.eip) {
-        ((struct x86_task_context *) (task->ctl->sigctx))->gp.edx = task->ctl->pending_signal;
+    if (task->ctl->sigctx && task->sigeip) {
+        struct x86_task_context *sigctx = (struct x86_task_context *) task->ctl->sigctx;
+
+        // Setup signal handler context
+        memset(&sigctx->gp, 0, 8 * 4);
+        sigctx->gp.edx = task->ctl->pending_signal;
+
+        sigctx->segs.gs = 0x23;
+        sigctx->segs.fs = 0x23;
+        sigctx->segs.es = 0x23;
+        sigctx->segs.ds = 0x23;
+
+
+        sigctx->iret.eflags = 0x248;
+        sigctx->iret.cs = 0x1B;
+        sigctx->iret.eip = task->sigeip;
+        sigctx->iret.esp = task->sigesp;
+        sigctx->iret.ss = 0x23;
+
+        sigctx->cr3 = ((struct x86_task_context *) (task->ebp0 - 19 * 4))->cr3;
+
         task->esp0 = (uintptr_t) task->ctl->sigctx;
+
         return 0;
     } else {
         return -1;
     }
+}
+
+int x86_task_exit_signal(struct x86_task *task) {
+    assert(task && task->ctl && task->ctl->sigctx);
+    task->esp0 = task->ebp0 - 19 * 4;
+    return 0;
 }
 
 void x86_task_init(void) {
@@ -251,7 +254,7 @@ void x86_task_init(void) {
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;
 
-    x86_task_idle.ebp0 = (uintptr_t) &x86_task_idle_stack + 18 * 4;
+    x86_task_idle.ebp0 = (uintptr_t) &x86_task_idle_stack + 19 * 4;
     x86_task_idle.esp0 = (uintptr_t) &x86_task_idle_stack;
     x86_task_idle.esp3_size = 0;
     x86_task_idle.esp3_bottom = 0;
@@ -278,12 +281,6 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         if (t == &x86_task_idle) {
             tp = t;
             continue;
-        }
-
-        if (t->ctl) {
-            if (t->ctl->pending_signal && !(t->flag & TASK_FLG_STOP)) {
-                panic("SIGNAL\n");
-            }
         }
 
         // Task stopped

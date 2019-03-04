@@ -50,10 +50,15 @@ int execute(const char *cmd, const char *arg) {
     return 0;
 }
 
-void sigabrt_handler(int signum) {
-    // Lol
-    printf("Something happened, I'm SIGABRT handler\n");
-    // Will work properly once I implement the sigreturn syscall
+void signal_handler(int signum) {
+    switch (signum) {
+    case SIGABRT:
+        printf("Something happened, I'm SIGABRT handler\n");
+        break;
+    case SIGSEGV:
+        printf("I'm SIGSEGV handler and things are on fire\n");
+        exit(-1);
+    }
 }
 
 int main(void) {
@@ -61,7 +66,8 @@ int main(void) {
     char cmd[64];
     const char *arg = NULL;
 
-    signal(SIGABRT, sigabrt_handler);
+    signal(SIGABRT, signal_handler);
+    signal(SIGSEGV, signal_handler);
 
     printf("String: `%s'\n", "Test string");
     printf("int: %d\n", -123);
@@ -99,6 +105,7 @@ int main(void) {
 
         if (!strcmp(cmd, "abrt")) {
             assert(0);
+            continue;
         }
 
         execute(cmd, arg);

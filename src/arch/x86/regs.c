@@ -30,9 +30,9 @@ void x86_dump_iret_regs(int level, const x86_iret_regs_t *regs) {
     kprint(level, "Execution flow state:\n");
 
     kprint(level, " cs:eip = %p:%p\n", regs->cs, regs->eip);
-    if (regs->cs == 0x1B) {
+    //if (regs->cs == 0x1B) {
         kprint(level, " ss:esp = %p:%p\n", regs->ss, regs->esp);
-    }
+    //}
 
     kprint(level, " eflags = %p\n", regs->eflags);
     kprint(level, "\t(%c%c%c%c%c%c%c%c%c%c IOPL=%d)\n",

@@ -34,14 +34,14 @@ task_t *task_fork(task_t *t) {
     struct x86_task_context *src_ctx = (struct x86_task_context *) src->esp0;
     assert(src_ctx);
 
-    struct x86_task_context *dst_ctx = (struct x86_task_context *) heap_alloc(18 * 4);
+    struct x86_task_context *dst_ctx = (struct x86_task_context *) heap_alloc(19 * 4);
     assert(dst_ctx);
 
     assert(dst->ctl);
     dst->ctl->pid = ++x86_last_pid;
 
     dst->esp0 = (uintptr_t) dst_ctx;
-    dst->ebp0 = dst->esp0 + 18 * 4;
+    dst->ebp0 = dst->esp0 + 19 * 4;
     dst->esp3_bottom = 0x80000000;
     dst->esp3_size = 4;
 
@@ -55,7 +55,7 @@ task_t *task_fork(task_t *t) {
     fd_tty_rd->task = dst;
     dst->ctl->fds[1] = fd_tty_rd;
 
-    memcpy(dst_ctx, src_ctx, 18 * 4);
+    memcpy(dst_ctx, src_ctx, 19 * 4);
 
     dst->flag = 0;
     dst_ctx->gp.eax = 0;

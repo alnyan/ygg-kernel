@@ -28,6 +28,7 @@ static void tty_write_char(struct tty *tty, char c) {
         break;
     // tty0
     case 0:
+        com_send(X86_COM0, c);
         x86_con_putc(c);
         break;
 #endif

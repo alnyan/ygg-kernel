@@ -39,8 +39,7 @@ static void __libc_signal_handle(void) {
         psignals[signum](signum);
     }
 
-    // TODO: call sigreturn
-    exit(1);
+    asm volatile ("int $0x80"::"a"(SYSCALL_NRX_SIGRETURN));
 }
 
 void __libc_signal_init(void) {

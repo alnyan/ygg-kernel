@@ -40,8 +40,14 @@ void x86_page_fault(x86_irq_regs_t *regs) {
         x86_page_fault_dump(1, DEBUG_FATAL, regs);
     } else {
 #if defined(ENABLE_TASK)
-        // Debug dump
-        x86_page_fault_dump(0, DEBUG_DEFAULT, regs);
+        // uint32_t *sfix = (uint32_t *) regs;
+        // uint32_t error_code = sfix[18];
+
+        // for (int i = 13; i < 18; ++i) {
+        //     sfix[i] = sfix[i + 1];
+        // }
+
+        // kdebug("ERROR CODE 0x%x\n", error_code);
 
         if (x86_task_current->ctl->pending_signal) {
             // Disable current task

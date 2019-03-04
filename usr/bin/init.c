@@ -2,6 +2,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <signal.h>
 
 int readline(char *buf, size_t len) {
     size_t p = 0;
@@ -48,10 +50,18 @@ int execute(const char *cmd, const char *arg) {
     return 0;
 }
 
+void sigabrt_handler(int signum) {
+    // Lol
+    printf("Something happened, I'm SIGABRT handler\n");
+    // Will work properly once I implement the sigreturn syscall
+}
+
 int main(void) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;
+
+    signal(SIGABRT, sigabrt_handler);
 
     printf("String: `%s'\n", "Test string");
     printf("int: %d\n", -123);
@@ -80,6 +90,16 @@ int main(void) {
         }
 
         printf("cmd: %s, arg: %s\n", cmd, arg);
+
+        if (!strcmp(cmd, "segv")) {
+            int *v = (int *) 0;
+            *v = 3;
+            continue;
+        }
+
+        if (!strcmp(cmd, "abrt")) {
+            abort();
+        }
 
         execute(cmd, arg);
     }

@@ -1,7 +1,9 @@
 libc_OBJS=$(O)/posix/printf.o \
 		  $(O)/posix/string.o \
 		  $(O)/posix/vsnprintf.o \
-		  $(O)/posix/unistd.o
+		  $(O)/posix/unistd.o \
+		  $(O)/posix/signal.o \
+		  $(O)/posix/abort.o
 libc_CFLAGS=-ffreestanding \
 			-nostdlib \
 			-Iinclude \

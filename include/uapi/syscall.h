@@ -8,6 +8,8 @@
 #define SYSCALL_DEFINE0(name)               int sys_##name(void)
 #define SYSCALL_DECL1(name, x)              int sys_##name(x)
 #define SYSCALL_DEFINE1(name, x)            int sys_##name(x)
+#define SYSCALL_DECL2(name, x, y)           int sys_##name(x, y)
+#define SYSCALL_DEFINE2(name, x, y)         int sys_##name(x, y)
 #define SYSCALL_DECL3(name, x, y, z)        int sys_##name(x, y, z)
 #define SYSCALL_DEFINE3(name, x, y, z)      int sys_##name(x, y, z)
 #define SYSCALL_DECL4(name, x, y, z, w)     int sys_##name(x, y, z, w)
@@ -40,3 +42,10 @@ SYSCALL_DECL0(getpid);
 
 #define SYSCALL_NR_NANOSLEEP    0xA2
 SYSCALL_DECL1(nanosleep, const userspace struct timespec *);
+
+// The implementation is somewhat different from linux kernel's: it has only one signal entry point
+// for userspace libc
+#define SYSCALL_NRX_SIGNAL      0x30
+SYSCALL_DECL2(signal, int, userspace void(*)(int));
+#define SYSCALL_NRX_RAISE       0x31
+SYSCALL_DECL1(raise, int);

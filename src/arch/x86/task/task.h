@@ -24,6 +24,8 @@
 #define X86_TASK_NOENT          (1 << 3)
 // Don't touch task's user stack
 #define X86_TASK_NOESP3         (1 << 4)
+// Don't allocate signal context
+#define X86_TASK_NOSIGCTX       (1 << 5)
 
 struct x86_task_context {
     x86_seg_regs_t segs;
@@ -50,6 +52,7 @@ extern struct x86_task *x86_task_first;
 
 void x86_task_dump_context(int level, struct x86_task *task);
 int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint32_t flags);
+int x86_task_enter_signal(struct x86_task *task);
 
 void x86_task_switch(x86_irq_regs_t *regs);
 void x86_task_init(void);

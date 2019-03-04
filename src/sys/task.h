@@ -3,6 +3,7 @@
 #include "sys/vfs.h"
 #include "sys/attr.h"
 #include "sys/time.h"
+#include <uapi/signum.h>
 
 #define TASK_EXIT_CODE(n)       (n & 0xFF)
 // Exit codes 1000 >= are allocated for error statuses
@@ -17,6 +18,9 @@ typedef struct {
     vfs_file_t *fds[4];
     uint64_t sleep_deadline;
     pid_t pid;
+    // TODO: proper signal queue
+    int pending_signal;
+    void *sigctx;
 } task_ctl_t;
 
 #define TASK_FLG_RUNNING        (1 << 0)

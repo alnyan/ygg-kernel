@@ -7,6 +7,7 @@ _start:
     mov %esp, %ebp
 
     // INIT LIBC HERE
+    call __libc_signal_init
 
     call _init
 

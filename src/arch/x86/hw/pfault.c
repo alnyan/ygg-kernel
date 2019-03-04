@@ -3,6 +3,7 @@
 #include "sys/debug.h"
 #include "sys/task.h"
 #include "sys/assert.h"
+#include "sys/signal.h"
 
 static void x86_page_fault_dump(int crash, int level, x86_irq_regs_t *regs) {
     uintptr_t cr2;
@@ -42,11 +43,26 @@ void x86_page_fault(x86_irq_regs_t *regs) {
         // Debug dump
         x86_page_fault_dump(0, DEBUG_DEFAULT, regs);
 
-        // Disable current task
-        x86_task_current->flag |= TASK_FLG_STOP;
-        // This will indicate an error
-        regs->gp.ecx = TASK_EXIT_SEGV;
-        x86_task_switch(regs);
+        if (x86_task_current->ctl->pending_signal) {
+            // Disable current task
+            x86_task_current->flag |= TASK_FLG_STOP;
+            // This will indicate an error
+            regs->gp.ecx = TASK_EXIT_SEGV;
+
+            x86_task_switch(regs);
+        } else {
+            // TODO: task_signal()
+            x86_task_current->ctl->pending_signal = SIGSEGV;
+            if (x86_task_enter_signal(x86_task_current) != 0) {
+                kwarn("Task %d has no signal entry point\n", x86_task_current->ctl->pid);
+                // Disable current task
+                x86_task_current->flag |= TASK_FLG_STOP;
+                // This will indicate an error
+                regs->gp.ecx = TASK_EXIT_SEGV;
+
+                x86_task_switch(regs);
+            }
+        }
 #else
         while (1);
 #endif

@@ -122,6 +122,7 @@ void x86_task_dump_context(int level, struct x86_task *task) {
 
 int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint32_t flags) {
     struct x86_task_context *ctx;
+    struct x86_task_context *sigctx = NULL;
     uintptr_t cr3;
 
     if (!task->esp0) {
@@ -137,23 +138,43 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         ctx = (struct x86_task_context *) task->esp0;
     }
 
+    if (!(flags & (X86_TASK_NOSIGCTX | X86_TASK_IDLE))) {
+        sigctx = (struct x86_task_context *) heap_alloc(18 * 4);
+        assert(sigctx);
+        task->ctl->sigctx = sigctx;
+    }
+
     if (!task->pd) {
         task->pd = mm_create_space(&cr3);
         mm_space_clone(task->pd, mm_kernel, MM_FLG_CLONE_KERNEL);
 
         ctx->cr3 = cr3;
+        if (sigctx) {
+            sigctx->cr3 = cr3;
+        }
     } else {
         assert((cr3 = mm_translate(mm_kernel, (uintptr_t) task->pd, NULL)) != MM_NADDR);
 
         if (!ctx->cr3) {
             ctx->cr3 = cr3;
         }
+        if (sigctx && !sigctx->cr3) {
+            sigctx->cr3 = cr3;
+        }
     }
 
+    if (sigctx) {
+        memset(&sigctx->gp, 0, 8 * 4);
+    }
     if (!(flags & X86_TASK_NOGP)) {
         memset(&ctx->gp, 0, 8 * 4);
     }
 
+    if (sigctx) {
+        // TODO: replace this with signal header values
+        sigctx->iret.cs = 0x1B;
+        sigctx->iret.eip = 0x0;
+    }
     if (!(flags & X86_TASK_NOENT)) {
         ctx->iret.cs = (flags & X86_TASK_IDLE) ? 0x08 : 0x1B;
         ctx->iret.eip = entry;
@@ -162,7 +183,6 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
     ctx->iret.eflags = 0x248;
 
     if (!(flags & (X86_TASK_NOESP3 | X86_TASK_IDLE))) {
-        // FIXME: for some reason sometimes stack doesn't get set for tasks
         uint32_t *esp3;
 
         if (!task->esp3_bottom) {
@@ -184,6 +204,11 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         ctx->iret.ss = 0x23;
         ctx->iret.esp = (uintptr_t) esp3;
     }
+    if (sigctx) {
+        sigctx->iret.ss = 0x23;
+        // TODO: sys_sigaltstack
+        sigctx->iret.esp = task->esp3_bottom + 0x1000;
+    }
 
     if (flags & X86_TASK_IDLE) {
         ctx->segs.ds = 0x10;
@@ -195,9 +220,28 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         ctx->segs.es = 0x23;
         ctx->segs.fs = 0x23;
         ctx->segs.gs = 0x23;
+
+        if (sigctx) {
+            sigctx->segs.ds = 0x23;
+            sigctx->segs.es = 0x23;
+            sigctx->segs.fs = 0x23;
+            sigctx->segs.gs = 0x23;
+        }
     }
 
     return 0;
+}
+
+int x86_task_enter_signal(struct x86_task *task) {
+    assert(task && task->ctl);
+    // If userspace libc defined any signal entry point
+    if (task->ctl->sigctx && ((struct x86_task_context *) (task->ctl->sigctx))->iret.eip) {
+        ((struct x86_task_context *) (task->ctl->sigctx))->gp.edx = task->ctl->pending_signal;
+        task->esp0 = (uintptr_t) task->ctl->sigctx;
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 void x86_task_init(void) {
@@ -235,6 +279,13 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             tp = t;
             continue;
         }
+
+        if (t->ctl) {
+            if (t->ctl->pending_signal && !(t->flag & TASK_FLG_STOP)) {
+                panic("SIGNAL\n");
+            }
+        }
+
         // Task stopped
         if (t->flag & TASK_FLG_STOP) {
             // Remove task from sched here
@@ -245,14 +296,22 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 x86_task_last = tp;
             }
 
-            int res = *((int *) (t->ebp0 - 8 * 4));
+            int res;
+            if (t->ctl->pending_signal) {
+                res = 1000 + t->ctl->pending_signal;
+            } else {
+                res = *((uint32_t *) (t->ebp0 - 8 * 4));
+            }
 
             if (res < 1000) {
                 kdebug("Task %d exited with status %d\n", t->ctl->pid, res);
             } else {
                 kwarn("Task %d exited because of an error:\n", t->ctl->pid);
-                switch (res) {
-                case TASK_EXIT_SEGV:
+                switch (t->ctl->pending_signal) {
+                case SIGABRT:
+                    kwarn("  abort() was called\n");
+                    break;
+                case SIGSEGV:
                     kwarn("  Address space violation\n");
                     break;
                 default:

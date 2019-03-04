@@ -1,6 +1,6 @@
 #include "unistd.h"
 #include "string.h"
-#include "syscall.h"
+#include <uapi/syscall.h>
 
 int readdir(int dir, struct dirent *ent) {
     int r;

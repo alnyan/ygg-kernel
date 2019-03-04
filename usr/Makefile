@@ -7,6 +7,16 @@ USR_PROGS=$(O)/bin/init \
 		  $(O)/bin/ls
 CONFIGS=$(O)/etc/network.conf
 
+LIBUSR_CFLAGS=-I ../include \
+			  -nostdlib \
+			  -ffreestanding
+
+USR_CFLAGS=-I ../include \
+		   -nostdlib \
+		   -ffreestanding \
+		   -I lib
+USR_LDFLAGS=-T ../config/ld/x86/user.ld
+
 DIRS=$(O)/lib \
 	 $(O)/bin \
 	 $(O)/etc
@@ -26,7 +36,7 @@ $(O)/etc/%: etc/%
 
 $(O)/bin/%: bin/%.c
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
-	@$(CC) -T../config/ld/x86/user.ld -Ilib -nostdlib -ffreestanding -ggdb -o $@ $< $(O)/lib/libusr.a -lgcc
+	@$(CC) $(USR_CFLAGS) $(USR_LDFLAGS) -o $@ $< $(O)/lib/libusr.a -lgcc
 
 $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 	@printf " AR\t%s\n" "usr/lib/libusr.a"
@@ -34,5 +44,5 @@ $(O)/lib/libusr.a: $(LIBUSR_OBJS)
 
 $(O)/lib/%.o: lib/%.c $(LIBUSR_HDRS)
 	@printf " CC\t%s\n" "usr/$(<:%.c=%.o)"
-	@$(CC) -nostdlib -c -ffreestanding -o $@ $<
+	@$(CC) $(LIBUSR_CFLAGS) -c -o $@ $<
 

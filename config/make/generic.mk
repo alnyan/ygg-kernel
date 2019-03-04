@@ -24,6 +24,7 @@ CFLAGS=-ffreestanding \
 	   -nostdlib \
 	   -nostartfiles \
 	   -Isrc \
+	   -Iinclude \
 	   -Wall \
 	   -Wpedantic \
 	   -Werror \

@@ -9,8 +9,6 @@
 #include "sys/task.h"
 #include "task.h"
 
-extern int x86_last_pid;
-
 task_t *task_fork(task_t *t) {
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
@@ -38,7 +36,6 @@ task_t *task_fork(task_t *t) {
     assert(dst_ctx);
 
     assert(dst->ctl);
-    dst->ctl->pid = ++x86_last_pid;
 
     dst->esp0 = (uintptr_t) dst_ctx;
     dst->ebp0 = dst->esp0 + 19 * 4;

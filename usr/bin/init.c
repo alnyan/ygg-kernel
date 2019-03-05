@@ -10,15 +10,15 @@ typedef struct {
     int (*func) (const char *);
 } builtin_t;
 
-static int b_test(const char *arg) {
-    printf("Test!\n");
+static int b_echo(const char *arg) {
+    printf("%s\n", arg);
     return 0;
 }
 
 static builtin_t builtins[] = {
     {
-        "test",
-        b_test
+        "echo",
+        b_echo
     }
 };
 

@@ -79,9 +79,6 @@ void x86_syscall(x86_irq_regs_t *regs) {
     case SYSCALL_NRX_SIGNAL:
         regs->gp.eax = sys_signal((int) regs->gp.ebx, (void(*)(int)) regs->gp.ecx);
         break;
-    case SYSCALL_NRX_RAISE:
-        regs->gp.eax = sys_raise((int) regs->gp.ebx);
-        break;
     case SYSCALL_NRX_SIGRETURN:
         regs->gp.eax = sys_sigreturn();
         break;
@@ -289,15 +286,6 @@ SYSCALL_DEFINE2(signal, int signum, void (*sighandler)(int)) {
     x86_task_current->sigeip = (uintptr_t) sighandler;
     // TODO: specify stack using sigaltstack
     x86_task_current->sigesp = 0x80001000;
-    return 0;
-}
-
-SYSCALL_DEFINE1(raise, int sig) {
-    // TODO: task_signal
-    assert(x86_task_current && x86_task_current->ctl && x86_task_current->ctl->sigctx);
-    assert(!x86_task_current->ctl->pending_signal);
-    x86_task_current->ctl->pending_signal = sig;
-    x86_task_enter_signal(x86_task_current);
     return 0;
 }
 

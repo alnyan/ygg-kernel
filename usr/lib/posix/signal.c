@@ -22,6 +22,10 @@ void SIG_DFL(int signum) {
     case SIGSEGV:
         printf("%d: segmentation fault\n", getpid());
         break;
+    case SIGUSR1:
+    case SIGUSR2:
+        printf("%d: user signal %d\n", getpid(), signum - SIGUSR1 + 1);
+        break;
     default:
         printf("%d: unhandled signal: %d\n", getpid(), signum);
         break;
@@ -72,6 +76,5 @@ sighandler_t signal(int signum, sighandler_t newh) {
 }
 
 void raise(int sig) {
-    // TODO: move this to kill(getpid(), ...)
-    asm volatile ("int $0x80"::"a"(SYSCALL_NRX_RAISE),"b"(sig));
+    kill(getpid(), sig);
 }

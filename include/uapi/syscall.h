@@ -54,7 +54,5 @@ SYSCALL_DECL1(nanosleep, const userspace struct timespec *);
 // for userspace libc
 #define SYSCALL_NRX_SIGNAL      0x30
 SYSCALL_DECL2(signal, int, userspace void(*)(int));
-#define SYSCALL_NRX_RAISE       0x31
-SYSCALL_DECL1(raise, int);
 #define SYSCALL_NRX_SIGRETURN   0x77
 SYSCALL_DECL0(sigreturn);

@@ -122,7 +122,7 @@ int main(void) {
 
         if (!strcmp(cmd, "lolipc")) {
             kill(2, SIGUSR1);
-            kill(3, SIGUSR1);
+            kill(3, SIGUSR2);
             continue;
         }
 

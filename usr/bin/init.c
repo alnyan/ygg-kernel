@@ -108,6 +108,18 @@ int main(void) {
             continue;
         }
 
+        if (!strcmp(cmd, "suicide")) {
+            kill(getpid(), SIGABRT);
+            continue;
+        }
+
+        if (!strcmp(cmd, "reap")) {
+            for (int i = 2; i < 10; ++i) {
+                kill(i, SIGABRT);
+            }
+            continue;
+        }
+
         execute(cmd, arg);
     }
 

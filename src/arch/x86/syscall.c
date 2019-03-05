@@ -71,6 +71,9 @@ void x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = sys_nanosleep((const userspace struct timespec *) regs->gp.ebx);
         x86_task_switch(regs);
         break;
+    case SYSCALL_NR_KILL:
+        regs->gp.eax = sys_kill((pid_t) regs->gp.ebx, (int) regs->gp.ecx);
+        break;
 
     // XXX: non-standard
     case SYSCALL_NRX_SIGNAL:
@@ -260,6 +263,23 @@ SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
     }
 
     return 0;
+}
+
+SYSCALL_DEFINE2(kill, pid_t pid, int sig) {
+    assert(pid);
+    task_t *t = task_by_pid(pid);
+
+    if (t) {
+        struct x86_task *task = (struct x86_task *) t;
+        assert(task->ctl);
+        // TODO: use signal queue, task_signal
+        task->ctl->pending_signal = sig;
+        x86_task_enter_signal(task);
+
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 SYSCALL_DEFINE2(signal, int signum, void (*sighandler)(int)) {

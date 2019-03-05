@@ -110,3 +110,13 @@ void nanosleep(const struct timespec *ts) {
             "a"(SYSCALL_NR_NANOSLEEP),
             "b"(ts));
 }
+
+int kill(pid_t pid, int sig) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_KILL),
+            "b"(pid),
+            "c"(sig));
+    return r;
+}

@@ -283,6 +283,11 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             continue;
         }
 
+        // If task has a signal pending, clear waiting flags
+        if (t->ctl && t->ctl->pending_signal) {
+            t->flag &= ~TASK_FLG_WAIT;
+        }
+
         // Task stopped
         if (t->flag & TASK_FLG_STOP) {
             // Remove task from sched here

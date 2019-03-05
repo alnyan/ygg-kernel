@@ -13,16 +13,16 @@ void SIG_DFL(int signum) {
     // Print basic info about what happened
     switch (signum) {
     case SIGKILL:
-        printf("Killed\n");
+        printf("%d: killed\n", getpid());
         break;
     case SIGABRT:
-        printf("abort() was called\n");
+        printf("%d: abort() was called\n", getpid());
         break;
     case SIGSEGV:
-        printf("Segmentation fault\n");
+        printf("%d: segmentation fault\n", getpid());
         break;
     default:
-        printf("Unhandled signal: %d\n", signum);
+        printf("%d: unhandled signal: %d\n", getpid(), signum);
         break;
     }
     exit(1);

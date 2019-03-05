@@ -19,6 +19,7 @@
 #include "acpi.h"
 #include "hpet.h"
 #include "pci.h"
+#include "fpu.h"
 
 void (*x86_timer_func) (void);
 
@@ -53,6 +54,8 @@ void hw_init(void) {
 
     gdt_init();
     ints_init();
+
+    fpu_init();
 
     // Setup heap
     extern void _kernel_end_virt();

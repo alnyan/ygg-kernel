@@ -27,7 +27,9 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/hw/timer.o \
 	  build/arch/x86/hw/pfault_s.o \
 	  build/arch/x86/hw/pfault.o \
-	  build/arch/x86/hw/pci.o
+	  build/arch/x86/hw/pci.o \
+	  build/arch/x86/hw/fpu.o \
+	  build/arch/x86/hw/fpu_s.o
 
 ifeq ($(DISABLE_TASK),)
 OBJS+=build/arch/x86/task/task.o \
@@ -55,7 +57,7 @@ DIRS+=build/arch/x86/hw \
 	  build/arch/x86/mm
 
 LD=$(CC)
-CFLAGS+=-DARCH_X86
+CFLAGS+=-DARCH_X86 -msse
 LDFLAGS+=-static-libgcc
 LDFLAGS_POST=-lgcc
 

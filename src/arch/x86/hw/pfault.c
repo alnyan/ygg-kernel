@@ -53,7 +53,7 @@ void x86_page_fault(x86_irq_regs_t *regs) {
             // Disable current task
             x86_task_current->flag |= TASK_FLG_STOP;
             // This will indicate an error
-            regs->gp.ecx = TASK_EXIT_SEGV;
+            regs->gp.ebx = TASK_EXIT_SEGV;
 
             x86_task_switch(regs);
         } else {
@@ -64,7 +64,7 @@ void x86_page_fault(x86_irq_regs_t *regs) {
                 // Disable current task
                 x86_task_current->flag |= TASK_FLG_STOP;
                 // This will indicate an error
-                regs->gp.ecx = TASK_EXIT_SEGV;
+                regs->gp.ebx = TASK_EXIT_SEGV;
 
                 x86_task_switch(regs);
             }

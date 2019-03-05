@@ -186,9 +186,12 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         kdebug("TASK ESP3_BOTTOM = %p\n", task->esp3_bottom);
         esp3 = (uint32_t *) (task->esp3_bottom + task->esp3_size * 0x1000);
 
-        // TODO: arg
-        //*--esp3 = (uint32_t) arg;
-        // *--esp3 = 0x12345678;
+        uint32_t user_stack[] = {
+            (uint32_t) arg,
+            0x12345678,
+        };
+        esp3 -= sizeof(user_stack);
+        mm_memcpy_kernel_to_user(task->pd, esp3, user_stack, sizeof(user_stack));
 
         ctx->iret.ss = 0x23;
         ctx->iret.esp = (uintptr_t) esp3;

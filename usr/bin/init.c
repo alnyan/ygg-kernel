@@ -15,10 +15,45 @@ static int b_echo(const char *arg) {
     return 0;
 }
 
+static int b_ls(const char *arg) {
+    int d = opendir(arg ? arg : "/");
+    if (d == -1) {
+        return -1;
+    }
+    struct dirent ent;
+    while (readdir(d, &ent) == 0) {
+        printf("%s\n", ent.d_name);
+    }
+    closedir(d);
+    return 0;
+}
+
+static int b_cat(const char *arg) {
+    int f = open(arg, 0, O_RDONLY);
+    if (f == -1) {
+        return -1;
+    }
+    char buf[256];
+    ssize_t rd;
+    while ((rd = read(f, buf, sizeof(buf))) > 0) {
+        write(STDOUT_FILENO, buf, rd);
+    }
+    close(f);
+    return 0;
+}
+
 static builtin_t builtins[] = {
     {
         "echo",
         b_echo
+    },
+    {
+        "ls",
+        b_ls
+    },
+    {
+        "cat",
+        b_cat
     }
 };
 
@@ -74,7 +109,7 @@ int execute(const char *cmd, const char *arg) {
     return 0;
 }
 
-int main(void) {
+int main(void *argp) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;

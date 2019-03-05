@@ -1,5 +1,8 @@
 #include <uapi/syscall.h>
 #include "unistd.h"
+#include "errno.h"
+
+#define __set_errno(x) if (x < 0) { errno = -x; return -1; } else { errno = 0; return x; }
 
 int readdir(int dir, struct dirent *ent) {
     int r;
@@ -9,7 +12,7 @@ int readdir(int dir, struct dirent *ent) {
             "b"(dir),
             "c"(ent),
             "d"(sizeof(struct dirent)));
-    return r;
+    __set_errno(r);
 }
 
 ssize_t read(int fd, void *data, size_t len) {
@@ -20,7 +23,7 @@ ssize_t read(int fd, void *data, size_t len) {
             "b"(fd),
             "c"(data),
             "d"(len));
-    return r;
+    __set_errno(r);
 }
 
 ssize_t write(int fd, const void *data, size_t len) {
@@ -31,7 +34,7 @@ ssize_t write(int fd, const void *data, size_t len) {
             "b"(fd),
             "c"(data),
             "d"(len));
-    return r;
+    __set_errno(r);
 }
 
 int open(const char *path, int flags, uint32_t mode) {
@@ -42,7 +45,7 @@ int open(const char *path, int flags, uint32_t mode) {
             "b"(path),
             "c"(flags),
             "d"(mode));
-    return r;
+    __set_errno(r);
 }
 
 int opendir(const char *path) {
@@ -53,7 +56,7 @@ int opendir(const char *path) {
             "b"(path),
             "c"(O_DIRECTORY),
             "d"(0));
-    return r;
+    __set_errno(r);
 }
 
 void close(int fd) {
@@ -72,7 +75,7 @@ int fork(void) {
     asm volatile ("int $0x80":
             "=a"(r):
             "a"(SYSCALL_NR_FORK));
-    return r;
+    __set_errno(r);
 }
 
 int fexecve(const char *path, const char **argp, const char **envp) {
@@ -83,7 +86,7 @@ int fexecve(const char *path, const char **argp, const char **envp) {
             "b"(path),
             "c"(argp),
             "d"(envp));
-    return r;
+    __set_errno(r);
 }
 
 int execve(const char *path, const char **argp, const char **envp) {
@@ -94,7 +97,7 @@ int execve(const char *path, const char **argp, const char **envp) {
             "b"(path),
             "c"(argp),
             "d"(envp));
-    return r;
+    __set_errno(r);
 }
 
 pid_t getpid(void) {
@@ -111,7 +114,7 @@ int nanosleep(const struct timespec *ts) {
             "=a"(r):
             "a"(SYSCALL_NR_NANOSLEEP),
             "b"(ts));
-    return r;
+    __set_errno(r);
 }
 
 int kill(pid_t pid, int sig) {
@@ -121,7 +124,7 @@ int kill(pid_t pid, int sig) {
             "a"(SYSCALL_NR_KILL),
             "b"(pid),
             "c"(sig));
-    return r;
+    __set_errno(r);
 }
 
 int waitpid(pid_t pid, int *wstatus, int options) {
@@ -132,5 +135,5 @@ int waitpid(pid_t pid, int *wstatus, int options) {
             "b"(pid),
             "c"(wstatus),
             "d"(options));
-    return r;
+    __set_errno(r);
 }

@@ -6,6 +6,7 @@
 #include "sys/elf.h"
 #include "sys/mm.h"
 #include "arch/hw.h"
+#include <uapi/errno.h>
 #include "sys/task.h"
 #include "task.h"
 
@@ -80,7 +81,7 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
     // TODO: allow loading from sources other than ramdisk
     uintptr_t file_mem = vfs_getm(path);
     if (file_mem == MM_NADDR) {
-        return -1;
+        return -ENOENT;
     }
     // assert(file_mem != MM_NADDR);
 
@@ -91,7 +92,7 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
 
     assert(x86_task_set_context(task, entry, NULL, 0) == 0);
 
-    return -1;
+    return 0;
 }
 
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {

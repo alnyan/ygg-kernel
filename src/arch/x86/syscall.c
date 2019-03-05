@@ -10,6 +10,7 @@
 #include "sys/panic.h"
 #include "sys/mm.h"
 #include "syscall.h"
+#include <uapi/errno.h>
 
 // The only code for syscall now: put current task to sleep for some time
 void x86_syscall(x86_irq_regs_t *regs) {
@@ -180,7 +181,7 @@ SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
     }
 
     if (free_fd == -1) {
-        return -1;
+        return -ENFILE;
     }
 
     char path_cloned[256];
@@ -200,7 +201,7 @@ SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
         vfs_file_t *f = vfs_opendir(path_cloned);
 
         if (!f) {
-            return -1;
+            return -ENOENT;
         }
 
         t->ctl->fds[free_fd] = f;
@@ -210,7 +211,7 @@ SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
         vfs_file_t *f = vfs_open(path_cloned, vfsm);
 
         if (!f) {
-            return -1;
+            return -ENOENT;
         }
 
         t->ctl->fds[free_fd] = f;
@@ -222,7 +223,7 @@ SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
 SYSCALL_DEFINE1(close, int fd) {
     struct x86_task *t = x86_task_current;
     if (fd < 0 || fd > 3) {
-        return -1;
+        return -EBADF;
     }
 
     vfs_file_t *f;

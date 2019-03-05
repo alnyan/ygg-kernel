@@ -4,6 +4,7 @@ libc_OBJS=$(O)/posix/printf.o \
 		  $(O)/posix/unistd.o \
 		  $(O)/posix/signal.o \
 		  $(O)/posix/abort.o \
+		  $(O)/posix/errno.o \
 		  $(O)/sys/k/syscall.o
 libc_CFLAGS=-ffreestanding \
 			-nostdlib \

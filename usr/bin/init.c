@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
 
 typedef struct {
     const char *cmd;
@@ -18,6 +19,7 @@ static int b_echo(const char *arg) {
 static int b_ls(const char *arg) {
     int d = opendir(arg ? arg : "/");
     if (d == -1) {
+        perror("opendir()");
         return -1;
     }
     struct dirent ent;
@@ -31,6 +33,7 @@ static int b_ls(const char *arg) {
 static int b_cat(const char *arg) {
     int f = open(arg, 0, O_RDONLY);
     if (f == -1) {
+        perror("open()");
         return -1;
     }
     char buf[256];
@@ -95,11 +98,11 @@ int execute(const char *cmd, const char *arg) {
     switch (pid) {
     case 0:
         if (execve(cmd, NULL, NULL) != 0) {
-            printf("execve() error\n");
+            perror("execve()");
         }
         exit(1);
     case -1:
-        printf("fork() error\n");
+        perror("fork()");
         return -1;
     default:
         waitpid(pid, NULL, 0);

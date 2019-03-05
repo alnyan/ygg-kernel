@@ -50,5 +50,5 @@ int fexecve(const char *path, const char **argp, const char **envp);
 pid_t getpid(void);
 int kill(pid_t pid, int sig);
 
-void nanosleep(const struct timespec *ts);
-void sleep(unsigned int sec);
+int nanosleep(const struct timespec *ts);
+int sleep(unsigned int sec);

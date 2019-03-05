@@ -2,9 +2,9 @@
 #include "string.h"
 #include <uapi/syscall.h>
 
-void sleep(unsigned int sec) {
+int sleep(unsigned int sec) {
     struct timespec ts = { sec, 0 };
-    nanosleep(&ts);
+    return nanosleep(&ts);
 }
 
 void puts(const char *s) {

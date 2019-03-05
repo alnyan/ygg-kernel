@@ -105,10 +105,13 @@ pid_t getpid(void) {
     return r;
 }
 
-void nanosleep(const struct timespec *ts) {
-    asm volatile ("int $0x80"::
+int nanosleep(const struct timespec *ts) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
             "a"(SYSCALL_NR_NANOSLEEP),
             "b"(ts));
+    return r;
 }
 
 int kill(pid_t pid, int sig) {

@@ -120,6 +120,12 @@ int main(void) {
             continue;
         }
 
+        if (!strcmp(cmd, "lolipc")) {
+            kill(2, SIGUSR1);
+            kill(3, SIGUSR1);
+            continue;
+        }
+
         execute(cmd, arg);
     }
 

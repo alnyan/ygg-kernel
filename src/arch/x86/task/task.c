@@ -213,6 +213,12 @@ int x86_task_enter_signal(struct x86_task *task) {
     assert(task && task->ctl);
     // If userspace libc defined any signal entry point
     if (task->ctl->sigctx && task->sigeip) {
+        // If signalled task has a sleep/wait pending, abort it and set -1 error code
+        if (task->flag & TASK_FLG_WAIT) {
+            ((struct x86_task_context *) task->esp0)->gp.eax = -1;
+            task->flag &= ~TASK_FLG_WAIT;
+        }
+
         struct x86_task_context *sigctx = (struct x86_task_context *) task->ctl->sigctx;
 
         // Setup signal handler context
@@ -283,11 +289,6 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             continue;
         }
 
-        // If task has a signal pending, clear waiting flags
-        if (t->ctl && t->ctl->pending_signal) {
-            t->flag &= ~TASK_FLG_WAIT;
-        }
-
         // Task stopped
         if (t->flag & TASK_FLG_STOP) {
             // Remove task from sched here
@@ -316,6 +317,17 @@ void x86_task_switch(x86_irq_regs_t *regs) {
                 case SIGSEGV:
                     kwarn("  Address space violation\n");
                     break;
+                case SIGQUIT:
+                    kwarn("  Quit signal\n");
+                    break;
+
+                case SIGUSR1:
+                    kwarn("  User signal 1\n");
+                    break;
+                case SIGUSR2:
+                    kwarn("  User signal 2\n");
+                    break;
+
                 default:
                     kwarn("  Unspecified\n");
                     break;

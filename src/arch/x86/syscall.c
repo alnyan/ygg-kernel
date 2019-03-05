@@ -260,6 +260,7 @@ SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
     if (ts.tv_sec || ts.tv_nsec) {
         task_set_sleep(x86_task_current, &ts);
         x86_task_current->flag |= TASK_FLG_WAIT;
+        ((struct x86_task_context *) x86_task_current->esp0)->gp.eax = 0;
     }
 
     return 0;

@@ -345,8 +345,23 @@ void x86_task_switch(x86_irq_regs_t *regs) {
         }
         // Decrease sleep counters
         if (t->flag & TASK_FLG_WAIT) {
-            if (systime >= t->ctl->sleep_deadline) {
-                t->flag &= ~TASK_FLG_WAIT;
+            switch (t->wait_type) {
+            case TASK_WAIT_SLEEP:
+                if (systime >= t->ctl->sleep_deadline) {
+                    t->flag &= ~TASK_FLG_WAIT;
+                }
+                break;
+            case TASK_WAIT_PID:
+                {
+                    // TODO: a better way to implement this
+                    // Maybe signal from quitting task directly into this
+                    uint32_t pid = (uint32_t) t->ctl->sleep_deadline;
+                    task_t *t2 = task_by_pid(pid);
+                    if (!t2) {
+                        t->ctl->sleep_deadline = 0;
+                        t->flag &= ~TASK_FLG_WAIT;
+                    }
+                }
             }
         }
         tp = t;

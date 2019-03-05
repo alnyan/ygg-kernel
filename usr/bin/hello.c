@@ -9,7 +9,7 @@ static void handle_usr1(int signum) {
 int main(void) {
     signal(SIGUSR1, handle_usr1);
 
-    while (1) {
+    for (int i = 0; i < 10; ++i) {
         printf("Hello from #%d!\n", getpid());
         if (sleep(3) != 0) {
             printf("Waking up from aborted sleep\n");

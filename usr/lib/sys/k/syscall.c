@@ -123,3 +123,14 @@ int kill(pid_t pid, int sig) {
             "c"(sig));
     return r;
 }
+
+int waitpid(pid_t pid, int *wstatus, int options) {
+    int r;
+    asm volatile ("int $0x80":
+            "=a"(r):
+            "a"(SYSCALL_NR_WAITPID),
+            "b"(pid),
+            "c"(wstatus),
+            "d"(options));
+    return r;
+}

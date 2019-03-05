@@ -44,7 +44,10 @@ struct x86_task {
     uint32_t sigeip;
     uint32_t sigesp;
 
+    // TODO: move to ctl
     uint32_t flag;
+    uint32_t wait_type;
+
     mm_space_t pd;
     task_ctl_t *ctl;
     struct x86_task *next;

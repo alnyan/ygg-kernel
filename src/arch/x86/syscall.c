@@ -51,6 +51,9 @@ void x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
         break;
 
+    case SYSCALL_NR_WAITPID:
+        regs->gp.eax = sys_waitpid((pid_t) regs->gp.ebx, (userspace int *) regs->gp.ecx, (int) regs->gp.edx);
+        break;
     case SYSCALL_NR_EXECVE:
         regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
                                   (const userspace char **) regs->gp.ecx,
@@ -69,7 +72,6 @@ void x86_syscall(x86_irq_regs_t *regs) {
 
     case SYSCALL_NR_NANOSLEEP:
         regs->gp.eax = sys_nanosleep((const userspace struct timespec *) regs->gp.ebx);
-        x86_task_switch(regs);
         break;
     case SYSCALL_NR_KILL:
         regs->gp.eax = sys_kill((pid_t) regs->gp.ebx, (int) regs->gp.ecx);
@@ -233,6 +235,19 @@ SYSCALL_DEFINE1(close, int fd) {
     return 0;
 }
 
+SYSCALL_DEFINE3(waitpid, pid_t pid, userspace int *wstatus, int options) {
+    // Not supported yet
+    assert(!wstatus);
+
+    x86_task_current->flag = TASK_FLG_WAIT;
+    x86_task_current->wait_type = TASK_WAIT_PID;
+    x86_task_current->ctl->sleep_deadline = (uint64_t) pid;
+
+    x86_task_switch(NULL);
+
+    return 0;
+}
+
 SYSCALL_DEFINE3(execve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
     // Not supported yet
     assert(!argp || !envp);
@@ -257,7 +272,9 @@ SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
     if (ts.tv_sec || ts.tv_nsec) {
         task_set_sleep(x86_task_current, &ts);
         x86_task_current->flag |= TASK_FLG_WAIT;
+        x86_task_current->wait_type = TASK_WAIT_SLEEP;
         ((struct x86_task_context *) x86_task_current->esp0)->gp.eax = 0;
+        x86_task_switch(NULL);
     }
 
     return 0;

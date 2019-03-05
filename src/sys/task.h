@@ -27,6 +27,8 @@ typedef struct {
 #define TASK_FLG_STOP           (1 << 1)
 #define TASK_FLG_WAIT           (1 << 2)
 #define TASK_FLG_BUSY           (1 << 3)
+#define TASK_WAIT_SLEEP         1
+#define TASK_WAIT_PID           2
 
 #if defined(ARCH_X86)
 #include "arch/x86/task/task.h"

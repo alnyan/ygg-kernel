@@ -5,6 +5,23 @@
 #include <stdlib.h>
 #include <signal.h>
 
+typedef struct {
+    const char *cmd;
+    int (*func) (const char *);
+} builtin_t;
+
+static int b_test(const char *arg) {
+    printf("Test!\n");
+    return 0;
+}
+
+static builtin_t builtins[] = {
+    {
+        "test",
+        b_test
+    }
+};
+
 int readline(char *buf, size_t len) {
     size_t p = 0;
     char c;
@@ -32,6 +49,12 @@ int readline(char *buf, size_t len) {
 }
 
 int execute(const char *cmd, const char *arg) {
+    for (int i = 0; i < sizeof(builtins) / sizeof(builtins[0]); ++i) {
+        if (!strcmp(builtins[i].cmd, cmd)) {
+            return builtins[i].func(arg);
+        }
+    }
+
     pid_t pid = fork();
 
     switch (pid) {
@@ -44,21 +67,11 @@ int execute(const char *cmd, const char *arg) {
         printf("fork() error\n");
         return -1;
     default:
+        waitpid(pid, NULL, 0);
         break;
     }
 
     return 0;
-}
-
-void signal_handler(int signum) {
-    switch (signum) {
-    case SIGABRT:
-        printf("Something happened, I'm SIGABRT handler\n");
-        break;
-    case SIGSEGV:
-        printf("I'm SIGSEGV handler and things are on fire\n");
-        exit(-1);
-    }
 }
 
 int main(void) {
@@ -66,19 +79,8 @@ int main(void) {
     char cmd[64];
     const char *arg = NULL;
 
-    signal(SIGABRT, signal_handler);
-    signal(SIGSEGV, signal_handler);
-
-    printf("String: `%s'\n", "Test string");
-    printf("int: %d\n", -123);
-    printf("uint: %u\n", 0xFFFFFFFF);
-    printf("ptr: %p\n", input);
-    printf("hex: %x\n", 0xDEADBEEF);
-    printf("lhex: %X\n", 0xDEADBEEF);
-    printf("char: `%c'\n", '/');
-
     while (1) {
-        printf("> ");
+        printf("# ");
         readline(input, sizeof(input));
 
         // Split cmd and args
@@ -93,37 +95,6 @@ int main(void) {
             assert(strlen(input) < 64);
 
             strcpy(cmd, input);
-        }
-
-        printf("cmd: %s, arg: %s\n", cmd, arg);
-
-        if (!strcmp(cmd, "segv")) {
-            int *v = (int *) 0;
-            *v = 3;
-            continue;
-        }
-
-        if (!strcmp(cmd, "abrt")) {
-            assert(0);
-            continue;
-        }
-
-        if (!strcmp(cmd, "suicide")) {
-            kill(getpid(), SIGABRT);
-            continue;
-        }
-
-        if (!strcmp(cmd, "reap")) {
-            for (int i = 2; i < 10; ++i) {
-                kill(i, SIGABRT);
-            }
-            continue;
-        }
-
-        if (!strcmp(cmd, "lolipc")) {
-            kill(2, SIGUSR1);
-            kill(3, SIGUSR2);
-            continue;
         }
 
         execute(cmd, arg);

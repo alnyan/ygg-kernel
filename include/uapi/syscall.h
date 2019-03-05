@@ -36,6 +36,8 @@ SYSCALL_DECL3(open, const userspace char *, int, uint32_t);
 #define SYSCALL_NR_CLOSE        0x06
 SYSCALL_DECL1(close, int);
 
+#define SYSCALL_NR_WAITPID      0x07
+SYSCALL_DECL3(waitpid, pid_t, userspace int *, int);
 #define SYSCALL_NR_EXECVE       0x0B
 SYSCALL_DECL3(execve, const userspace char *, const userspace char **, const userspace char **);
 #define SYSCALL_NRX_FEXECVE     0x11

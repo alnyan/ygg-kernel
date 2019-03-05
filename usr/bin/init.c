@@ -45,6 +45,48 @@ static int b_cat(const char *arg) {
     return 0;
 }
 
+static int b_hex(const char *arg) {
+    static const int b_hex_len = 16;
+    int f = open(arg, 0, O_RDONLY);
+    if (f == -1) {
+        perror("open()");
+        return -1;
+    }
+    char buf[256];
+    ssize_t rd;
+
+    while ((rd = read(f, buf, sizeof(buf))) > 0) {
+        for (int i = 0; i < rd; i += b_hex_len) {
+            for (int j = 0; j < b_hex_len; ++j) {
+                if (i + j < rd) {
+                    printf("%02x ", buf[i + j] & 0xFF);
+                } else {
+                    printf("   ");
+                }
+            }
+
+            printf("| ");
+            for (int j = 0; j < b_hex_len && i + j < rd; ++j) {
+                char c = buf[i + j];
+                printf("%c", c >= ' ' ? c : '.');
+            }
+            printf("\n");
+        }
+    }
+
+    close(f);
+    return 0;
+}
+
+static int b_pid(const char *arg) {
+    printf("My PID is %d\n", getpid());
+    return 0;
+}
+
+static int b_exit(const char *arg) {
+    exit(0);
+}
+
 static builtin_t builtins[] = {
     {
         "echo",
@@ -57,6 +99,18 @@ static builtin_t builtins[] = {
     {
         "cat",
         b_cat
+    },
+    {
+        "hex",
+        b_hex
+    },
+    {
+        "pid",
+        b_pid
+    },
+    {
+        "exit",
+        b_exit
     }
 };
 

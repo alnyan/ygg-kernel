@@ -302,8 +302,5 @@ int pci_ide_init(pci_addr_t addr) {
         }
     }
 
-    char buf[1024];
-    pci_ide_operation(&pci_ide, 0, 0, 0x1000000, 1, 0x10, (uintptr_t) buf);
-
     return 0;
 }

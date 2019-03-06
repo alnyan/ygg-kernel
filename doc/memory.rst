@@ -5,7 +5,7 @@ Memory API documentation
 0. Overview and constants
 #########################
 
-The memory manager in ${KERNEL_NAME} provides functions for management of memory mappings for both
+The memory manager in Yggdrasil kernel provides functions for management of memory mappings for both
 kernel and userspace functions by utilizing platform MMU, additionally providing features like
 physical page allocation and memory space object management. The API is written to be as detached
 from the target platform as possible, while still providing full control over virtual memory.

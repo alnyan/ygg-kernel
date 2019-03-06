@@ -5,7 +5,7 @@ libc_OBJS=$(O)/posix/printf.o \
 		  $(O)/posix/signal.o \
 		  $(O)/posix/abort.o \
 		  $(O)/posix/errno.o \
-		  $(O)/sys/k/syscall.o
+		  $(O)/sys/ygg/syscall.o
 libc_CFLAGS=-ffreestanding \
 			-nostdlib \
 			-Iinclude \
@@ -22,7 +22,7 @@ CRTX_OBJS=$(CRTI) \
 
 DIRS=$(O)/crt/x86 \
 	 $(O)/posix \
-	 $(O)/sys/k
+	 $(O)/sys/ygg
 
 all: mkdirs $(CRTX_OBJS) $(O)/libusr.a
 

@@ -1,12 +1,12 @@
-********************************
-${KERNEL_NAME} and its userspace
-********************************
+***********
+Valhalla OS
+***********
 
 0. Overview
 ###########
 
-This is a repository of ${KERNEL_NAME} and varoius utilities, as well as a bunch of userspace
-programs intended to run in it.
+This is a repository of Valhalla OS, which consists of Yggdrasil kernel, varoius utilities, as well
+as a bunch of userspace programs intended to run in it.
 
 1. Features
 ###########

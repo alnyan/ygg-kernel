@@ -79,6 +79,7 @@ x86_irq_\n:
 irq_handler 1
 irq_handler 8
 irq_handler 11
+irq_handler 14
 
 #ifdef ENABLE_TASK
 .global x86_irq_syscall

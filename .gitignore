@@ -3,3 +3,4 @@ build
 dump.dat
 dump*.dat
 .config
+disk.img

@@ -1,5 +1,9 @@
 #include "ctype.h"
 
+int isspace(char c) {
+    return c == '\n' || c == '\t' || c == ' ';
+}
+
 int isprint(char c) {
     return c >= 0x20 && c <= 0x7F;
 }

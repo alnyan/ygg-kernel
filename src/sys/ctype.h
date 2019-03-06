@@ -1,5 +1,7 @@
 #pragma once
 
+int isspace(char c);
+
 int isprint(char c);
 int islower(char c);
 int isupper(char c);

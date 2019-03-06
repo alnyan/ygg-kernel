@@ -72,6 +72,8 @@ ifdef QEMU_DEBUG
 QEMU_CMD+= -s -S
 endif
 
+QEMU_ADD+= -hda disk.img
+
 ifneq ($(ENABLE_RTL8139),)
 QEMU_ADD+= -device rtl8139,netdev=net0 \
 		   -netdev user,id=net0,hostfwd=tcp::5432-:22,net=192.168.123.1/24 \

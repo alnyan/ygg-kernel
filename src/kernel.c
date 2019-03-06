@@ -37,8 +37,6 @@ void kernel_main(void) {
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
 
-    while (1);
-
     // Load network device config
     net_init();
     net_load_config("/etc/network.conf");

@@ -8,6 +8,7 @@
 #ifdef ENABLE_RTL8139
 #include "dev/pci/net/rtl8139.h"
 #endif
+#include "dev/pci/ide.h"
 
 #define PCI_CONFIG_CMD  0x0CF8
 #define PCI_CONFIG_DAT  0x0CFC
@@ -66,7 +67,8 @@ static void pci_scan_func(pci_addr_t addr) {
             break;
         case PCI_CLASS_STORAGE:
             if (subclass == 0x01) {
-                // TODO: IDE device support
+                pci_ide_init(addr);
+
                 kinfo(" * IDE drive controller\n");
             }
             break;

@@ -37,6 +37,17 @@ include config/make/driver.mk
 DOCDIRS+=build/doc/html
 DOCHTML=$(DOCS:doc/%.rst=build/doc/html/%.html)
 
+VERSION_GIT=$(shell git describe --tags --always)
+DEFINES+=-DYGG_NAME="\"yggdrasil\"" \
+		 -DYGG_VERSION="\"$(VERSION_GIT)\"" \
+		 -DYGG_REVDATE="\"$(shell date --rfc-email)\""
+
+ifneq ($(BOARD),)
+DEFINES+=-DYGG_TARGET="\"$(ARCH)-$(BOARD)\""
+else
+DEFINES+=-DYGG_TARGET="\"$(ARCH)\""
+endif
+
 doc: doc-dirs doc-html
 
 doc-dirs:

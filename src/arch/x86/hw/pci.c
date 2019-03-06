@@ -54,9 +54,8 @@ static void pci_scan_func(pci_addr_t addr) {
     if (class == 0x06 && subclass == 0x04) {
         // TODO: scan secondary bus
     } else {
-        // TODO: call appropriate initializers bound by device drivers
-        kinfo("PCI %d:%d:%d: %s (%02x:%02x)\n", PCI_TRIPLET(addr), pci_classes[class], class, subclass);
-        kinfo("Vendor: 0x%04x, Device: 0x%04x\n", vendor, device);
+        kdebug("PCI %d:%d:%d: %s (%02x:%02x)\n", PCI_TRIPLET(addr), pci_classes[class], class, subclass);
+        kdebug("Vendor: 0x%04x, Device: 0x%04x\n", vendor, device);
 
         switch (class) {
         case PCI_CLASS_DISPLAY:

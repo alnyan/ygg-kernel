@@ -17,10 +17,11 @@ void kernel_main(void) {
     irq_disable();
 
     mm_init();
-
-    kdebug("Booting kernel\n");
     // Init basic stuff so we can at least print something
     hw_early_init();
+    kinfo("Booting %s %s\n", YGG_NAME, YGG_VERSION);
+    kinfo("Built for %s, %s\n", YGG_TARGET, YGG_REVDATE);
+
     // Init printing
     debug_init();
     // Proceed on hw-specific details of init
@@ -35,6 +36,8 @@ void kernel_main(void) {
 
     assert(vfs_mount(NULL, "/dev", vfs_devfs, 0) == 0);
     assert(vfs_mount("/dev/ram0", "/", vfs_initramfs, 0) == 0);
+
+    while (1);
 
     // Load network device config
     net_init();

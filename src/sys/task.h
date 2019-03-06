@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "sys/vfs.h"
+// #include "sys/vfs.h"
 #include "sys/attr.h"
 #include "sys/time.h"
 #include <uapi/signum.h>
@@ -15,7 +15,7 @@ typedef int pid_t;
 
 // Platform-agnostic task control struct
 typedef struct {
-    vfs_file_t *fds[4];
+    // vfs_file_t *fds[4];
     uint64_t sleep_deadline;
     pid_t pid;
     // TODO: proper signal queue

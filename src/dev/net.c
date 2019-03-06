@@ -5,7 +5,6 @@
 #include "net/eth/eth.h"
 #include "net/arp.h"
 #include "net/inet.h"
-#include "sys/vfs.h"
 #include "sys/atoi.h"
 #include "sys/string.h"
 
@@ -268,88 +267,89 @@ void net_route_resolve(netdev_t *dev, uint32_t inaddr, const uint8_t *hwaddr) {
 }
 
 int net_load_config(const char *path) {
-    // TODO: move this to userspace
-    /*
-     * The config file format is something like:
-     *
-     * [eth0]
-     * inet=192.168.1.2/24
-     * route 192.168.1.0/24 192.168.1.1
-     */
-
-    vfs_file_t *f = vfs_open(path, VFS_FLG_RD);
-    if (!f) {
-        return -1;
-    }
-
-    char linebuf[128];
-    char buf0[64];
-    const char *e, *p, *n;
-    netdev_t *curr_iface = NULL;
-    uint32_t inaddr = 0;
-    uint8_t mask = 0;
-    uint32_t inaddr1 = 0;
-
-    while (vfs_gets(f, linebuf, sizeof(linebuf)) > 0) {
-        kdebug("LINE \"%s\"\n", linebuf);
-        // Interface spec line
-        if (linebuf[0] == '[') {
-            assert((e = strchr(linebuf, ']')));
-            strncpy(buf0, linebuf + 1, e - linebuf - 1);
-            buf0[e - linebuf - 1] = 0;
-
-            curr_iface = net_find_iface(buf0);
-        } else if (!strncmp(linebuf, "inet=", 5)) {
-            if (curr_iface) {
-                e = linebuf + 5;
-                p = strchr(e, '/');
-
-                // Parse mask
-                if (p) {
-                    mask = atoi(p + 1);
-                }
-                // Parse inaddr
-                if (p) {
-                    strncpy(buf0, e, p - e);
-                    buf0[p - e] = 0;
-                } else {
-                    strcpy(buf0, e);
-                }
-
-                assert(inaddr = inet_aton(buf0));
-
-                net_inaddr_add(curr_iface, inaddr, mask);
-            }
-        } else if (!strncmp(linebuf, "route ", 6)) {
-            if (curr_iface) {
-                e = linebuf + 6;
-                p = strchr(e, '/');
-                n = strchr(e, ' ');
-
-                assert(n);
-
-                // Parse route real destination address
-                if (p) {
-                    mask = atoi(p + 1);
-                    strncpy(buf0, e, p - e);
-                    buf0[p - e] = 0;
-                } else {
-                    strncpy(buf0, e, n - e);
-                    buf0[n - e] = 0;
-                }
-
-                assert(inaddr = inet_aton(buf0));
-                e = n + 1;
-
-                // Parse via-destination address
-                assert(inaddr1 = inet_aton(e));
-
-                net_route_add(inaddr, inaddr1, curr_iface, mask);
-            }
-        }
-    }
-
-    vfs_close(f);
-
-    return 0;
+    return -1;
+//     // TODO: move this to userspace
+//     /*
+//      * The config file format is something like:
+//      *
+//      * [eth0]
+//      * inet=192.168.1.2/24
+//      * route 192.168.1.0/24 192.168.1.1
+//      */
+//
+//     vfs_file_t *f = vfs_open(path, VFS_FLG_RD);
+//     if (!f) {
+//         return -1;
+//     }
+//
+//     char linebuf[128];
+//     char buf0[64];
+//     const char *e, *p, *n;
+//     netdev_t *curr_iface = NULL;
+//     uint32_t inaddr = 0;
+//     uint8_t mask = 0;
+//     uint32_t inaddr1 = 0;
+//
+//     while (vfs_gets(f, linebuf, sizeof(linebuf)) > 0) {
+//         kdebug("LINE \"%s\"\n", linebuf);
+//         // Interface spec line
+//         if (linebuf[0] == '[') {
+//             assert((e = strchr(linebuf, ']')));
+//             strncpy(buf0, linebuf + 1, e - linebuf - 1);
+//             buf0[e - linebuf - 1] = 0;
+//
+//             curr_iface = net_find_iface(buf0);
+//         } else if (!strncmp(linebuf, "inet=", 5)) {
+//             if (curr_iface) {
+//                 e = linebuf + 5;
+//                 p = strchr(e, '/');
+//
+//                 // Parse mask
+//                 if (p) {
+//                     mask = atoi(p + 1);
+//                 }
+//                 // Parse inaddr
+//                 if (p) {
+//                     strncpy(buf0, e, p - e);
+//                     buf0[p - e] = 0;
+//                 } else {
+//                     strcpy(buf0, e);
+//                 }
+//
+//                 assert(inaddr = inet_aton(buf0));
+//
+//                 net_inaddr_add(curr_iface, inaddr, mask);
+//             }
+//         } else if (!strncmp(linebuf, "route ", 6)) {
+//             if (curr_iface) {
+//                 e = linebuf + 6;
+//                 p = strchr(e, '/');
+//                 n = strchr(e, ' ');
+//
+//                 assert(n);
+//
+//                 // Parse route real destination address
+//                 if (p) {
+//                     mask = atoi(p + 1);
+//                     strncpy(buf0, e, p - e);
+//                     buf0[p - e] = 0;
+//                 } else {
+//                     strncpy(buf0, e, n - e);
+//                     buf0[n - e] = 0;
+//                 }
+//
+//                 assert(inaddr = inet_aton(buf0));
+//                 e = n + 1;
+//
+//                 // Parse via-destination address
+//                 assert(inaddr1 = inet_aton(e));
+//
+//                 net_route_add(inaddr, inaddr1, curr_iface, mask);
+//             }
+//         }
+//     }
+//
+//     vfs_close(f);
+//
+//     return 0;
 }

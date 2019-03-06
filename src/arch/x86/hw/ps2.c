@@ -4,7 +4,6 @@
 #include "sys/panic.h"
 #include "sys/ctype.h"
 #include "sys/task.h"
-#include "dev/tty.h"
 #include "../task/task.h"
 #include "ps2cs.h"
 
@@ -53,7 +52,7 @@ int x86_irq_handler_1(x86_irq_regs_t *regs) {
         if (!(ps2_flags & PS2_FLG_RAW)) {
             char r;
             if ((r = ps2_lookup_char(c))) {
-                tty_type(0, r);
+                // tty_type(0, r);
             }
         } else {
             panic("Raw mode is not yet implemented\n");

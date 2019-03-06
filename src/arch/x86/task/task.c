@@ -30,11 +30,11 @@ void task_destroy(task_t *t) {
 
     // TODO: move to task_ctl_free()
     // Close file descriptors
-    for (int i = 0; i < 4; ++i) {
-        if (task->ctl->fds[i]) {
-            vfs_close(task->ctl->fds[i]);
-        }
-    }
+    // for (int i = 0; i < 4; ++i) {
+    //     if (task->ctl->fds[i]) {
+    //         vfs_close(task->ctl->fds[i]);
+    //     }
+    // }
 
     // Free stacks
     heap_free((void *) task->esp0);

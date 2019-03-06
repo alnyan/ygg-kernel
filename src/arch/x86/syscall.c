@@ -3,7 +3,6 @@
 #include "arch/hw.h"
 #include "mm.h"
 #include "hw/console.h"
-#include "sys/vfs.h"
 #include "sys/task.h"
 #include "sys/debug.h"
 #include "sys/assert.h"
@@ -16,7 +15,7 @@
 void x86_syscall(x86_irq_regs_t *regs) {
     mm_set(mm_kernel);
 
-    int res;
+    //int res;
 
     switch (regs->gp.eax) {
     case SYSCALL_NR_EXIT:
@@ -28,29 +27,29 @@ void x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = sys_fork();
         break;
 
-    case SYSCALL_NR_OPEN:
-        regs->gp.eax = sys_open((const userspace char *) regs->gp.ebx, (int) regs->gp.ecx, regs->gp.edx);
-        break;
-    case SYSCALL_NR_CLOSE:
-        sys_close((int) regs->gp.ebx);
-        break;
-    case SYSCALL_NR_READ:
-        // TODO: make device report "async"/"blocking" states before reading
-        mm_set(task_space(x86_task_current));
-        if ((res = sys_read(
-                        (int) regs->gp.ebx,
-                        (userspace void *) regs->gp.ecx,
-                        (size_t) regs->gp.edx,
-                        (ssize_t *) &regs->gp.eax)) == VFS_READ_ASYNC) {
-            task_busy(x86_task_current);
-            x86_task_switch(regs);
-        } else {
-            regs->gp.eax = (uintptr_t) res;
-        }
-        break;
-    case SYSCALL_NR_WRITE:
-        regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
-        break;
+    // case SYSCALL_NR_OPEN:
+    //     regs->gp.eax = sys_open((const userspace char *) regs->gp.ebx, (int) regs->gp.ecx, regs->gp.edx);
+    //     break;
+    // case SYSCALL_NR_CLOSE:
+    //     sys_close((int) regs->gp.ebx);
+    //     break;
+    // case SYSCALL_NR_READ:
+    //     // TODO: make device report "async"/"blocking" states before reading
+    //     mm_set(task_space(x86_task_current));
+    //     if ((res = sys_read(
+    //                     (int) regs->gp.ebx,
+    //                     (userspace void *) regs->gp.ecx,
+    //                     (size_t) regs->gp.edx,
+    //                     (ssize_t *) &regs->gp.eax)) == VFS_READ_ASYNC) {
+    //         task_busy(x86_task_current);
+    //         x86_task_switch(regs);
+    //     } else {
+    //         regs->gp.eax = (uintptr_t) res;
+    //     }
+    //     break;
+    // case SYSCALL_NR_WRITE:
+    //     regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
+    //     break;
 
     case SYSCALL_NR_WAITPID:
         regs->gp.eax = sys_waitpid((pid_t) regs->gp.ebx, (userspace int *) regs->gp.ecx, (int) regs->gp.edx);
@@ -97,72 +96,72 @@ SYSCALL_DEFINE1(exit, int res) {
     return 0;
 }
 
-SYSCALL_DEFINE4(read, int fd, userspace void *buf, size_t len, ssize_t *ret) {
-    if (fd < 0 || fd >= 4) {
-        return -1;
-    }
-
-    vfs_file_t *fp;
-
-    if (!(fp = x86_task_current->ctl->fds[fd])) {
-        return -1;
-    }
-
-    if (fp->flags & (1 << 21)) {
-        assert(len == sizeof(struct vfs_dirent));
-        struct vfs_dirent dirent_tmp;
-        int r = vfs_readdir(fp, &dirent_tmp);
-        if (r >= 0) {
-            mm_memcpy_kernel_to_user(task_space(x86_task_current), buf, &dirent_tmp, sizeof(struct vfs_dirent));
-        }
-        return r;
-    } else {
-        assert(ret);
-        *ret = 0;
-        return vfs_read(fp, buf, len, (ssize_t *) ret);
-    }
-}
-
-SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
-    // TODO: async write
-    if (fd < 0 || fd >= 4) {
-        return -1;
-    }
-
-    vfs_file_t *fp;
-
-    if (!(fp = x86_task_current->ctl->fds[fd])) {
-        return -1;
-    }
-
-    static char tmp_buf[512];
-    size_t bytes_left = len;
-    ssize_t bytes_written = 0;
-
-    // TODO: vfs_write_user
-    while (bytes_left) {
-        size_t bytes_copy = bytes_left;
-        if (bytes_copy > sizeof(tmp_buf)) {
-            bytes_copy = sizeof(tmp_buf);
-        }
-        assert(mm_memcpy_user_to_kernel(task_space(x86_task_current), tmp_buf, buf, bytes_copy) == 0);
-
-        ssize_t res = vfs_write(fp, tmp_buf, bytes_copy);
-
-        if (res != bytes_copy) {
-            if (bytes_written == 0) {
-                bytes_written = res;
-            }
-
-            break;
-        } else {
-            bytes_written += res;
-            bytes_left -= bytes_copy;
-        }
-    }
-
-    return bytes_written;
-}
+// SYSCALL_DEFINE4(read, int fd, userspace void *buf, size_t len, ssize_t *ret) {
+//     if (fd < 0 || fd >= 4) {
+//         return -1;
+//     }
+//
+//     vfs_file_t *fp;
+//
+//     if (!(fp = x86_task_current->ctl->fds[fd])) {
+//         return -1;
+//     }
+//
+//     if (fp->flags & (1 << 21)) {
+//         assert(len == sizeof(struct vfs_dirent));
+//         struct vfs_dirent dirent_tmp;
+//         int r = vfs_readdir(fp, &dirent_tmp);
+//         if (r >= 0) {
+//             mm_memcpy_kernel_to_user(task_space(x86_task_current), buf, &dirent_tmp, sizeof(struct vfs_dirent));
+//         }
+//         return r;
+//     } else {
+//         assert(ret);
+//         *ret = 0;
+//         return vfs_read(fp, buf, len, (ssize_t *) ret);
+//     }
+// }
+//
+// SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
+//     // TODO: async write
+//     if (fd < 0 || fd >= 4) {
+//         return -1;
+//     }
+//
+//     vfs_file_t *fp;
+//
+//     if (!(fp = x86_task_current->ctl->fds[fd])) {
+//         return -1;
+//     }
+//
+//     static char tmp_buf[512];
+//     size_t bytes_left = len;
+//     ssize_t bytes_written = 0;
+//
+//     // TODO: vfs_write_user
+//     while (bytes_left) {
+//         size_t bytes_copy = bytes_left;
+//         if (bytes_copy > sizeof(tmp_buf)) {
+//             bytes_copy = sizeof(tmp_buf);
+//         }
+//         assert(mm_memcpy_user_to_kernel(task_space(x86_task_current), tmp_buf, buf, bytes_copy) == 0);
+//
+//         ssize_t res = vfs_write(fp, tmp_buf, bytes_copy);
+//
+//         if (res != bytes_copy) {
+//             if (bytes_written == 0) {
+//                 bytes_written = res;
+//             }
+//
+//             break;
+//         } else {
+//             bytes_written += res;
+//             bytes_left -= bytes_copy;
+//         }
+//     }
+//
+//     return bytes_written;
+// }
 
 SYSCALL_DEFINE0(fork) {
     task_t *res = task_fork(x86_task_current);
@@ -170,71 +169,71 @@ SYSCALL_DEFINE0(fork) {
     return res ? ((struct x86_task *) res)->ctl->pid : -1;
 }
 
-SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
-    struct x86_task *t = x86_task_current;
-    int free_fd = -1;
-    for (int i = 0; i < 4; ++i) {
-        if (!t->ctl->fds[i]) {
-            free_fd = i;
-            break;
-        }
-    }
-
-    if (free_fd == -1) {
-        return -ENFILE;
-    }
-
-    char path_cloned[256];
-    assert(mm_strncpy_user_to_kernel(task_space(x86_task_current), path_cloned, path, sizeof(path_cloned)) > 0);
-
-    uint32_t vfsm = 0;
-    // O_RDONLY
-    if (mode & (1 << 0)) {
-        vfsm |= VFS_FLG_RD;
-    }
-    // O_WRONLY
-    if (mode & (1 << 1)) {
-        vfsm |= VFS_FLG_WR;
-    }
-    // O_DIRECTORY
-    if (flags & (1 << 21)) {
-        vfs_file_t *f = vfs_opendir(path_cloned);
-
-        if (!f) {
-            return -ENOENT;
-        }
-
-        t->ctl->fds[free_fd] = f;
-
-        return free_fd;
-    } else {
-        vfs_file_t *f = vfs_open(path_cloned, vfsm);
-
-        if (!f) {
-            return -ENOENT;
-        }
-
-        t->ctl->fds[free_fd] = f;
-
-        return free_fd;
-    }
-}
-
-SYSCALL_DEFINE1(close, int fd) {
-    struct x86_task *t = x86_task_current;
-    if (fd < 0 || fd > 3) {
-        return -EBADF;
-    }
-
-    vfs_file_t *f;
-
-    if ((f = t->ctl->fds[fd])) {
-        vfs_close(f);
-        t->ctl->fds[fd] = NULL;
-    }
-
-    return 0;
-}
+// SYSCALL_DEFINE3(open, const userspace char *path, int flags, uint32_t mode) {
+//     struct x86_task *t = x86_task_current;
+//     int free_fd = -1;
+//     for (int i = 0; i < 4; ++i) {
+//         if (!t->ctl->fds[i]) {
+//             free_fd = i;
+//             break;
+//         }
+//     }
+//
+//     if (free_fd == -1) {
+//         return -ENFILE;
+//     }
+//
+//     char path_cloned[256];
+//     assert(mm_strncpy_user_to_kernel(task_space(x86_task_current), path_cloned, path, sizeof(path_cloned)) > 0);
+//
+//     uint32_t vfsm = 0;
+//     // O_RDONLY
+//     if (mode & (1 << 0)) {
+//         vfsm |= VFS_FLG_RD;
+//     }
+//     // O_WRONLY
+//     if (mode & (1 << 1)) {
+//         vfsm |= VFS_FLG_WR;
+//     }
+//     // O_DIRECTORY
+//     if (flags & (1 << 21)) {
+//         vfs_file_t *f = vfs_opendir(path_cloned);
+//
+//         if (!f) {
+//             return -ENOENT;
+//         }
+//
+//         t->ctl->fds[free_fd] = f;
+//
+//         return free_fd;
+//     } else {
+//         vfs_file_t *f = vfs_open(path_cloned, vfsm);
+//
+//         if (!f) {
+//             return -ENOENT;
+//         }
+//
+//         t->ctl->fds[free_fd] = f;
+//
+//         return free_fd;
+//     }
+// }
+//
+// SYSCALL_DEFINE1(close, int fd) {
+//     struct x86_task *t = x86_task_current;
+//     if (fd < 0 || fd > 3) {
+//         return -EBADF;
+//     }
+//
+//     vfs_file_t *f;
+//
+//     if ((f = t->ctl->fds[fd])) {
+//         vfs_close(f);
+//         t->ctl->fds[fd] = NULL;
+//     }
+//
+//     return 0;
+// }
 
 SYSCALL_DEFINE3(waitpid, pid_t pid, userspace int *wstatus, int options) {
     // Not supported yet

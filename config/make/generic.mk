@@ -42,18 +42,12 @@ OBJS+=build/kernel.o \
 	 build/sys/mem.o \
 	 build/sys/panic.o \
 	 build/sys/time.o \
-	 build/sys/vfs.o \
 	 build/sys/heap.o \
-	 build/dev/devfs.o \
-     build/dev/pseudo.o \
-	 build/dev/initrd.o \
- 	 build/sys/dev.o \
  	 build/sys/atoi.o \
 	 build/net/eth/eth.o \
 	 build/net/arp.o \
 	 build/net/inet.o \
 	 build/dev/net.o \
-	 build/dev/tty.o \
 	 build/dev/pci/ide.o
 
 DIRS+=build/sys \

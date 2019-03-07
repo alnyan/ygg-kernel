@@ -29,7 +29,8 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/hw/pfault.o \
 	  build/arch/x86/hw/pci.o \
 	  build/arch/x86/hw/fpu.o \
-	  build/arch/x86/hw/fpu_s.o
+	  build/arch/x86/hw/fpu_s.o \
+	  build/arch/x86/thread/spin.o
 
 ifeq ($(DISABLE_TASK),)
 OBJS+=build/arch/x86/task/task.o \
@@ -54,7 +55,8 @@ USR_LINKER=config/ld/x86/user.ld
 DIRS+=build/arch/x86/hw \
 	  build/arch/x86/task \
 	  build/arch/x86/hw/vesa \
-	  build/arch/x86/mm
+	  build/arch/x86/mm \
+	  build/arch/x86/thread
 
 LD=$(CC)
 CFLAGS+=-DARCH_X86 -msse

@@ -66,15 +66,17 @@ static char x86_task_kernel_stack1[2048];
 
 static void x86_task_kernel_func0(void) {
     while (1) {
+        asm volatile ("sti");
         kdebug("Test0\n");
-        asm volatile ("sti; hlt");
+        for (int i = 0; i < 10000000; ++i);
     }
 }
 
 static void x86_task_kernel_func1(void) {
     while (1) {
+        asm volatile ("sti");
         kdebug("Test1\n");
-        asm volatile ("sti; hlt");
+        for (int i = 0; i < 1000000; ++i);
     }
 }
 

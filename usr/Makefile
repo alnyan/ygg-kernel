@@ -19,6 +19,8 @@ CRT0=$(O)/lib/crt/x86/crt0.o
 CRTX_OBJS=$(CRTI) \
 		  $(CRT0) \
 		  $(CRTN)
+LIBC_STATIC=$(O)/lib/libusr.a
+LIBC_HEADERS=$(shell find lib -name "*.h")
 
 DIRS=$(O)/bin \
 	 $(O)/etc
@@ -39,10 +41,10 @@ $(O)/etc/%: etc/%
 	@printf " CONF\t%s\n" "/$<"
 	@cp "$<" "$@"
 
-$(O)/bin/%: bin/%.c libc
+$(O)/bin/%: bin/%.c $(LIBC_STATIC) $(LIBC_HEADERS)
 	@printf " CC\t%s\n" "/$(<:%.c=%)"
-	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc
+	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(LIBC_STATIC) $(CRTEND) $(CRTN) -lgcc
 
-$(O)/bin/%: bin/%.S libc
+$(O)/bin/%: bin/%.S $(LIBC_STATIC) $(LIBC_HEADERS)
 	@printf " AS\t%s\n" "/$(<:%.S=%)"
-	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(O)/lib/libusr.a $(CRTEND) $(CRTN) -lgcc
+	@$(CC) $(bin_CFLAGS) $(bin_LDFLAGS) -o $@ $(CRTI) $(CRTBEGIN) $(CRT0) $< $(LIBC_STATIC) $(CRTEND) $(CRTN) -lgcc

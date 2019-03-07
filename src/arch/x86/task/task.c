@@ -61,27 +61,8 @@ task_t *task_by_pid(int pid) {
     return NULL;
 }
 
-static char x86_task_kernel_stack0[2048];
-static char x86_task_kernel_stack1[2048];
-
-static void x86_task_kernel_func0(void) {
-    while (1) {
-        asm volatile ("sti");
-        kdebug("Test0\n");
-        for (int i = 0; i < 10000000; ++i);
-    }
-}
-
-static void x86_task_kernel_func1(void) {
-    while (1) {
-        asm volatile ("sti");
-        kdebug("Test1\n");
-        for (int i = 0; i < 1000000; ++i);
-    }
-}
-
 // Idle task (kernel-space) stuff
-static struct x86_task x86_task_idle, x86_task_kernel0, x86_task_kernel1;
+static struct x86_task x86_task_idle;
 static uint32_t x86_task_idle_stack[X86_TASK_TOTAL_STACK];
 
 // Scheduling stuff
@@ -278,7 +259,7 @@ int x86_task_exit_signal(struct x86_task *task) {
 void x86_task_init(void) {
     kdebug("Initializing multitasking\n");
 
-    x86_task_idle.next = &x86_task_kernel0;
+    x86_task_idle.next = NULL;
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;
 
@@ -289,30 +270,6 @@ void x86_task_init(void) {
     x86_task_idle.pd = mm_kernel;
 
     x86_task_set_context(&x86_task_idle, (uintptr_t) x86_task_idle_func, NULL, X86_TASK_IDLE | X86_TASK_NOESP3);
-
-    x86_task_kernel0.next = &x86_task_kernel1;
-    x86_task_kernel0.ctl = NULL;
-    x86_task_kernel0.flag = 0;
-
-    x86_task_kernel0.ebp0 = (uintptr_t) x86_task_kernel_stack0 + sizeof(x86_task_kernel_stack0);
-    x86_task_kernel0.esp0 = (uintptr_t) x86_task_kernel_stack0 + sizeof(x86_task_kernel_stack0) - 19 * 4;
-    x86_task_kernel0.esp3_size = 0;
-    x86_task_kernel0.esp3_bottom = 0;
-    x86_task_kernel0.pd = mm_kernel;
-
-    x86_task_set_context(&x86_task_kernel0, (uintptr_t) x86_task_kernel_func0, NULL, X86_TASK_IDLE | X86_TASK_NOESP3);
-
-    x86_task_kernel1.next = NULL;
-    x86_task_kernel1.ctl = NULL;
-    x86_task_kernel1.flag = 0;
-
-    x86_task_kernel1.ebp0 = (uintptr_t) x86_task_kernel_stack1 + sizeof(x86_task_kernel_stack1);
-    x86_task_kernel1.esp0 = (uintptr_t) x86_task_kernel_stack1 + sizeof(x86_task_kernel_stack1) - 19 * 4;
-    x86_task_kernel1.esp3_size = 0;
-    x86_task_kernel1.esp3_bottom = 0;
-    x86_task_kernel1.pd = mm_kernel;
-
-    x86_task_set_context(&x86_task_kernel1, (uintptr_t) x86_task_kernel_func1, NULL, X86_TASK_IDLE | X86_TASK_NOESP3);
 
     x86_task_current = &x86_task_idle;
     x86_task_first = &x86_task_idle;
@@ -330,7 +287,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
     struct x86_task *tp = NULL;
     // Update tasks' flags and ctl
     for (struct x86_task *t = x86_task_first; t; t = t->next) {
-        if (t == &x86_task_idle || t == &x86_task_kernel0 || t == &x86_task_kernel1) {
+        if (t == &x86_task_idle) {
             tp = t;
             continue;
         }

@@ -64,6 +64,21 @@ x86_irq_0:
     movl %esp, %esi
     movl $x86_int_stack, %esp
 
+    // If we haven't done tasking entry, skip the next part
+    movl x86_tasking_entry, %eax
+    test %eax, %eax
+    jnz 1f
+
+    // If the task we're swithing from is a kernel task, store its new ESP
+    movl 56(%esi), %eax
+    cmpl $0x08, %eax
+    jne 1f
+
+    // It's a kernel task, store ESP
+    movl x86_task_current, %edi
+    movl %esi, X86_TASK_STRUCT_ESP0(%edi)
+1:
+
     // Call timer service
     movl x86_timer_func, %eax
     test %eax, %eax

@@ -11,11 +11,11 @@ bin_LDFLAGS=-T ../config/ld/x86/user.ld \
 
 etc_CONFIGS=$(O)/etc/network.conf
 
-CRTI=$(O)/lib/libcrt/x86/crti.o
-CRTN=$(O)/lib/libcrt/x86/crtn.o
+CRTI=$(O)/lib/libcrt/$(ARCH)/crti.o
+CRTN=$(O)/lib/libcrt/$(ARCH)/crtn.o
 CRTBEGIN=$(shell $(CC) -print-file-name=crtbegin.o)
 CRTEND=$(shell $(CC) -print-file-name=crtend.o)
-CRT0=$(O)/lib/libcrt/x86/crt0.o
+CRT0=$(O)/lib/libcrt/$(ARCH)/crt0.o
 CRTX_OBJS=$(CRTI) \
 		  $(CRT0) \
 		  $(CRTN)

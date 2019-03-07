@@ -1,19 +1,20 @@
 
-CRTI=$(O)/libcrt/x86/crti.o
-CRTN=$(O)/libcrt/x86/crtn.o
+CRTI=$(O)/libcrt/$(ARCH)/crti.o
+CRTN=$(O)/libcrt/$(ARCH)/crtn.o
 CRTBEGIN=$(shell $(CC) -print-file-name=crtbegin.o)
 CRTEND=$(shell $(CC) -print-file-name=crtend.o)
-CRT0=$(O)/libcrt/x86/crt0.o
+CRT0=$(O)/libcrt/$(ARCH)/crt0.o
 CRTX_OBJS=$(CRTI) \
 		  $(CRT0) \
 		  $(CRTN)
 
-DIRS=$(O)/libcrt/x86
+DIRS=$(O)/libcrt/$(ARCH)
 
 all: mkdirs $(CRTX_OBJS)
 
 mkdirs:
 	@mkdir -p $(DIRS)
 
-$(O)/libcrt/x86/%.o: x86/%.S
+$(O)/libcrt/$(ARCH)/%.o: $(ARCH)/%.S
+	@printf " AS\t%s\n" $(<:%.S=libcrt/%.o)
 	@$(CC) -c -o $@ $<

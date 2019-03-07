@@ -7,6 +7,9 @@ HOSTLD=ld
 HOSTAS=as
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
+O=$(abspath build)
+export SRC=$(abspath .)
+
 HDRS=$(shell find src -name "*.h")
 CONFIG=$(shell find . -maxdepth 1 -name ".config")
 
@@ -17,6 +20,7 @@ endif
 all: pre_build mkdirs build/kernel.bin utils userspace post doc
 
 dump:
+	@echo Output directory: $(O)
 	@echo "Build files:"
 	@echo $(OBJS)
 
@@ -95,8 +99,8 @@ build/kernel.elf: $(BOOT_OBJS) $(OBJS)
 
 userspace: pre_user
 	@mkdir -p build/usr
-	@AR=$(AR) CC=$(CC) LD=$(LD) O=../build/usr make -s -C usr all
+	@AR=$(AR) CC=$(CC) LD=$(LD) O=$(O)/usr make -s -C usr all
 
 utils:
 	@mkdir -p build/util
-	@HOSTCC=$(HOSTCC) HOSTLD=$(HOSTLD) HOSTAS=$(HOSTAS) ARCH=$(ARCH) O=../build/util make -s -C util all
+	@HOSTCC=$(HOSTCC) HOSTLD=$(HOSTLD) HOSTAS=$(HOSTAS) ARCH=$(ARCH) O=$(O)/util make -s -C util all

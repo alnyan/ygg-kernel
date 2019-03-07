@@ -5,17 +5,17 @@ bin_PROGRAMS=$(O)/bin/init \
 bin_CFLAGS=-I ../include \
 		   -nostdlib \
 		   -ffreestanding \
-		   -I lib/include
+		   -I lib/libc/include
 bin_LDFLAGS=-T ../config/ld/x86/user.ld \
 			-nostdlib
 
 etc_CONFIGS=$(O)/etc/network.conf
 
-CRTI=$(O)/lib/crt/x86/crti.o
-CRTN=$(O)/lib/crt/x86/crtn.o
+CRTI=$(O)/lib/libcrt/x86/crti.o
+CRTN=$(O)/lib/libcrt/x86/crtn.o
 CRTBEGIN=$(shell $(CC) -print-file-name=crtbegin.o)
 CRTEND=$(shell $(CC) -print-file-name=crtend.o)
-CRT0=$(O)/lib/crt/x86/crt0.o
+CRT0=$(O)/lib/libcrt/x86/crt0.o
 CRTX_OBJS=$(CRTI) \
 		  $(CRT0) \
 		  $(CRTN)
@@ -25,13 +25,13 @@ LIBC_HEADERS=$(shell find lib -name "*.h")
 DIRS=$(O)/bin \
 	 $(O)/etc
 
-all: mkdirs libc $(O)/init.tar
+all: mkdirs libs $(O)/init.tar
 
 mkdirs:
 	mkdir -p $(DIRS)
 
-libc:
-	@make -s -C lib all O=../$(O)/lib CC=$(CC) AS=$(AS)
+libs:
+	@make -s -C lib all O=$(O)/lib CC=$(CC) AS=$(AS)
 
 $(O)/init.tar: $(bin_PROGRAMS) $(etc_CONFIGS)
 	@printf " ROOTFS\t%s\n" "init.tar"

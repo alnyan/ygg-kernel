@@ -77,8 +77,10 @@ void task_enable(task_t *t) {
 
     struct x86_task *task = (struct x86_task *) t;
 
-    // FIXME: move to platform-generic
-    task->ctl->pid = ++x86_last_pid;
+    if (task->ctl) {
+        // FIXME: move to platform-generic
+        task->ctl->pid = ++x86_last_pid;
+    }
     task->flag = 0;
 
     x86_task_last->next = t;
@@ -210,6 +212,24 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
     }
 
     return 0;
+}
+
+void task_set_kernel(task_t *t, task_entry_func entry, void *arg, uint32_t flags) {
+    // Create a kernel stack
+    uintptr_t esp0 = (uintptr_t) heap_alloc(2048);
+    struct x86_task *task = (struct x86_task *) t;
+
+    task->next = NULL;
+    task->ctl = NULL;
+    task->flag = 0;
+
+    task->esp0 = esp0 + 2048 - 19 * 4;
+    task->ebp0 = esp0 + 2048;
+    task->esp3_bottom = 0;
+    task->esp3_size = 0;
+    task->pd = mm_kernel;
+
+    assert(x86_task_set_context(task, (uintptr_t) entry, arg, X86_TASK_IDLE | X86_TASK_NOESP3) == 0);
 }
 
 int x86_task_enter_signal(struct x86_task *task) {

@@ -58,5 +58,7 @@ void task_destroy(task_t *t);
 // void task_copy_from_user(task_t *t, void *dst, const userspace void *src, size_t siz);
 
 // TODO: move this to sched.h?
-void task_enable();
+void task_enable(task_t *t);
 task_t *task_by_pid(int pid);
+
+void task_set_kernel(task_t *t, task_entry_func entry, void *arg, uint32_t flags);

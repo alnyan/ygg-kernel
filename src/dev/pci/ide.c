@@ -6,9 +6,11 @@
 #include "ide.h"
 #include "sys/debug.h"
 #include "sys/panic.h"
+#include "sys/assert.h"
 #include "sys/string.h"
 #include "sys/ctype.h"
 #include "sys/mem.h"
+#include "sys/mm.h"
 
 // ATA command and status interface
 
@@ -72,6 +74,20 @@
 #define ATA_REG_ALTSTATUS       0x0C
 #define ATA_REG_DEVADDR         0x0D
 
+// IDE DMA control
+#define IDE_REG_DMA_CMD         0x00
+#define IDE_REG_DMA_STATUS      0x02
+#define IDE_REG_DMA_PRDT        0x04
+
+// IDE DMA control flags
+#define IDE_DMA_CTL_EN          (1 << 0)
+#define IDE_DMA_CTL_WR          (1 << 3)
+
+// IDE DMA status flags
+#define IDE_DMA_ST_EN           (1 << 0)
+#define IDE_DMA_ST_ERR          (1 << 1)
+#define IDE_DMA_ST_INT          (1 << 2)
+
 // Channel names
 #define ATA_PRIMARY             0x00
 #define ATA_SECONDARY           0x01
@@ -115,12 +131,19 @@ struct pci_ide {
     pci_addr_t addr;
     uint32_t irq;
 
+    // PCI DMA
+    uint64_t *prdt_ptr;
+    uintptr_t prdt_phys;
+
+    uint8_t dma_pending;
+
     struct ide_channel chan[2];
     struct ide_dev     devs[4];
 };
 
 // TODO: support multiple IDE controllers
 static struct pci_ide pci_ide;
+static uint64_t pci_prdt[16] __attribute__((aligned(16)));
 
 void ide_write(struct pci_ide *ide, uint8_t chan, uint8_t reg, uint8_t data) {
     if (reg > 0x07 && reg < 0x0C) {
@@ -188,25 +211,112 @@ void ide_read_block(struct pci_ide *ide, uint8_t chan, uint8_t reg, uint32_t *bu
     }
 }
 
+int pci_ide_dma_read(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t lba, uintptr_t buf_phys, uint8_t nsec) {
+    assert(nsec < 127);
+    assert(!(ide->dma_pending));
+
+    kdebug("ide dma read lba %p, buf %p, siz %u\n", lba, buf_phys, nsec);
+
+    uint16_t flag = 0x8000;
+    uint16_t size = nsec * 512;
+    uint32_t addr = buf_phys;
+
+    ide->dma_pending = 1;
+
+    pci_prdt[0] = ((uint64_t) flag << 48) | (((uint64_t) size) << 32) | (addr);
+
+    // Start DMA
+    // Write PRDT address to the descriptor
+    outl(ide->chan[chan].bmide + IDE_REG_DMA_PRDT, ide->prdt_phys);
+    // Read direction
+    outb(ide->chan[chan].bmide + IDE_REG_DMA_CMD, 0);
+    inb(ide->chan[chan].bmide + IDE_REG_DMA_STATUS);
+    outb(ide->chan[chan].bmide + IDE_REG_DMA_STATUS, 0);
+    // Write LBA
+    uint8_t lba_io[6];
+    uint8_t head;
+
+    lba_io[0] = lba & 0xFF;
+    lba_io[1] = (lba >> 8) & 0xFF;
+    lba_io[2] = (lba >> 16) & 0xFF;
+    lba_io[3] = 0;
+    lba_io[4] = 0;
+    lba_io[5] = 0;
+    head = (lba >> 24) & 0xF;
+
+    // Wait until the drive is free to serve us
+    while (ide_read(ide, chan, ATA_REG_STATUS) & ATA_ST_BUSY) {
+    }
+
+    // Select drive
+    ide_write(ide, chan, ATA_REG_HDDEVSEL, 0xE0 | (drive << 4) | head);
+
+    // Write LBA and sector count
+    ide_write(ide, chan, ATA_REG_SECCOUNT0, nsec);
+    ide_write(ide, chan, ATA_REG_LBA0, lba_io[0]);
+    ide_write(ide, chan, ATA_REG_LBA1, lba_io[1]);
+    ide_write(ide, chan, ATA_REG_LBA2, lba_io[2]);
+
+    // Issue DMA read command
+    ide_write(ide, chan, ATA_REG_COMMAND, ATA_CMD_READ_DMA);
+
+    // Set DMA status bit in ctl reg
+    outb(ide->chan[chan].bmide + IDE_REG_DMA_CMD, IDE_DMA_CTL_EN);
+
+    return 0;
+}
+
 int pci_ide_irq_handler(int irq) {
-    if (irq == pci_ide.irq) {
-        kdebug("PCI IDE IRQ handler\n");
+    uint8_t handled = 0;
+    uint8_t status[2];
+
+    for (int chan = 0; chan < 2; ++chan) {
+        status[chan] = inb(pci_ide.chan[chan].bmide + IDE_REG_DMA_STATUS);
+
+        // This means some other device issued an IRQ
+        if (!(status[chan] & IDE_DMA_ST_INT)) {
+            continue;
+        }
+
+        handled |= (1 << chan);
+    }
+
+    if (handled) {
+        if (handled & (1 << 0)) {
+            kdebug("Handled master IDE bus IRQ\n");
+
+            if (status[0] & IDE_DMA_ST_ERR) {
+                kdebug("Master IDE bus had an error\n");
+            }
+
+            if (!(status[0] & IDE_DMA_ST_EN) && pci_ide.dma_pending) {
+                kdebug("Master IDE DMA operation finished\n");
+            }
+        }
+
         return 0;
     }
+
     return -1;
 }
 
 int pci_ide_init(pci_addr_t addr) {
     // Enable PCI busmastering for the controller
     uint32_t cmd_reg = pci_config_getw(addr, PCI_CONF_COMMAND);
-    cmd_reg |= (1 << 2) | (1 << 1);
+    cmd_reg |= (1 << 2);
     pci_config_setw(addr, PCI_CONF_COMMAND, cmd_reg);
     cmd_reg = pci_config_getw(addr, PCI_CONF_COMMAND);
+
+    // PCI DMA
+    pci_ide.prdt_ptr = pci_prdt;
+    pci_ide.prdt_phys = mm_translate(mm_kernel, (uintptr_t) pci_ide.prdt_ptr, NULL);
+    assert(pci_ide.prdt_phys != MM_NADDR);
+    pci_ide.dma_pending = 0;
 
     pci_ide.addr = addr;
     pci_ide.irq = 14;
 
-    uint32_t bar4 = pci_config_getl(addr, PCI_CONF_BAR0 + 4 * 4);
+    uint32_t bar4 = pci_config_getl(addr, PCI_CONF_BAR0 + 4 * 4) & ~1;
 
     for (int i = 0; i < 2; ++i) {
         pci_ide.chan[i].iobase = pci_config_getl(addr, PCI_CONF_BAR0 + i * 8);
@@ -228,7 +338,6 @@ int pci_ide_init(pci_addr_t addr) {
     // Disable IRQs
     ide_write(&pci_ide, ATA_PRIMARY, ATA_REG_CONTROL, 2);
     ide_write(&pci_ide, ATA_SECONDARY, ATA_REG_CONTROL, 2);
-
 
     // Obtain drive info
     memset(pci_ide.devs, 0, sizeof(struct ide_dev) * 4);

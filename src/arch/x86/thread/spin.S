@@ -7,6 +7,7 @@ spin_lock:
     movl $1, %ecx
 1:
     xorl %eax, %eax
+    pause
     lock cmpxchgl %ecx, (%edi)
     jnz 1b
     ret

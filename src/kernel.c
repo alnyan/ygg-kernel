@@ -9,12 +9,7 @@
 #include "dev/net.h"
 #include "util.h"
 
-#include "sys/list.h"
-
 const char *kernel_cmdline = NULL;
-
-LIST(ints, int);
-ints_t ints;
 
 void kernel_main(void) {
     irq_disable();
@@ -39,39 +34,6 @@ void kernel_main(void) {
     // This is where we're ready to accept the first interrupt and start multitasking mode
     net_post_config();
 
-    list_init(&ints);
-    kdebug("Items (0):\n");
-    list_foreach(&ints, ints, it) {
-        kdebug("* %d\n", it->value);
-    }
-
-    for (int i = 0; i < 3; ++i) {
-        list_append(&ints, ints, &i);
-    }
-
-    kdebug("Items (1):\n");
-    list_foreach(&ints, ints, it) {
-        kdebug("* %d\n", it->value);
-    }
-
-    list_node_free(list_pop_front(&ints));
-
-    kdebug("Items (2):\n");
-    list_foreach(&ints, ints, it) {
-        kdebug("* %d\n", it->value);
-    }
-
-    while (!list_empty(&ints)) {
-        NODE(ints) *node = (NODE(ints) *) list_pop_front(&ints);
-        list_node_free(node);
-    }
-
-    kdebug("Items (3):\n");
-    list_foreach(&ints, ints, it) {
-        kdebug("* %d\n", it->value);
-    }
-
-    while (1);
     irq_enable();
     while (1) {
         __idle();

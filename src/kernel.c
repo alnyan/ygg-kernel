@@ -5,6 +5,7 @@
 #include "arch/hw.h"
 #include "sys/elf.h"
 #include "sys/mm.h"
+#include "fs/ioman.h"
 #include "sys/heap.h"
 #include "dev/net.h"
 #include "util.h"
@@ -31,10 +32,14 @@ void kernel_main(void) {
     net_load_config("/etc/network.conf");
     net_dump_ifaces();
 
+    ioman_init();
+
     // This is where we're ready to accept the first interrupt and start multitasking mode
     net_post_config();
 
+    ioman_start_task();
     irq_enable();
+
     while (1) {
         __idle();
     }

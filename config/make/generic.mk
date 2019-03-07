@@ -49,11 +49,13 @@ OBJS+=build/kernel.o \
 	 build/net/inet.o \
 	 build/dev/net.o \
 	 build/dev/pci/ide.o \
-	 build/sys/list.o
+	 build/sys/list.o \
+	 build/fs/ioman.o
 
 DIRS+=build/sys \
 	  build/dev \
-	  build/net/eth
+	  build/net/eth \
+	  build/fs
 
 DOCS+=doc/memory.rst \
 	  doc/task.rst

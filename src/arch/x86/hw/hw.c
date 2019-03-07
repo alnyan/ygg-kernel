@@ -11,6 +11,8 @@
 #include "console.h"
 #include "ps2.h"
 #include "../mm.h"
+#include "kernel.h"
+#include "sys/string.h"
 #include "sys/heap.h"
 #include "sys/mm.h"
 #include "cpuid.h"
@@ -27,6 +29,16 @@ void hw_early_init(void) {
     x86_timer_func = NULL;
     com_init(X86_COM0);
     x86_con_init();
+
+    if (x86_multiboot_info->cmdline) {
+        kernel_cmdline = (const char *) (x86_multiboot_info->cmdline + KERNEL_VIRT_BASE);
+
+        // Skip filename
+        const char *spc = strchrnul(kernel_cmdline, ' ');
+        if (*spc) {
+            kernel_cmdline = spc + 1;
+        }
+    }
 }
 
 // static void x86_initrd_init(void) {

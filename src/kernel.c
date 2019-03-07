@@ -9,6 +9,8 @@
 #include "dev/net.h"
 #include "util.h"
 
+const char *kernel_cmdline = NULL;
+
 void kernel_main(void) {
     irq_disable();
 
@@ -17,6 +19,7 @@ void kernel_main(void) {
     hw_early_init();
     kinfo("Booting %s %s\n", YGG_NAME, YGG_VERSION);
     kinfo("Built for %s, %s\n", YGG_TARGET, YGG_REVDATE);
+    kinfo("Kernel command line: %s\n", kernel_cmdline);
 
     // Init printing
     debug_init();

@@ -211,11 +211,11 @@ void ide_read_block(struct pci_ide *ide, uint8_t chan, uint8_t reg, uint32_t *bu
     }
 }
 
-int pci_ide_dma_read(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t lba, uintptr_t buf_phys, uint8_t nsec) {
+static int pci_ide_dma_op(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint8_t op, uint32_t lba, uintptr_t buf_phys, uint8_t nsec) {
     assert(nsec < 127);
     assert(!(ide->dma_pending));
 
-    kdebug("ide dma read lba %p, buf %p, siz %u\n", lba, buf_phys, nsec);
+    kdebug("ide dma %c lba %p, buf %p, siz %u\n", lba, buf_phys, nsec, op ? 'W' : 'R');
 
     uint16_t flag = 0x8000;
     uint16_t size = nsec * 512;
@@ -229,8 +229,7 @@ int pci_ide_dma_read(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t 
     // Write PRDT address to the descriptor
     outl(ide->chan[chan].bmide + IDE_REG_DMA_PRDT, ide->prdt_phys);
     // Read direction
-    outb(ide->chan[chan].bmide + IDE_REG_DMA_CMD, 0);
-    inb(ide->chan[chan].bmide + IDE_REG_DMA_STATUS);
+    outb(ide->chan[chan].bmide + IDE_REG_DMA_CMD, op ? IDE_DMA_CTL_WR : 0);
     outb(ide->chan[chan].bmide + IDE_REG_DMA_STATUS, 0);
     // Write LBA
     uint8_t lba_io[6];
@@ -266,6 +265,14 @@ int pci_ide_dma_read(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t 
     return 0;
 }
 
+int pci_ide_dma_read(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t lba, uintptr_t buf_phys, uint8_t nsec) {
+    return pci_ide_dma_op(ide, chan, drive, 0, lba, buf_phys, nsec);
+}
+
+int pci_ide_dma_write(struct pci_ide *ide, uint8_t chan, uint8_t drive, uint32_t lba, uintptr_t buf_phys, uint8_t nsec) {
+    return pci_ide_dma_op(ide, chan, drive, 1, lba, buf_phys, nsec);
+}
+
 int pci_ide_irq_handler(int irq) {
     uint8_t handled = 0;
     uint8_t status[2];
@@ -290,6 +297,7 @@ int pci_ide_irq_handler(int irq) {
             }
 
             if (!(status[0] & IDE_DMA_ST_EN) && pci_ide.dma_pending) {
+                pci_ide.dma_pending = 0;
                 kdebug("Master IDE DMA operation finished\n");
             }
         }

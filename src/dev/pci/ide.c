@@ -301,6 +301,8 @@ int pci_ide_irq_handler(int irq) {
 }
 
 int pci_ide_init(pci_addr_t addr) {
+    kinfo("Initializing PCI IDE controller at " PCI_FMTADDR "\n", PCI_TRIPLET(addr));
+
     // Enable PCI busmastering for the controller
     uint32_t cmd_reg = pci_config_getw(addr, PCI_CONF_COMMAND);
     cmd_reg |= (1 << 2);
@@ -314,6 +316,7 @@ int pci_ide_init(pci_addr_t addr) {
     pci_ide.dma_pending = 0;
 
     pci_ide.addr = addr;
+    kinfo("Using default IRQ 14, 15\n");
     pci_ide.irq = 14;
 
     uint32_t bar4 = pci_config_getl(addr, PCI_CONF_BAR0 + 4 * 4) & ~1;

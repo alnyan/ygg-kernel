@@ -187,11 +187,9 @@ int rtl8139_init(pci_addr_t addr) {
 
     // Enable PCI busmastering for NIC
     uint32_t cmd_reg = pci_config_getw(addr, PCI_CONF_COMMAND);
-    kinfo("cmd_reg = %p\n", cmd_reg);
     cmd_reg |= (1 << 2);
     pci_config_setw(addr, PCI_CONF_COMMAND, cmd_reg);
     cmd_reg = pci_config_getw(addr, PCI_CONF_COMMAND);
-    kinfo("cmd_reg = %p\n", cmd_reg);
 
     rtl8139.iobase = pci_config_getl(addr, PCI_CONF_BAR0);
     if (rtl8139.iobase & 1) {

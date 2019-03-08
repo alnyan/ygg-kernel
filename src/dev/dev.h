@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include "sys/task.h"
 
+typedef struct ioman_op ioman_op_t;
+
 #define DEV_TYPE(t)         ((t) & 0x1)
 #define DEV_GET_TYPE(d)     ((d)->flags & 0x1)
 #define DEV_TYPE_BLK        0
@@ -15,12 +17,13 @@ typedef struct dev dev_t;
 
 ////
 
-typedef int (*dev_read_func) (dev_t *, task_t *, void *, uintptr_t, size_t, ssize_t *);
+typedef int (*dev_read_func) (dev_t *, ioman_op_t *);
 
 ////
 
 struct dev {
     uint32_t flags;
+    ioman_op_t *pending;
 
     dev_read_func read;
 };

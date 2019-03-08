@@ -8,6 +8,7 @@
 #include "ps2cs.h"
 
 #include "arch/x86/task/task.h"
+#include "fs/ioman.h"
 #include "dev/dev.h"
 
 #define PS2_FLG_RAW     (1 << 0)
@@ -22,19 +23,13 @@
 
 static uint32_t ps2_flags = 0;
 
-static struct x86_task *pending_task = 0;
-static void *pending_buf;
-static ssize_t *pending_res;
-
 static char ps2_lookup_char(int scan) {
     char c0 = (ps2_flags & PS2_MOD_SHIFT) ? x86_ps2_scan_alt[scan] : x86_ps2_scan[scan];
     return (ps2_flags & PS2_MOD_CAPS) ? togglecase(c0) : c0;
 }
 
-static int ps2_read(dev_t *dev, task_t *task, void *buf, uintptr_t off, size_t count, ssize_t *res) {
-    pending_task = (struct x86_task *) task;
-    pending_buf = buf;
-    pending_res = res;
+static int ps2_read(dev_t *dev, ioman_op_t *op) {
+    dev->pending = op;
     return 0;
 }
 
@@ -70,10 +65,10 @@ int x86_irq_handler_1(x86_irq_regs_t *regs) {
         if (!(ps2_flags & PS2_FLG_RAW)) {
             char r;
             if ((r = ps2_lookup_char(c))) {
-                if (pending_task) {
-                    *((char *) pending_buf) = r;
-                    *pending_res = 1;
-                    pending_task->flag &= ~TASK_FLG_BUSY;
+                if (ps2.pending) {
+                    if (ioman_op_signal_data(ps2.pending, &r, 1)) {
+                        ps2.pending = 0;
+                    }
                 }
                 // tty_type(0, r);
             }

@@ -19,23 +19,10 @@
 int x86_syscall(x86_irq_regs_t *regs) {
     mm_set(mm_kernel);
 
-    struct x86_task *task = x86_task_current;
+    // struct x86_task *task = x86_task_current;
     //int res;
 
     switch (regs->gp.eax) {
-    // Syscall intrerrupt test
-    case 0:
-        {
-            // Test "getchar" function
-            extern dev_t ps2;
-            char buf;
-            regs->gp.eax = ioman_dev_read(&ps2, task, &buf, 0, 1);
-            if (regs->gp.eax > 0) {
-                mm_memcpy_kernel_to_user(task->pd, (void *) regs->gp.ebx, &buf, 1);
-            }
-            return 1;
-        }
-
     case SYSCALL_NR_EXIT:
         regs->gp.ebx &= 0xFF;
         sys_exit(regs->gp.ebx);

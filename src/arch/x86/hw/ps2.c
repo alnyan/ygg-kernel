@@ -8,10 +8,6 @@
 #include "ps2cs.h"
 #include "sys/assert.h"
 
-#include "arch/x86/task/task.h"
-#include "fs/ioman.h"
-#include "dev/dev.h"
-
 #define PS2_FLG_RAW     (1 << 0)
 #define PS2_MOD_SHIFT   (1 << 1)
 #define PS2_MOD_CAPS    (1 << 2)
@@ -29,17 +25,7 @@ static char ps2_lookup_char(int scan) {
     return (ps2_flags & PS2_MOD_CAPS) ? togglecase(c0) : c0;
 }
 
-static int ps2_read(dev_t *dev, ioman_op_t *op) {
-    assert(!dev->pending);
-    dev->pending = op;
-    return 0;
-}
-
-dev_t ps2;
-
 void x86_ps2_init(void) {
-    dev_init(&ps2, DEV_TYPE_CHR);
-    ps2.read = ps2_read;
 }
 
 int x86_irq_handler_1(x86_irq_regs_t *regs) {
@@ -67,11 +53,6 @@ int x86_irq_handler_1(x86_irq_regs_t *regs) {
         if (!(ps2_flags & PS2_FLG_RAW)) {
             char r;
             if ((r = ps2_lookup_char(c))) {
-                if (ps2.pending) {
-                    if (ioman_op_signal_data(ps2.pending, &r, 1)) {
-                        ps2.pending = 0;
-                    }
-                }
                 // tty_type(0, r);
             }
         } else {

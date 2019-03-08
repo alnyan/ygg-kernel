@@ -18,6 +18,7 @@ typedef struct dev dev_t;
 ////
 
 typedef int (*dev_read_func) (dev_t *, ioman_op_t *);
+typedef int (*dev_write_func) (dev_t *, ioman_op_t *);
 
 ////
 
@@ -26,6 +27,7 @@ struct dev {
     ioman_op_t *pending;
 
     dev_read_func read;
+    dev_write_func write;
 };
 
 ////

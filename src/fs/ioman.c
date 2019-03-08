@@ -6,11 +6,8 @@
 #include <stddef.h>
 
 static void ioman_task(void *arg) {
-    char c;
     while (1) {
-        asm volatile ("int $0x80"::"a"(0), "b"(&c));
-
-        kdebug("Keypress: %c\n", c);
+        asm volatile ("hlt");
     }
 }
 

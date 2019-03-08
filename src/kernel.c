@@ -8,6 +8,7 @@
 #include "fs/ioman.h"
 #include "sys/heap.h"
 #include "dev/net.h"
+#include "dev/tty.h"
 #include "util.h"
 
 const char *kernel_cmdline = NULL;
@@ -26,6 +27,7 @@ void kernel_main(void) {
     debug_init();
     // Proceed on hw-specific details of init
     hw_init();
+    tty_init();
 
     // Load network device config
     net_init();

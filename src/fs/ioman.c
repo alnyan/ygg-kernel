@@ -5,10 +5,28 @@
 #include "sys/mem.h"
 #include <stddef.h>
 
+#include "vfs.h"
+#include "dev/tty.h"
+
 static void ioman_task(void *arg) {
+    vfs_fd_t fd;
+    vfs_opendev(&fd, dev_tty, 0);
+    fd.task = x86_task_current;
+    char c;
+
+    vfs_write(&fd, "> ", 2);
     while (1) {
-        asm volatile ("hlt");
+        vfs_read(&fd, &c, 1);
+
+        if (c == '\n') {
+            break;
+        } else {
+            vfs_write(&fd, &c, 1);
+        }
     }
+
+    kdebug("Done\n");
+    while (1);
 }
 
 static task_t *ioman_task_obj;
@@ -23,28 +41,40 @@ void ioman_start_task(void) {
 }
 
 ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_t req) {
-    ssize_t res = 0;
-    ioman_op_t op = {
-        dev,
-        0,
-        pos,
-        buf,
-        &res,
-        req,
-        task
-    };
+    if (dev->would_block(dev, pos, req, 0)) {
+        ssize_t res = 0;
+        ioman_op_t op = {
+            dev,
+            0,
+            pos,
+            buf,
+            &res,
+            req,
+            task
+        };
 
-    assert(dev && dev->read);
-    ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
-    dev->read(dev, &op);
+        assert(dev && dev->read);
+        ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+        dev->read(dev, &op);
 
-    asm volatile ("sti");
-    while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
-        asm volatile ("hlt");
+        asm volatile ("sti");
+        while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
+            asm volatile ("hlt");
+        }
+        asm volatile ("cli");
+
+        return res;
+    } else {
+        panic("NYI\n");
     }
-    asm volatile ("cli");
+}
 
-    return res;
+ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos, size_t req) {
+    if (dev->would_block(dev, pos, req, 1)) {
+        panic("NYI\n");
+    } else {
+        return dev->write_imm(dev, buf, pos, req);
+    }
 }
 
 int ioman_op_signal_data(ioman_op_t *op, void *src, ssize_t count) {

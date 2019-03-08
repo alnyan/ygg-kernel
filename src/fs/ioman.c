@@ -6,12 +6,11 @@
 #include <stddef.h>
 
 static void ioman_task(void *arg) {
-    kdebug("PRE SLEEP\n");
-    asm volatile ("int $0x80"::"a"(0), "b"(1));
-    kdebug("POST SLEEP\n");
-
+    char c;
     while (1) {
-        asm volatile ("hlt");
+        asm volatile ("int $0x80"::"a"(0), "b"(&c));
+
+        kdebug("Keypress: %c\n", c);
     }
 }
 
@@ -24,6 +23,31 @@ void ioman_init(void) {
 
 void ioman_start_task(void) {
     task_enable(ioman_task_obj);
+}
+
+ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_t req) {
+    ssize_t res = 0;
+    ioman_op_t op = {
+        dev,
+        0,
+        pos,
+        buf,
+        &res,
+        req,
+        task
+    };
+
+    assert(dev && dev->read);
+    ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+    dev->read(dev, &op);
+
+    asm volatile ("sti");
+    while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
+        asm volatile ("hlt");
+    }
+    asm volatile ("cli");
+
+    return res;
 }
 
 int ioman_op_signal_data(ioman_op_t *op, void *src, ssize_t count) {

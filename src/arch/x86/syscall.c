@@ -26,32 +26,13 @@ int x86_syscall(x86_irq_regs_t *regs) {
     // Syscall intrerrupt test
     case 0:
         {
-            // Read 5 chars from ps2
+            // Test "getchar" function
             extern dev_t ps2;
-            char buf[6] = {0};
-            ssize_t res = 0;
-            ioman_op_t op = {
-                &ps2,
-                0,
-                0,
-                buf,
-                &res,
-                5,
-                task
-            };
-            ps2.read(&ps2, &op);
-            task->flag |= TASK_FLG_BUSY;
-
-            kdebug("The syscall will be interrupted now\n");
-            asm volatile ("sti");
-            while (task->flag & TASK_FLG_BUSY) {
-                asm volatile ("hlt");
+            char buf;
+            regs->gp.eax = ioman_dev_read(&ps2, task, &buf, 0, 1);
+            if (regs->gp.eax > 0) {
+                mm_memcpy_kernel_to_user(task->pd, (void *) regs->gp.ebx, &buf, 1);
             }
-            asm volatile ("cli");
-            kdebug("Back to syscall\n");
-
-            kdebug("Read result: %s\n", buf);
-
             return 1;
         }
 

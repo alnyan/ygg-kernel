@@ -4,6 +4,11 @@
 #include "sys/debug.h"
 
 int mm_memcpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, size_t count) {
+    if (pd == mm_kernel) {
+        memcpy(dst, src, count);
+        return 0;
+    }
+
     uintptr_t user_begin = (uintptr_t) src & -0x1000;
     uintptr_t user_end = MM_ALIGN_UP((uintptr_t) src + count, 0x1000);
     size_t npages = (user_end - user_begin) / 0x1000;
@@ -39,6 +44,11 @@ int mm_memcpy_user_to_kernel(mm_space_t pd, void *dst, const void *src, size_t c
 }
 
 int mm_memcpy_kernel_to_user(mm_space_t pd, void *dst, const void *src, size_t count) {
+    if (pd == mm_kernel) {
+        memcpy(dst, src, count);
+        return 0;
+    }
+
     uintptr_t user_begin = (uintptr_t) dst & -0x1000;
     uintptr_t user_end = MM_ALIGN_UP((uintptr_t) dst + count, 0x1000);
     size_t npages = (user_end - user_begin) / 0x1000;

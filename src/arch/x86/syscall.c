@@ -11,6 +11,9 @@
 #include "syscall.h"
 #include <uapi/errno.h>
 
+#include "arch/x86/hw/ps2.h"
+#include "dev/dev.h"
+
 // The only code for syscall now: put current task to sleep for some time
 int x86_syscall(x86_irq_regs_t *regs) {
     mm_set(mm_kernel);
@@ -21,23 +24,25 @@ int x86_syscall(x86_irq_regs_t *regs) {
     switch (regs->gp.eax) {
     // Syscall intrerrupt test
     case 0:
-        regs->gp.eax = 0;
-        if (regs->gp.ebx) {
-            struct timespec ts = { regs->gp.ebx, 0 };
-            task_set_sleep(task, &ts);
-            task->flag |= TASK_FLG_WAIT;
-            task->wait_type = TASK_WAIT_SLEEP;
-        }
+        {
+            extern dev_t ps2;
+            char buf;
+            ssize_t res;
+            ps2.read(&ps2, task, &buf, 0, 1, &res);
+            task->flag |= TASK_FLG_BUSY;
 
-        kdebug("The syscall will be interrupted now\n");
-        asm volatile ("sti");
-        while (task->flag & TASK_FLG_WAIT) {
-            asm volatile ("hlt");
-        }
-        asm volatile ("cli");
-        kdebug("Back to syscall\n");
+            kdebug("The syscall will be interrupted now\n");
+            asm volatile ("sti");
+            while (task->flag & TASK_FLG_BUSY) {
+                asm volatile ("hlt");
+            }
+            asm volatile ("cli");
+            kdebug("Back to syscall\n");
 
-        return 1;
+            kdebug("Read result: %c\n", buf);
+
+            return 1;
+        }
 
     case SYSCALL_NR_EXIT:
         regs->gp.ebx &= 0xFF;

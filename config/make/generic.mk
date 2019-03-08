@@ -50,7 +50,8 @@ OBJS+=build/kernel.o \
 	 build/dev/net.o \
 	 build/dev/pci/ide.o \
 	 build/sys/list.o \
-	 build/fs/ioman.o
+	 build/fs/ioman.o \
+	 build/dev/dev.o
 
 DIRS+=build/sys \
 	  build/dev \

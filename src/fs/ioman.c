@@ -3,10 +3,11 @@
 #include "sys/debug.h"
 #include <stddef.h>
 
-static void ioman_task(void) {
-    kinfo("ioman started\n");
-    asm volatile ("int $0x80"::"a"(0), "b"(3));
-    kinfo("ioman waking up\n");
+static void ioman_task(void *arg) {
+    kdebug("PRE SLEEP\n");
+    asm volatile ("int $0x80"::"a"(0), "b"(1));
+    kdebug("POST SLEEP\n");
+
     while (1) {
         asm volatile ("hlt");
     }

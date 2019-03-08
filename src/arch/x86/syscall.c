@@ -12,12 +12,33 @@
 #include <uapi/errno.h>
 
 // The only code for syscall now: put current task to sleep for some time
-void x86_syscall(x86_irq_regs_t *regs) {
+int x86_syscall(x86_irq_regs_t *regs) {
     mm_set(mm_kernel);
 
+    struct x86_task *task = x86_task_current;
     //int res;
 
     switch (regs->gp.eax) {
+    // Syscall intrerrupt test
+    case 0:
+        regs->gp.eax = 0;
+        if (regs->gp.ebx) {
+            struct timespec ts = { regs->gp.ebx, 0 };
+            task_set_sleep(task, &ts);
+            task->flag |= TASK_FLG_WAIT;
+            task->wait_type = TASK_WAIT_SLEEP;
+        }
+
+        kdebug("The syscall will be interrupted now\n");
+        asm volatile ("sti");
+        while (task->flag & TASK_FLG_WAIT) {
+            asm volatile ("hlt");
+        }
+        asm volatile ("cli");
+        kdebug("Back to syscall\n");
+
+        return 1;
+
     case SYSCALL_NR_EXIT:
         regs->gp.ebx &= 0xFF;
         sys_exit(regs->gp.ebx);
@@ -88,6 +109,8 @@ void x86_syscall(x86_irq_regs_t *regs) {
     default:
         panic_irq("Invalid syscall\n", regs);
     }
+
+    return 0;
 }
 
 SYSCALL_DEFINE1(exit, int res) {
@@ -273,7 +296,7 @@ SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
         task_set_sleep(x86_task_current, &ts);
         x86_task_current->flag |= TASK_FLG_WAIT;
         x86_task_current->wait_type = TASK_WAIT_SLEEP;
-        ((struct x86_task_context *) x86_task_current->esp0)->gp.eax = 0;
+        //((struct x86_task_context *) x86_task_current->esp0)->gp.eax = 0;
         x86_task_switch(NULL);
     }
 

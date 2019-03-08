@@ -30,16 +30,20 @@ task_t *task_fork(task_t *t) {
 
     dst->pd = dst_pd;
 
-    struct x86_task_context *src_ctx = (struct x86_task_context *) src->esp0;
+    uintptr_t dst_stack_bottom = (uintptr_t) heap_alloc(2048);
+    assert(dst_stack_bottom);
+
+    struct x86_task_context *src_ctx = (struct x86_task_context *) src->kernel_esp;
     assert(src_ctx);
 
-    struct x86_task_context *dst_ctx = (struct x86_task_context *) heap_alloc(19 * 4);
-    assert(dst_ctx);
+    struct x86_task_context *dst_ctx = (struct x86_task_context *) (dst_stack_bottom + 2048 - 19 * 4);
 
     assert(dst->ctl);
 
-    dst->esp0 = (uintptr_t) dst_ctx;
-    dst->ebp0 = dst->esp0 + 19 * 4;
+    dst->kernel_stack_bottom = dst_stack_bottom;
+    dst->kernel_esp = (uintptr_t) dst_ctx;
+//    dst->esp0 = (uintptr_t) dst_ctx;
+//    dst->ebp0 = dst->esp0 + 19 * 4;
     dst->esp3_bottom = 0x80000000;
     dst->esp3_size = 4;
 

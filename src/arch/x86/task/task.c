@@ -37,7 +37,7 @@ void task_destroy(task_t *t) {
     // }
 
     // Free stacks
-    heap_free((void *) task->esp0);
+    heap_free((void *) task->kernel_stack_bottom);
 
     // Free pagedir
     mm_destroy_space(task->pd);
@@ -63,7 +63,7 @@ task_t *task_by_pid(int pid) {
 
 // Idle task (kernel-space) stuff
 static struct x86_task x86_task_idle;
-static uint32_t x86_task_idle_stack[X86_TASK_TOTAL_STACK];
+static uint32_t x86_task_idle_stack[2048];
 
 // Scheduling stuff
 struct x86_task *x86_task_current = NULL;
@@ -105,8 +105,8 @@ void x86_task_dump_context(int level, struct x86_task *task) {
         mm_dump_map(level, task->pd);
     }
 
-    if (task->esp0) {
-        struct x86_task_context *ctx = (struct x86_task_context *) task->esp0;
+    if (task->kernel_esp) {
+        struct x86_task_context *ctx = (struct x86_task_context *) task->kernel_esp;
 
         kprint(level, "--- Task context ---\n");
         kprint(level, "CS:EIP = %02x:%p\n", ctx->iret.cs, ctx->iret.eip);
@@ -130,17 +130,17 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
     task->sigesp = 0;
     task->sigeip = 0;
 
-    if (!task->esp0) {
+    if (!task->kernel_esp) {
         // Create task's kernel stack
-        uintptr_t ebp0 = (uintptr_t) heap_alloc(19 * 4) + 19 * 4;
-        assert(ebp0);
-        ctx = (struct x86_task_context *) (ebp0 - 19 * 4);
+        uintptr_t stack = (uintptr_t) heap_alloc(4096);
+        assert(stack);
+        ctx = (struct x86_task_context *) stack + 4096 - 19 * 4;
         memset(ctx, 0, sizeof(struct x86_task_context));
 
-        task->ebp0 = ebp0;
-        task->esp0 = ebp0 - 19 * 4;
+        task->kernel_stack_bottom = stack;
+        task->kernel_esp = stack + 4096 - 19 * 4;
     } else {
-        ctx = (struct x86_task_context *) task->esp0;
+        ctx = (struct x86_task_context *) task->kernel_esp;
     }
 
     if (!(flags & (X86_TASK_NOSIGCTX | X86_TASK_IDLE))) {
@@ -216,18 +216,26 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
 
 void task_set_kernel(task_t *t, task_entry_func entry, void *arg, uint32_t flags) {
     // Create a kernel stack
-    uintptr_t esp0 = (uintptr_t) heap_alloc(2048);
+    uintptr_t stack = (uintptr_t) heap_alloc(2048);
+    assert(stack);
+
     struct x86_task *task = (struct x86_task *) t;
 
     task->next = NULL;
     task->ctl = NULL;
     task->flag = 0;
 
-    task->esp0 = esp0 + 2048 - 19 * 4;
-    task->ebp0 = esp0 + 2048;
+    task->kernel_stack_bottom = stack;
+    task->kernel_esp = stack + 2048 - 19 * 4;
     task->esp3_bottom = 0;
     task->esp3_size = 0;
     task->pd = mm_kernel;
+
+    if (!task->ctl) {
+        task->ctl = task_ctl_create();
+    }
+
+    kdebug("%p's esp0 = %p\n", task, task->kernel_esp);
 
     assert(x86_task_set_context(task, (uintptr_t) entry, arg, X86_TASK_IDLE | X86_TASK_NOESP3) == 0);
 }
@@ -238,10 +246,11 @@ int x86_task_enter_signal(struct x86_task *task) {
     if (task->ctl->sigctx && task->sigeip) {
         // If signalled task has a sleep/wait pending, abort it and set -1 error code
         if (task->flag & TASK_FLG_WAIT) {
-            ((struct x86_task_context *) task->esp0)->gp.eax = -1;
+            ((struct x86_task_context *) task->kernel_esp)->gp.eax = -1;
             task->flag &= ~TASK_FLG_WAIT;
         }
 
+        struct x86_task_context *oldctx = (struct x86_task_context *) task->kernel_esp;
         struct x86_task_context *sigctx = (struct x86_task_context *) task->ctl->sigctx;
 
         // Setup signal handler context
@@ -260,9 +269,10 @@ int x86_task_enter_signal(struct x86_task *task) {
         sigctx->iret.esp = task->sigesp;
         sigctx->iret.ss = 0x23;
 
-        sigctx->cr3 = ((struct x86_task_context *) (task->ebp0 - 19 * 4))->cr3;
+        sigctx->cr3 = oldctx->cr3;
 
-        task->esp0 = (uintptr_t) task->ctl->sigctx;
+        task->stored_esp = task->kernel_esp;
+        task->kernel_esp = (uintptr_t) task->ctl->sigctx;
 
         return 0;
     } else {
@@ -272,7 +282,7 @@ int x86_task_enter_signal(struct x86_task *task) {
 
 int x86_task_exit_signal(struct x86_task *task) {
     assert(task && task->ctl && task->ctl->sigctx);
-    task->esp0 = task->ebp0 - 19 * 4;
+    task->kernel_esp = task->stored_esp;
     return 0;
 }
 
@@ -283,8 +293,8 @@ void x86_task_init(void) {
     x86_task_idle.ctl = NULL;
     x86_task_idle.flag = 0;
 
-    x86_task_idle.ebp0 = (uintptr_t) x86_task_idle_stack + 19 * 4;
-    x86_task_idle.esp0 = (uintptr_t) x86_task_idle_stack;
+    x86_task_idle.kernel_stack_bottom = (uintptr_t) x86_task_idle_stack;
+    x86_task_idle.kernel_esp = (uintptr_t) x86_task_idle_stack + sizeof(x86_task_idle_stack) - 19 * 4;
     x86_task_idle.esp3_size = 0;
     x86_task_idle.esp3_bottom = 0;
     x86_task_idle.pd = mm_kernel;
@@ -326,7 +336,8 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             if (t->ctl->pending_signal) {
                 res = 1000 + t->ctl->pending_signal;
             } else {
-                res = *((uint32_t *) (t->ebp0 - 8 * 4));
+                //res = *((uint32_t *) (t->ebp0 - 8 * 4));
+                res = -123;
             }
 
             if (res < 1000) {
@@ -371,6 +382,7 @@ void x86_task_switch(x86_irq_regs_t *regs) {
             switch (t->wait_type) {
             case TASK_WAIT_SLEEP:
                 if (systime >= t->ctl->sleep_deadline) {
+                    kdebug("Waking up a thread\n");
                     t->flag &= ~TASK_FLG_WAIT;
                 }
                 break;

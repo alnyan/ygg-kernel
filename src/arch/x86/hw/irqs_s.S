@@ -11,6 +11,7 @@
 .extern x86_irq_handler_\n
 .global x86_irq_\n
 x86_irq_\n:
+    cli
     // Store current task's context
     pushal
 
@@ -29,21 +30,22 @@ x86_irq_\n:
     movl %eax, %fs
     movl %eax, %gs
 
-    // Switch to kernel interrupt stack
-    movl %esp, %esi
-    movl $x86_int_stack, %esp
+    // If we haven't done tasking entry, skip the next part
+    movl x86_tasking_entry, %eax
+    test %eax, %eax
+    jnz 1f
 
-    // Preserve context stack ptr
-    pushl %esi
+    // Store task's esp0
+    movl x86_task_current, %edi
+    movl %esp, X86_TASK_STRUCT_ESP0(%edi)
+1:
 
     // Call IRQ handler
-    pushl %esi
+    pushl %esp
     call x86_irq_handler_\n
     addl $4, %esp
 
     // TODO: if current task's execution is blocked by a system call, just switch to some other task
-    popl %esi
-    movl %esi, %esp
 
     popl %eax
     movl %eax, %ds
@@ -84,6 +86,7 @@ irq_handler 14
 #ifdef ENABLE_TASK
 .global x86_irq_syscall
 x86_irq_syscall:
+    cli
     // Store current task's context
     pushal
 
@@ -101,13 +104,23 @@ x86_irq_syscall:
     movl %eax, %fs
     movl %eax, %gs
 
-    // Switch to kernel interrupt stack
-    movl %esp, %esi
-    movl $x86_int_stack, %esp
+    // If we haven't done tasking entry, skip the next part
+    movl x86_tasking_entry, %eax
+    test %eax, %eax
+    jnz 1f
 
-    pushl %esi
+    // Store task's esp0
+    movl x86_task_current, %edi
+    movl %esp, X86_TASK_STRUCT_ESP0(%edi)
+1:
+
+    pushl %esp
     call x86_syscall
     addl $4, %esp
+syscall_exit:
+    // Syscall called sched(), load new task
+    test %eax, %eax
+    jnz 1f
 
     movl x86_task_current, %esi
 
@@ -121,6 +134,8 @@ x86_irq_syscall:
 
     // Now, esp should be TO task's esp0
     movl %eax, %esp
+
+1:
 
     // Remove pointer from stack
     popl %eax

@@ -22,6 +22,7 @@ x86_irq_0:
 
     pushal
 
+    // TODO: this code is common for various places and has to be moved somewhere
 #ifdef ENABLE_TASK
     // Stack state:
     // <esp + 68> ss
@@ -60,24 +61,14 @@ x86_irq_0:
     movl %eax, %fs
     movl %eax, %gs
 
-    // Setup kernel interrupt stack pointer and store FROM stack in %esi
-    movl %esp, %esi
-    movl $x86_int_stack, %esp
-
     // If we haven't done tasking entry, skip the next part
     movl x86_tasking_entry, %eax
     test %eax, %eax
     jnz 1f
 
-    // If the task we're swithing from is a kernel task, store its new ESP
-    movl 56(%esi), %eax
-    cmpl $0x08, %eax
-    jne 1f
-
-    // It's a kernel task, store ESP
+    // Store task's esp0
     movl x86_task_current, %edi
-    movl %esi, X86_TASK_STRUCT_ESP0(%edi)
-1:
+    movl %esp, X86_TASK_STRUCT_ESP0(%edi)
 
     // Call timer service
     movl x86_timer_func, %eax

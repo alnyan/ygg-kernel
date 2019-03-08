@@ -60,11 +60,17 @@ x86_isr_14:
     movl %eax, %fs
     movl %eax, %gs
 
-    // Setup kernel interrupt stack pointer and store FROM stack in %esi
-    movl %esp, %esi
-    movl $x86_int_stack, %esp
+    // If we haven't done tasking entry, skip the next part
+    movl x86_tasking_entry, %eax
+    test %eax, %eax
+    jnz 1f
 
-    pushl %esi
+    // Store task's esp0
+    movl x86_task_current, %edi
+    movl %esp, X86_TASK_STRUCT_ESP0(%edi)
+1:
+
+    pushl %esp
     call x86_page_fault
     addl $4, %esp
 

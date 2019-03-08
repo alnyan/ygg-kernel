@@ -35,8 +35,9 @@ struct x86_task_context {
 };
 
 struct x86_task {
-    uint32_t esp0;
-    uint32_t ebp0;
+    uint32_t kernel_esp;
+    uint32_t kernel_stack_bottom;
+    uint32_t stored_esp;
 
     uint32_t esp3_bottom;
     uint32_t esp3_size;

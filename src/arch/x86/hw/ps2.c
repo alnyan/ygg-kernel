@@ -6,6 +6,7 @@
 #include "sys/task.h"
 #include "../task/task.h"
 #include "ps2cs.h"
+#include "sys/assert.h"
 
 #include "arch/x86/task/task.h"
 #include "fs/ioman.h"
@@ -29,6 +30,7 @@ static char ps2_lookup_char(int scan) {
 }
 
 static int ps2_read(dev_t *dev, ioman_op_t *op) {
+    assert(!dev->pending);
     dev->pending = op;
     return 0;
 }

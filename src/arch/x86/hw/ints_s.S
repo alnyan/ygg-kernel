@@ -7,6 +7,9 @@ x86_crash_esp:
 .extern x86_isr_handler
 .extern x86_int_stack
 
+.set X86_TASK_STRUCT_ESP0,  0x00
+.set X86_TASK_STACK,        18
+
 x86_isr_generic:
     pushal
 
@@ -28,6 +31,16 @@ x86_isr_generic:
     // edi          <esp + 00>
     movl %esp, %esi
 
+    // If we haven't done tasking entry, skip the next part
+    movl x86_tasking_entry, %eax
+    test %eax, %eax
+    jnz 1f
+
+    // Store task's esp0
+    movl x86_task_current, %edi
+    movl %esi, X86_TASK_STRUCT_ESP0(%edi)
+1:
+
     // Now select which stack to use (we may overwrite some important info if we use kernel stack
     // when exception happens in kernel mode (which means they both use the same stack)
     movl 44(%esi), %eax
@@ -40,7 +53,7 @@ x86_isr_generic:
     jmp 2f
 1:
     // cs is in userspace, use plain kernel stack
-    movl $x86_int_stack, %esp
+//    movl $x86_int_stack, %esp
 
     jmp 2f
 2:

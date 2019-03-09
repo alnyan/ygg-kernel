@@ -9,6 +9,7 @@
 #include "sys/heap.h"
 #include "dev/net.h"
 #include "dev/tty.h"
+#include "fs/dummyfs.h"
 #include "util.h"
 
 const char *kernel_cmdline = NULL;
@@ -35,6 +36,7 @@ void kernel_main(void) {
     net_dump_ifaces();
 
     ioman_init();
+    dummyfs_init();
 
     // This is where we're ready to accept the first interrupt and start multitasking mode
     net_post_config();

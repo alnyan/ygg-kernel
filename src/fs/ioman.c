@@ -11,26 +11,9 @@
 #include "fs/dummyfs.h"
 
 static void ioman_task(void *arg) {
-    vfs_node_t *mnt = vfs_mount_path("/", NULL, vfs_dummyfs, 0);
-    kdebug("mnt = %p\n", mnt);
-    vfs_node_t *node = vfs_find_node("/tty0");
-    kdebug("node = %p\n", node);
-    node->task = x86_task_current;
-    char c;
-
-    vfs_write(node, "> ", 2);
     while (1) {
-        vfs_read(node, &c, 1);
-
-        if (c == '\n') {
-            break;
-        } else {
-            vfs_write(node, &c, 1);
-        }
+        asm volatile ("hlt");
     }
-
-    kdebug("Done\n");
-    while (1);
 }
 
 static task_t *ioman_task_obj;

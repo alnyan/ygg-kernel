@@ -231,11 +231,11 @@ void task_set_kernel(task_t *t, task_entry_func entry, void *arg, uint32_t flags
     task->esp3_size = 0;
     task->pd = mm_kernel;
 
+    memset((void *) (task->kernel_esp), 0, 19 * 4);
+
     if (!task->ctl) {
         task->ctl = task_ctl_create();
     }
-
-    kdebug("%p's esp0 = %p\n", task, task->kernel_esp);
 
     assert(x86_task_set_context(task, (uintptr_t) entry, arg, X86_TASK_IDLE | X86_TASK_NOESP3) == 0);
 }

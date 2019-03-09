@@ -38,7 +38,7 @@ void tty_init(void) {
 
 void tty_type(char c) {
     if (tty.pending) {
-        if (ioman_op_signal_data(tty.pending, &c, 1)) {
+        if (ioman_buf_write(tty.pending, &c, 1, NULL)) {
             tty.pending = NULL;
         }
     }

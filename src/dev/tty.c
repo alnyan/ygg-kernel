@@ -29,7 +29,7 @@ static int tty_would_block(dev_t *dev, size_t count, uintptr_t pos, int dir) {
 }
 
 void tty_init(void) {
-    dev_init(&tty, DEV_TYPE_CHR);
+    dev_init(&tty, DEV_TYPE_CHR, 0);
     tty.would_block = tty_would_block;
     tty.read = tty_read;
     tty.write = 0;

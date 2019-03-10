@@ -5,6 +5,8 @@
 #include "sys/time.h"
 #include <uapi/signum.h>
 
+typedef struct vfs_node vfs_node_t;
+
 #define TASK_EXIT_CODE(n)       (n & 0xFF)
 // Exit codes 1000 >= are allocated for error statuses
 #define TASK_EXIT_SEGV          1000
@@ -15,7 +17,7 @@ typedef int pid_t;
 
 // Platform-agnostic task control struct
 typedef struct {
-    // vfs_file_t *fds[4];
+    vfs_node_t *fds[4];
     uint64_t sleep_deadline;
     pid_t pid;
     // TODO: proper signal queue

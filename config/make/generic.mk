@@ -54,7 +54,9 @@ OBJS+=build/kernel.o \
 	 build/dev/dev.o \
 	 build/fs/vfs.o \
 	 build/dev/tty.o \
-	 build/fs/dummyfs.o
+	 build/fs/dummyfs.o \
+	 build/fs/tarfs.o \
+	 build/dev/initrd.o
 
 DIRS+=build/sys \
 	  build/dev \

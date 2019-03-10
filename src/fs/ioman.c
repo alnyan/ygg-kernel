@@ -8,9 +8,14 @@
 
 #include "vfs.h"
 #include "dev/tty.h"
-#include "fs/dummyfs.h"
+#include "fs/tarfs.h"
 
 static void ioman_task(void *arg) {
+    vfs_node_t *r = vfs_mount_path("/", NULL, vfs_tarfs, 0);
+    assert(r);
+
+    assert(task_fexecve("/bin/init", NULL, NULL));
+
     while (1) {
         asm volatile ("hlt");
     }

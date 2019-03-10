@@ -151,9 +151,10 @@ int execute(const char *cmd, const char *arg) {
 
     switch (pid) {
     case 0:
-        if (execve(cmd, NULL, NULL) != 0) {
-            perror("execve()");
-        }
+        printf("Sorry, I've disabled execve() for now\n");
+        //if (execve(cmd, NULL, NULL) != 0) {
+        //    perror("execve()");
+        //}
         exit(1);
     case -1:
         perror("fork()");
@@ -170,6 +171,10 @@ int main(void *argp) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;
+
+    write(STDOUT_FILENO, "Hello\n", 6);
+
+    while (1);
 
     while (1) {
         printf("# ");

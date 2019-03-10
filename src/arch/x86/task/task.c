@@ -138,7 +138,7 @@ int x86_task_set_context(struct x86_task *task, uintptr_t entry, void *arg, uint
         memset(ctx, 0, sizeof(struct x86_task_context));
 
         task->kernel_stack_bottom = stack;
-        task->kernel_esp = stack + 4096 - 19 * 4;
+        task->kernel_esp = (uintptr_t) ctx;
     } else {
         ctx = (struct x86_task_context *) task->kernel_esp;
     }

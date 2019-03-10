@@ -8,6 +8,8 @@
 #include "arch/hw.h"
 #include <uapi/errno.h>
 #include "sys/task.h"
+#include "fs/vfs.h"
+#include "dev/tty.h"
 #include "task.h"
 
 task_t *task_fork(task_t *t) {
@@ -100,45 +102,61 @@ int task_execve(task_t *dst, const char *path, const char **argp, const char **e
 }
 
 task_t *task_fexecve(const char *path, const char **argp, const char **envp) {
+    asm volatile ("cli");
+
     uint32_t cr3_0;
     asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
     assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
 
-    return NULL;
-    // TODO: allow loading from sources other than ramdisk
-    // uintptr_t file_mem = vfs_getm(path);
-    // assert(file_mem != MM_NADDR);
+    // Obtain the file
+    vfs_node_t *fd = vfs_find_node(x86_task_current, "/bin/init");
+    assert(fd);
+    if (!(fd->flags & VFS_NODE_FLG_MEMR)) {
+        // Need to read the whole file into buffer
+        panic("NYI\n");
+    }
+    // Just get the memory where the file data is, as it is in-memory file
+    uintptr_t addr = vfs_getm(fd);
+    assert(addr != MM_NADDR);
 
-    // // Load the ELF
-    // mm_pagedir_t pd = mm_create_space(NULL);
-    // assert(pd);
+    // Load the ELF
+    mm_pagedir_t pd = mm_create_space(NULL);
+    assert(pd);
 
-    // mm_space_clone(pd, mm_kernel, MM_FLG_CLONE_KERNEL);
+    mm_space_clone(pd, mm_kernel, MM_FLG_CLONE_KERNEL);
 
-    // uintptr_t entry = elf_load(pd, file_mem, 0);
-    // assert(entry != MM_NADDR);
+    uintptr_t entry = elf_load(pd, addr, 0);
+    assert(entry != MM_NADDR);
 
-    // // Create and setup the task
-    // struct x86_task *task = (struct x86_task *) task_create();
-    // assert(task);
+    // Create and setup the task
+    struct x86_task *task = (struct x86_task *) task_create();
+    assert(task);
 
-    // task->pd = pd;
-    // task->esp3_bottom = 0;
-    // task->esp3_size = 4;
+    task->pd = pd;
+    task->esp3_bottom = 0;
+    task->esp3_size = 4;
 
-    // // vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
-    // // assert(fd_tty_wr);
-    // // fd_tty_wr->task = task;
-    // // task->ctl->fds[0] = fd_tty_wr;
+    // TODO: vfs_open
+    vfs_node_t *fd_tty_wr = vfs_node_create();
+    assert(fd_tty_wr);
+    fd_tty_wr->flags = VFS_NODE_TYPE_CHR;
+    fd_tty_wr->fd_dev.dev = dev_tty;
+    fd_tty_wr->task = task;
+    task->ctl->fds[0] = fd_tty_wr;
+    // vfs_file_t *fd_tty_wr = vfs_open("/dev/tty0", VFS_FLG_WR);
+    // assert(fd_tty_wr);
+    // fd_tty_wr->task = task;
+    // task->ctl->fds[0] = fd_tty_wr;
 
-    // // vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
-    // // assert(fd_tty_rd);
-    // // fd_tty_rd->task = task;
-    // // ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
+    // vfs_file_t *fd_tty_rd = vfs_open("/dev/tty0", VFS_FLG_RD);
+    // assert(fd_tty_rd);
+    // fd_tty_rd->task = task;
+    // ((struct x86_task *) task)->ctl->fds[1] = fd_tty_rd;
 
-    // assert(x86_task_set_context(task, entry, NULL, 0) == 0);
+    assert(x86_task_set_context(task, entry, NULL, 0) == 0);
 
-    // task_enable(task);
+    task_enable(task);
 
-    // return task;
+    asm volatile ("sti");
+    return task;
 }

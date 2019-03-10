@@ -24,7 +24,7 @@ vfs_node_t *vfs_node_create(void) {
     return node;
 }
 
-vfs_node_t *vfs_find_node(const char *path) {
+vfs_node_t *vfs_find_node(task_t *t, const char *path) {
     // const char *p = path, *e;
     // TODO: canonicalize the path
 
@@ -34,7 +34,7 @@ vfs_node_t *vfs_find_node(const char *path) {
 
     assert(VFS_NODE_GET_TYPE(vfs_root) == VFS_NODE_TYPE_MNT);
 
-    return vfs_root->fd_mount.fs->find_node(vfs_root->fd_mount.fs, path);
+    return vfs_root->fd_mount.fs->find_node(vfs_root->fd_mount.fs, t, path);
 }
 
 vfs_node_t *vfs_mount_path(const char *path, const char *src, vfs_t *fs, uint32_t opt) {
@@ -85,6 +85,9 @@ ssize_t vfs_read(vfs_node_t *fd, void *buf, size_t count) {
     case VFS_NODE_TYPE_CHR:
         assert(fd->fd_dev.dev);
         return ioman_dev_read(fd->fd_dev.dev, fd->task, buf, fd->fd_dev.pos, count);
+    case VFS_NODE_TYPE_REG:
+        assert(fd->fd_reg.fs && fd->fd_reg.fs->read);
+        return fd->fd_reg.fs->read(fd->fd_reg.fs, fd, buf, count);
     default:
         panic("Invalid FD\n");
         return -EBADF;
@@ -104,5 +107,19 @@ ssize_t vfs_write(vfs_node_t *fd, const void *buf, size_t count) {
     default:
         panic("Bad FD\n");
         return -EBADF;
+    }
+}
+
+uintptr_t vfs_getm(vfs_node_t *fd) {
+    if (!fd) {
+        return MM_NADDR;
+    }
+
+    switch (VFS_NODE_GET_TYPE(fd)) {
+    case VFS_NODE_TYPE_REG:
+        assert(fd->fd_reg.fs && fd->fd_reg.fs->getm);
+        return fd->fd_reg.fs->getm(fd->fd_reg.fs, fd);
+    default:
+        return MM_NADDR;
     }
 }

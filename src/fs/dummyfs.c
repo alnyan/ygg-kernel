@@ -8,7 +8,7 @@ static vfs_node_t *node_tty;
 
 vfs_t *vfs_dummyfs = &dummyfs;
 
-static vfs_node_t *dummyfs_find_node(vfs_t *fs, const char *path) {
+static vfs_node_t *dummyfs_find_node(vfs_t *fs, task_t *t, const char *path) {
     kdebug("find_node %s\n", path);
     if (!strcmp("/tty0", path)) {
         return node_tty;

@@ -2,10 +2,10 @@
 #include "sys/assert.h"
 #include "sys/mem.h"
 
-void dev_init(dev_t *dev, int type) {
+void dev_init(dev_t *dev, int type, uint32_t flags) {
     assert(!(type & ~0x1));
     assert(dev);
 
     memset(dev, 0, sizeof(dev_t));
-    dev->flags = type;
+    dev->flags = type | flags;
 }

@@ -13,9 +13,10 @@ typedef struct vfs_node vfs_node_t;
 ////
 // Filesystem functions
 
-typedef vfs_node_t *(*fs_find_node_func) (vfs_t *, const char *);
+typedef vfs_node_t *(*fs_find_node_func) (vfs_t *, task_t *, const char *);
 typedef ssize_t (*fs_read_func) (vfs_t *, vfs_node_t *, void *, size_t);
 typedef ssize_t (*fs_write_func) (vfs_t *, vfs_node_t *, const void *, size_t);
+typedef uintptr_t (*fs_getm) (vfs_t *, vfs_node_t *);
 
 ////
 // File descriptor
@@ -26,6 +27,8 @@ typedef ssize_t (*fs_write_func) (vfs_t *, vfs_node_t *, const void *, size_t);
 #define VFS_NODE_TYPE_CHR         0x3
 #define VFS_NODE_TYPE_MNT         0xF
 #define VFS_NODE_FLG_WR           (1 << 4)
+#define VFS_NODE_FLG_RD           (1 << 5)
+#define VFS_NODE_FLG_MEMR         (1 << 31)
 
 struct vfs_node_dev {
     dev_t *dev;
@@ -36,6 +39,7 @@ struct vfs_node_reg {
     vfs_t *fs;
     uintptr_t inode;
     uintptr_t off;
+    uintptr_t size;
 };
 
 struct vfs_node_mount {
@@ -65,8 +69,11 @@ struct vfs_node {
 struct vfs {
     uint32_t flags;
     vfs_node_t *root_node;
+    dev_t *dev;
+    uintptr_t pos;
 
     fs_find_node_func find_node;
+    fs_getm getm;
 
     fs_read_func read;
     fs_write_func write;
@@ -77,11 +84,12 @@ struct vfs {
 
 void vfs_init(vfs_t *fs);
 vfs_node_t *vfs_node_create(void);
-vfs_node_t *vfs_find_node(const char *path);
+vfs_node_t *vfs_find_node(task_t *t, const char *path);
 vfs_node_t *vfs_mount_path(const char *path, const char *src, vfs_t *fs, uint32_t opt);
 
 // VFS FD functions
 
+uintptr_t vfs_getm(vfs_node_t *fd);
 int vfs_opendev(vfs_node_t *fd, dev_t *dev, uint32_t flags);
 ssize_t vfs_read(vfs_node_t *fd, void *buf, size_t req);
 ssize_t vfs_write(vfs_node_t *fd, const void *buf, size_t req);

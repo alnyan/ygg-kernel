@@ -19,7 +19,7 @@ static const char *s_debug_xs_set1 = "0123456789ABCDEF";
 static int s_debug_serial_level = DEBUG_DEFAULT;
 static int s_debug_disp_level = DEBUG_INFO;
 
-static spin_t debug_lock = 0;
+//static spin_t debug_lock = 0;
 
 void debugc(int level, char c) {
 #ifdef ARCH_AARCH64
@@ -143,7 +143,7 @@ void debugf(int level, const char *f, ...) {
 }
 
 void debugfv(int level, const char *fmt, va_list args) {
-    spin_lock(&debug_lock);
+    //spin_lock(&debug_lock);
     char c;
     union {
         const char *v_string;
@@ -269,7 +269,7 @@ void debugfv(int level, const char *fmt, va_list args) {
 
         ++fmt;
     }
-    spin_unlock(&debug_lock);
+    //spin_unlock(&debug_lock);
 }
 
 #define DEBUG_DUMP_LINE     16

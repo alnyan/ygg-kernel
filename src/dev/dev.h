@@ -9,6 +9,7 @@ typedef struct ioman_op ioman_op_t;
 #define DEV_GET_TYPE(d)     ((d)->flags & 0x1)
 #define DEV_TYPE_BLK        0
 #define DEV_TYPE_CHR        1
+#define DEV_FLG_MEMR        (1 << 31)
 
 ////
 
@@ -22,6 +23,7 @@ typedef int (*dev_read_func) (dev_t *, ioman_op_t *);
 typedef int (*dev_write_func) (dev_t *, ioman_op_t *);
 typedef ssize_t (*dev_write_imm_func) (dev_t *, const void *, uintptr_t, size_t);
 typedef ssize_t (*dev_read_imm_func) (dev_t *, void *, uintptr_t, size_t);
+typedef uintptr_t (*dev_getm) (dev_t *, uintptr_t, size_t);
 
 ////
 
@@ -36,8 +38,10 @@ struct dev {
 
     dev_write_imm_func write_imm;
     dev_read_imm_func read_imm;
+
+    dev_getm getm;
 };
 
 ////
 
-void dev_init(dev_t *dev, int type);
+void dev_init(dev_t *dev, int type, uint32_t flags);

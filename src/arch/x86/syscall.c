@@ -20,17 +20,17 @@
 int x86_syscall(x86_irq_regs_t *regs) {
     mm_set(mm_kernel);
 
-    // struct x86_task *task = x86_task_current;
+    struct x86_task *task = x86_task_current;
     //int res;
 
     switch (regs->gp.eax) {
     case SYSCALL_NR_EXIT:
         regs->gp.ebx &= 0xFF;
-        sys_exit(regs->gp.ebx);
+        sys_exit(task, regs->gp.ebx);
         x86_task_switch(regs);
         break;
     case SYSCALL_NR_FORK:
-        regs->gp.eax = sys_fork();
+        regs->gp.eax = sys_fork(task);
         break;
 
     // case SYSCALL_NR_OPEN:
@@ -56,42 +56,45 @@ int x86_syscall(x86_irq_regs_t *regs) {
     // case SYSCALL_NR_WRITE:
     //     regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
     //     break;
+    case SYSCALL_NR_READ:
+        regs->gp.eax = (uint32_t) sys_read(task, (int) regs->gp.ebx, (userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
+        return 1;
     case SYSCALL_NR_WRITE:
-        regs->gp.eax = (uint32_t) sys_write((int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
+        regs->gp.eax = (uint32_t) sys_write(task, (int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, (size_t) regs->gp.edx);
         return 1;
 
     case SYSCALL_NR_WAITPID:
-        regs->gp.eax = sys_waitpid((pid_t) regs->gp.ebx, (userspace int *) regs->gp.ecx, (int) regs->gp.edx);
+        regs->gp.eax = sys_waitpid(task, (pid_t) regs->gp.ebx, (userspace int *) regs->gp.ecx, (int) regs->gp.edx);
         break;
-    case SYSCALL_NR_EXECVE:
-        regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
-                                  (const userspace char **) regs->gp.ecx,
-                                  (const userspace char **) regs->gp.edx);
-        break;
-    case SYSCALL_NRX_FEXECVE:
-        regs->gp.eax = sys_fexecve((const userspace char *) regs->gp.ebx,
-                                   (const userspace char **) regs->gp.ecx,
-                                   (const userspace char **) regs->gp.edx);
-        break;
+    // case SYSCALL_NR_EXECVE:
+    //     regs->gp.eax = sys_execve((const userspace char *) regs->gp.ebx,
+    //                               (const userspace char **) regs->gp.ecx,
+    //                               (const userspace char **) regs->gp.edx);
+    //     break;
+    // case SYSCALL_NRX_FEXECVE:
+    //     regs->gp.eax = sys_fexecve((const userspace char *) regs->gp.ebx,
+    //                                (const userspace char **) regs->gp.ecx,
+    //                                (const userspace char **) regs->gp.edx);
+    //     break;
 
     case SYSCALL_NR_GETPID:
-        assert(x86_task_current->ctl);
-        regs->gp.eax = x86_task_current->ctl->pid;
+        assert(task->ctl);
+        regs->gp.eax = task->ctl->pid;
         break;
 
     case SYSCALL_NR_NANOSLEEP:
-        regs->gp.eax = sys_nanosleep((const userspace struct timespec *) regs->gp.ebx);
+        regs->gp.eax = sys_nanosleep(task, (const userspace struct timespec *) regs->gp.ebx);
         break;
     case SYSCALL_NR_KILL:
-        regs->gp.eax = sys_kill((pid_t) regs->gp.ebx, (int) regs->gp.ecx);
+        regs->gp.eax = sys_kill(task, (pid_t) regs->gp.ebx, (int) regs->gp.ecx);
         break;
 
     // XXX: non-standard
     case SYSCALL_NRX_SIGNAL:
-        regs->gp.eax = sys_signal((int) regs->gp.ebx, (void(*)(int)) regs->gp.ecx);
+        regs->gp.eax = sys_signal(task, (int) regs->gp.ebx, (void(*)(int)) regs->gp.ecx);
         break;
     case SYSCALL_NRX_SIGRETURN:
-        regs->gp.eax = sys_sigreturn();
+        regs->gp.eax = sys_sigreturn(task);
         break;
 
     default:
@@ -132,6 +135,45 @@ SYSCALL_DEFINE1(exit, int res) {
 //         return vfs_read(fp, buf, len, (ssize_t *) ret);
 //     }
 // }
+SYSCALL_DEFINE3(read, int fd, userspace void *buf, size_t len) {
+    if (fd < 0 || fd >= 4) {
+        return -EBADF;
+    }
+
+    vfs_node_t *fp;
+
+    if (!(fp = ((struct x86_task *) task)->ctl->fds[fd])) {
+        return -EBADF;
+    }
+
+    // Split up the read to maximum buffer size (4096)
+    ssize_t bytes_read = 0;
+    size_t bytes_left = len;
+
+    while (bytes_left) {
+        size_t bytes_copy = bytes_left;
+        if (bytes_copy > 4096) {
+            bytes_copy = 4096;
+        }
+
+        ssize_t res = vfs_read(fp, (void *) ((uintptr_t) buf + bytes_read), bytes_copy);
+
+        if (res != bytes_copy) {
+            if (bytes_read == 0) {
+                bytes_read = res;
+            } else {
+                bytes_read += res;
+            }
+            break;
+        } else {
+            bytes_read += res;
+            bytes_left -= bytes_copy;
+        }
+    }
+
+    return bytes_read;
+}
+
 //
 SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
     // TODO: async write
@@ -141,7 +183,7 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
 
     vfs_node_t *fp;
 
-    if (!(fp = x86_task_current->ctl->fds[fd])) {
+    if (!(fp = ((struct x86_task *) task)->ctl->fds[fd])) {
         return -1;
     }
 
@@ -155,7 +197,7 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
         if (bytes_copy > sizeof(tmp_buf)) {
             bytes_copy = sizeof(tmp_buf);
         }
-        assert(mm_memcpy_user_to_kernel(task_space(x86_task_current), tmp_buf, buf, bytes_copy) == 0);
+        assert(mm_memcpy_user_to_kernel(task_space(task), tmp_buf, buf, bytes_copy) == 0);
 
         ssize_t res = vfs_write(fp, tmp_buf, bytes_copy);
 
@@ -175,7 +217,7 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t len) {
 }
 
 SYSCALL_DEFINE0(fork) {
-    task_t *res = task_fork(x86_task_current);
+    task_t *res = task_fork(task);
 
     return res ? ((struct x86_task *) res)->ctl->pid : -1;
 }
@@ -250,9 +292,9 @@ SYSCALL_DEFINE3(waitpid, pid_t pid, userspace int *wstatus, int options) {
     // Not supported yet
     assert(!wstatus);
 
-    x86_task_current->flag = TASK_FLG_WAIT;
-    x86_task_current->wait_type = TASK_WAIT_PID;
-    x86_task_current->ctl->sleep_deadline = (uint64_t) pid;
+    TASK(task)->flag = TASK_FLG_WAIT;
+    TASK(task)->wait_type = TASK_WAIT_PID;
+    TASK(task)->ctl->sleep_deadline = (uint64_t) pid;
 
     x86_task_switch(NULL);
 
@@ -263,27 +305,27 @@ SYSCALL_DEFINE3(execve, const userspace char *path, const userspace char **argp,
     // Not supported yet
     assert(!argp || !envp);
     char path_tmp[256];
-    mm_strncpy_user_to_kernel(task_space(x86_task_current), path_tmp, path, sizeof(path_tmp));
-    return task_execve(x86_task_current, path_tmp, argp, envp);
+    mm_strncpy_user_to_kernel(task_space(task), path_tmp, path, sizeof(path_tmp));
+    return task_execve(task, path_tmp, argp, envp);
 }
 
 SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
     // Not supported yet
     assert(!argp || !envp);
     char path_tmp[256];
-    mm_strncpy_user_to_kernel(task_space(x86_task_current), path_tmp, path, sizeof(path_tmp));
+    mm_strncpy_user_to_kernel(task_space(task), path_tmp, path, sizeof(path_tmp));
     task_t *res = task_fexecve(path_tmp, argp, envp);
     return res ? 0 : -1;
 }
 
 SYSCALL_DEFINE1(nanosleep, const userspace struct timespec *ts_user) {
     struct timespec ts;
-    mm_memcpy_user_to_kernel(task_space(x86_task_current), &ts, ts_user, sizeof(struct timespec));
+    mm_memcpy_user_to_kernel(task_space(task), &ts, ts_user, sizeof(struct timespec));
 
     if (ts.tv_sec || ts.tv_nsec) {
-        task_set_sleep(x86_task_current, &ts);
-        x86_task_current->flag |= TASK_FLG_WAIT;
-        x86_task_current->wait_type = TASK_WAIT_SLEEP;
+        task_set_sleep(task, &ts);
+        TASK(task)->flag |= TASK_FLG_WAIT;
+        TASK(task)->wait_type = TASK_WAIT_SLEEP;
         //((struct x86_task_context *) x86_task_current->esp0)->gp.eax = 0;
         x86_task_switch(NULL);
     }
@@ -310,17 +352,17 @@ SYSCALL_DEFINE2(kill, pid_t pid, int sig) {
 
 SYSCALL_DEFINE2(signal, int signum, void (*sighandler)(int)) {
     assert(!signum);
-    assert(x86_task_current && x86_task_current->ctl && x86_task_current->ctl->sigctx);
-    x86_task_current->sigeip = (uintptr_t) sighandler;
+    assert(TASK(task) && TASK(task)->ctl && TASK(task)->ctl->sigctx);
+    TASK(task)->sigeip = (uintptr_t) sighandler;
     // TODO: specify stack using sigaltstack
-    x86_task_current->sigesp = 0x80001000;
+    TASK(task)->sigesp = 0x80001000;
     return 0;
 }
 
 SYSCALL_DEFINE0(sigreturn) {
-    assert(x86_task_current && x86_task_current->ctl && x86_task_current->ctl->sigctx);
-    assert(x86_task_current->ctl->pending_signal);
-    x86_task_current->ctl->pending_signal = 0;
-    x86_task_exit_signal(x86_task_current);
+    assert(task && TASK(task)->ctl && TASK(task)->ctl->sigctx);
+    assert(TASK(task)->ctl->pending_signal);
+    TASK(task)->ctl->pending_signal = 0;
+    x86_task_exit_signal(TASK(task));
     return 0;
 }

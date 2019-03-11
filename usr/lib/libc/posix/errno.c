@@ -7,6 +7,8 @@ const char *strerror(int e) {
     switch (e) {
     case 0:
         return "no error";
+    case EBADF:
+        return "bad file descriptor";
     case EPERM:
         return "operation not permitted";
     case ENOENT:

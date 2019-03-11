@@ -172,10 +172,6 @@ int main(void *argp) {
     char cmd[64];
     const char *arg = NULL;
 
-    write(STDOUT_FILENO, "Hello\n", 6);
-
-    while (1);
-
     while (1) {
         printf("# ");
         readline(input, sizeof(input));

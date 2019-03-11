@@ -5,6 +5,8 @@
 #include "../mm.h"
 #include "sys/task.h"
 
+#define TASK(t)                 ((struct x86_task *) (t))
+
 // GP regs: 8
 // IRET regs: 5
 // SEGS regs: 4

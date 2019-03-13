@@ -167,7 +167,7 @@ int execute(const char *cmd, const char *arg) {
     return 0;
 }
 
-int main(void *argp) {
+int main(void) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;

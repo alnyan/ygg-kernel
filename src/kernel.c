@@ -10,6 +10,7 @@
 #include "dev/net.h"
 #include "dev/tty.h"
 #include "fs/dummyfs.h"
+#include "sys/sched.h"
 #include "util.h"
 
 const char *kernel_cmdline = NULL;
@@ -29,6 +30,9 @@ void kernel_main(void) {
     // Proceed on hw-specific details of init
     hw_init();
     tty_init();
+
+    sched_init();
+    task_init();
 
     // Load network device config
     net_init();

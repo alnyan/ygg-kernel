@@ -11,7 +11,8 @@ _start:
 
     call _init
 
-    pushl 8(%esp)
+    pushl $0
+    // pushl 8(%esp)
     call main
     addl $4, %esp
 

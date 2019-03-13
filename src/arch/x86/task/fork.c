@@ -12,10 +12,6 @@
 int task_fexecve(const char *path, const char **argp, const char **envp) {
     asm volatile ("cli");
 
-    uint32_t cr3_0;
-    asm volatile ("mov %%cr3, %0":"=a"(cr3_0));
-    assert(cr3_0 == (uint32_t) mm_kernel - KERNEL_VIRT_BASE);
-
     // Obtain the file
     vfs_node_t *fd = vfs_find_node(sched_current, "/bin/init");
     if (!fd) {

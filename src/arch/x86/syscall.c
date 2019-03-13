@@ -14,6 +14,10 @@ int x86_syscall(x86_irq_regs_t *regs) {
         sched();
         return 1;
 
+    case SYSCALL_NRX_SIGNAL:
+        // TODO
+        return 0;
+
     default:
         kinfo("[%d] invalid syscall: 0x%x\n", task_ctl(task)->pid, regs->gp.eax);
         task_terminate(task, SIGSEGV);

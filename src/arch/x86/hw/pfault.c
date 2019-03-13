@@ -31,8 +31,11 @@ void x86_page_fault(x86_irq_regs_t *regs) {
     if (regs->iret.cs == 0x08) {
         x86_page_fault_dump(1, DEBUG_FATAL, regs);
     } else {
-        x86_page_fault_dump(1, DEBUG_FATAL, regs);
+        // TODO: signal the task
+        assert(sched_current);
+        x86_page_fault_dump(0, DEBUG_DEFAULT, regs);
 
-        // TODO: handle this condition
+        task_terminate(sched_current, SIGSEGV);
+        sched();
     }
 }

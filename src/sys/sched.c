@@ -25,6 +25,7 @@ int sched_add(task_t *t) {
     task_ctl(t)->pid = sched_last_pid;
 
     task_next(t) = NULL;
+    task_prev(t) = sched_ready.end;
 
     if (sched_ready.end) {
         task_next(sched_ready.end) = t;
@@ -35,6 +36,41 @@ int sched_add(task_t *t) {
     sched_ready.end = t;
 
     return sched_last_pid++;
+}
+
+void sched_remove(task_t *t) {
+    if (!(task_ctl(t)->flags & (TASK_FLG_BUSY | TASK_FLG_WAIT))) {
+        // Remove task from queue
+        task_t *prev = task_prev(t);
+        task_t *next = task_next(t);
+
+        if (t == sched_ready.begin) {
+            if (next) {
+                task_prev(next) = NULL;
+            } else {
+                sched_ready.end = NULL;
+            }
+
+            sched_ready.begin = next;
+        } else {
+            if (next) {
+                task_prev(next) = prev;
+            } else {
+                sched_ready.end = prev;
+            }
+
+            task_next(prev) = next;
+        }
+
+        if (t == sched_current) {
+            sched_current = NULL;
+        }
+
+        // TODO: destroy the task
+        kdebug("Task %d finished\n", task_ctl(t)->pid);
+    } else {
+        panic("NYI: remove from wait queue\n");
+    }
 }
 
 void sched_set_idle(task_t *t) {

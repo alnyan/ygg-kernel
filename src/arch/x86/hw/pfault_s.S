@@ -1,33 +1,35 @@
+#include "intmacros.S"
+
 .section .text
 .global x86_isr_14
+.extern x86_tss
 
 x86_isr_14:
     cli
     add $4, %esp
 
-    pushal
-
-    mov %cr3, %eax
-    push %eax
-
-    pushl $0
-    pushl $0
-    pushl $0
-    pushl $0
+    x86_int_entry
 
     push %esp
     call x86_page_fault
     add $4, %esp
 
-    pop %eax
-    mov %eax, %cr3
 
-    pop %eax
-    pop %eax
-    pop %eax
-    pop %eax
+    // New task is in sched_current
+    mov sched_current, %esi
+    test %esi, %esi
+    jz .fatal
+    mov X86_TASK_ESP0(%esi), %esp
 
-    popal
+    // Set TSS entry to %esp + 18 * 4
+    mov %esp, %ecx
+    add $(18 * 4), %ecx
+    mov %ecx, (X86_TSS_ESP0 + x86_tss)
+
+    x86_isr_exit
+
+    iret
+.fatal:
 1:
     hlt
     jmp 1b

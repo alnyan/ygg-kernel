@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include "sys/debug.h"
 #include "sys/panic.h"
+#include "sys/assert.h"
+#include "sys/sched.h"
+#include <uapi/signum.h>
 #include "irq.h"
 
 typedef struct {
@@ -30,6 +33,41 @@ typedef struct {
 #define IDT_FLG_R2          (2 << 5)
 #define IDT_FLG_R3          (3 << 5)
 #define IDT_FLG_P           (1 << 7)
+
+static const char *s_error_text[] = {
+    "division by zero",
+    "debug",
+    "non-maskable interrupt",
+    "breakpoint",
+    "overflow",
+    "bound range exceeded",
+    "invalid opcode",
+    "device not available",
+    "double fault",
+    NULL,
+    "invalid tss",
+    "segment not present",
+    "stack segment fault",
+    "general protection fault",
+    "page fault",                   // Handled separately
+    NULL,
+    "x87 FPU error",
+    "alignment error",
+    "machine error",
+    "SIMD FPU error",
+    "virtualization error",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    "security error",
+    NULL,
+};
 
 static x86_idt_entry_t s_idt[IDT_NENTR];
 static x86_idt_ptr_t s_idtr;
@@ -90,22 +128,22 @@ extern void x86_irq_15();
 
 // System call IRQ
 extern void x86_irq_syscall();
+extern uint32_t x86_error_num;
 
-void x86_isr_handler(x86_int_regs_t *regs) {
-    panic_isr("Non-recoverable Exception\n", regs);
-    /*kdebug("CPU Exception #%d\n", regs->int_no);*/
-    /*kdebug("Error code: %d (0x%x)\n", regs->err_code);*/
+void x86_isr_handler(x86_irq_regs_t *regs) {
+    if (regs->iret.cs == 0x08) {
+        kfatal("Kernel error: %s\n", s_error_text[x86_error_num % 32]);
 
-    /*if (regs->iret.cs == 0x08) {*/
-        /*kdebug("This is kernel-space exception\n");*/
-    /*} else {*/
-        /*kdebug("This is user-space exception\n");*/
-    /*}*/
+        panic("Non-recoverable kernel error\n");
+    } else {
+        // TODO: better dump
+        assert(sched_current);
+        kinfo("[%d] error: %s\n", task_ctl(sched_current)->pid, s_error_text[x86_error_num % 32]);
 
-    /*x86_dump_gp_regs(&regs->gp);*/
-    /*x86_dump_iret_regs(&regs->iret);*/
-
-    /*panic("Non-recoverable exception\n");*/
+        // Terminate the offender task
+        task_terminate(sched_current, SIGSEGV);
+        sched();
+    }
 }
 
 void x86_idt_set(int idx, uint32_t base, uint16_t selector, uint8_t flags) {

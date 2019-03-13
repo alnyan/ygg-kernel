@@ -171,8 +171,6 @@ int main(void) {
     char input[256];
     char cmd[64];
     const char *arg = NULL;
-    int *v = (int *) 0x0;
-    *v = 123;
 
     while (1) {
         printf("# ");

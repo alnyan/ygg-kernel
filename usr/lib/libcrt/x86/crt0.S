@@ -23,3 +23,15 @@ _start:
 1:
     jmp 1b
 
+.align 0x10
+_e:
+    .float 1.0
+    .float 1.0
+    .float 1.0
+    .float 1.0
+.align 0x10
+_z:
+    .float 0.0
+    .float 0.0
+    .float 0.0
+    .float 0.0

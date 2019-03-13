@@ -4,6 +4,7 @@
 #include "sys/heap.h"
 #include "sys/string.h"
 #include "sys/mem.h"
+#include "sys/mm.h"
 #include <uapi/errno.h>
 
 // The leaf nodes of the VFS tree are always mountpoints. Any paths relative to them are handled by

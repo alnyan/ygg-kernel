@@ -4,7 +4,6 @@
 #include "sys/panic.h"
 #include "sys/ctype.h"
 #include "sys/task.h"
-#include "../task/task.h"
 #include "ps2cs.h"
 #include "sys/assert.h"
 #include "dev/tty.h"

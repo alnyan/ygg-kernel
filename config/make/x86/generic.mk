@@ -33,11 +33,7 @@ OBJS+=build/arch/x86/multiboot.o \
 	  build/arch/x86/thread/spin.o
 
 ifeq ($(DISABLE_TASK),)
-OBJS+=build/arch/x86/task/task.o \
-	  build/arch/x86/task/task_s.o \
-	  build/arch/x86/task/fork.o \
-	  build/arch/x86/syscall.o \
-	  build/arch/x86/mm/user.o
+OBJS+=build/arch/x86/mm/user.o
 endif
 
 ifneq ($(ENABLE_VESA_FBCON),)

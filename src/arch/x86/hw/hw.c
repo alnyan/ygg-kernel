@@ -2,7 +2,6 @@
 #include "gdt.h"
 #include "ints.h"
 #include "timer.h"
-#include "../task/task.h"
 #include "../def.h"
 #include "hw.h"
 #include "sys/debug.h"
@@ -93,9 +92,5 @@ void hw_init(void) {
 
 #if defined(ENABLE_VESA_FBCON)
     x86_vesa_con_init();
-#endif
-
-#if defined(ENABLE_TASK)
-    x86_task_init();
 #endif
 }

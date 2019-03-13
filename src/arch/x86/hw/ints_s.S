@@ -11,62 +11,10 @@ x86_crash_esp:
 .set X86_TASK_STACK,        18
 
 x86_isr_generic:
-    pushal
-
-    // Stack state:
-    // ss           <esp + 56>
-    // esp          <esp + 52>
-    // eflags       <esp + 48>
-    // cs           <esp + 44>
-    // error code   <esp + 40>
-    // int num      <esp + 36>
-    // eip          <esp + 32>
-    // eax          <esp + 28>
-    // ecx          <esp + 24>
-    // edx          <esp + 20>
-    // ebx          <esp + 16>
-    // oesp         <esp + 12>
-    // ebp          <esp + 08>
-    // esi          <esp + 04>
-    // edi          <esp + 00>
-    movl %esp, %esi
-
-    // If we haven't done tasking entry, skip the next part
-    movl x86_tasking_entry, %eax
-    test %eax, %eax
-    jnz 1f
-
-    // Store task's esp0
-    movl x86_task_current, %edi
-    movl %esi, X86_TASK_STRUCT_ESP0(%edi)
+    cli
 1:
-
-    // Now select which stack to use (we may overwrite some important info if we use kernel stack
-    // when exception happens in kernel mode (which means they both use the same stack)
-    movl 44(%esi), %eax
-    cmpl $0x08, %eax
-    jne 1f
-
-    movl %ebp, x86_crash_esp
-    // cs is 0x08, use a dedicated kernel exception stack
-    movl $x86_kernel_exc_stack_end, %esp
-    jmp 2f
-1:
-    // cs is in userspace, use plain kernel stack
-//    movl $x86_int_stack, %esp
-
-    jmp 2f
-2:
-
-    // x86_isr_handler(&task_ctx)
-    pushl %esi
-    call x86_isr_handler
-    addl $4, %esp
-
-    // No recoverable error support yet
-3:
     hlt
-    jmp 3b
+    jmp 1b
 
 .macro x86_isr_stub_nc n
 .global x86_isr_\n

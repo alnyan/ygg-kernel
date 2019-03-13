@@ -3,7 +3,6 @@
 #include "mm.h"
 #include "arch/hw.h"
 #include "sys/mm.h"
-#include "task/task.h"
 
 #define X86_PF_FLG_PR   (1 << 0)
 #define X86_PF_FLG_RW   (1 << 1)
@@ -92,12 +91,6 @@ static void x86_crash_backtrace(uint32_t eeip, const uint32_t *stack, int depth)
 #endif
 
 void panic_reg(void) {
-#if defined(ENABLE_TASK)
-    if (x86_task_current) {
-        kfatal("Offender task:\n");
-        x86_task_dump_context(DEBUG_FATAL, x86_task_current);
-    }
-#endif
 }
 
 // Implements IRQ and ISR-specific panics, which dump registers
@@ -111,24 +104,9 @@ void panicf_isr(const char *fmt, const x86_int_regs_t *regs, ...) {
     kfatal("Exception code: #%u\n", regs->int_no);
     kfatal("Error code: %d (0x%x)\n", regs->err_code);
 
-#if defined(ENABLE_TASK)
-    if (x86_task_current) {
-        kfatal("Offender task:\n");
-        x86_task_dump_context(DEBUG_FATAL, x86_task_current);
-    }
-#endif
-
     kfatal("--- Register dump ---\n");
     x86_dump_gp_regs(DEBUG_FATAL, &regs->gp);
     x86_dump_iret_regs(DEBUG_FATAL, &regs->iret);
-
-#if defined(ENABLE_KERNEL_MAP)
-    if (regs->iret.cs == 0x08) {
-        extern uint32_t x86_crash_esp;
-        uint32_t *stack = (uint32_t *) (x86_crash_esp);
-        x86_crash_backtrace(regs->iret.eip, stack, 5);
-    }
-#endif
 
     panic_hlt();
 }

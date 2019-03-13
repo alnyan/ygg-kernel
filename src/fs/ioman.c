@@ -14,22 +14,22 @@ static void ioman_task(void *arg) {
     vfs_node_t *r = vfs_mount_path("/", NULL, vfs_tarfs, 0);
     assert(r);
 
-    assert(task_fexecve("/bin/init", NULL, NULL));
+    // assert(task_fexecve("/bin/init", NULL, NULL));
 
     while (1) {
         asm volatile ("hlt");
     }
 }
 
-static task_t *ioman_task_obj;
+// static task_t *ioman_task_obj;
 
 void ioman_init(void) {
-    ioman_task_obj = task_create();
-    task_set_kernel(ioman_task_obj, (task_entry_func) ioman_task, NULL, 0);
+    // ioman_task_obj = task_create();
+    // task_set_kernel(ioman_task_obj, (task_entry_func) ioman_task, NULL, 0);
 }
 
 void ioman_start_task(void) {
-    task_enable(ioman_task_obj);
+    // task_enable(ioman_task_obj);
 }
 
 ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_t req) {
@@ -46,13 +46,15 @@ ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_
         };
 
         assert(dev && dev->read);
-        ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+        // XXX: task_busy
+        // ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
         dev->read(dev, &op);
 
         asm volatile ("sti");
-        while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
-            asm volatile ("hlt");
-        }
+        // XXX: task_is_busy
+        // while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
+        //     asm volatile ("hlt");
+        // }
         asm volatile ("cli");
 
         return res;
@@ -75,13 +77,16 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
         };
 
         assert(dev && dev->write);
-        ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+
+        // XXX: task_busy
+        // ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
         dev->write(dev, &op);
 
         asm volatile ("sti");
-        while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
-            asm volatile ("hlt");
-        }
+        // XXX: task_is_busy
+        // while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
+        //     asm volatile ("hlt");
+        // }
         asm volatile ("cli");
 
         return res;
@@ -93,12 +98,14 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
 void ioman_op_signal_error(ioman_op_t *op, int err) {
     *(op->res) = err;
     op->req = 0;
-    ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
+    // XXX: task_nobusy
+    // ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
 }
 
 void ioman_op_signal_success(ioman_op_t *op) {
     op->req = 0;
-    ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
+    // XXX: task_nobusy
+    // ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
 }
 
 int ioman_buf_read(ioman_op_t *op, void *dst, ssize_t count, ssize_t *rd) {
@@ -109,9 +116,9 @@ int ioman_buf_read(ioman_op_t *op, void *dst, ssize_t count, ssize_t *rd) {
     if (siz > op->req) {
         siz = op->req;
     }
-    size_t pos = *(op->res);
+    // size_t pos = *(op->res);
 
-    mm_memcpy_user_to_kernel(task_space(op->task), dst, (void *) ((uintptr_t) op->buf + pos), siz);
+    // mm_memcpy_user_to_kernel(task_space(op->task), dst, (void *) ((uintptr_t) op->buf + pos), siz);
 
     *(op->res) += siz;
     op->req -= siz;
@@ -134,9 +141,9 @@ int ioman_buf_write(ioman_op_t *op, const void *src, ssize_t count, ssize_t *wr)
     if (siz > op->req) {
         siz = op->req;
     }
-    size_t pos = *(op->res);
+    // size_t pos = *(op->res);
 
-    mm_memcpy_kernel_to_user(task_space(op->task), (void *) ((uintptr_t) op->buf + pos), src, siz);
+    // mm_memcpy_kernel_to_user(task_space(op->task), (void *) ((uintptr_t) op->buf + pos), src, siz);
 
     *(op->res) += siz;
     op->req -= siz;

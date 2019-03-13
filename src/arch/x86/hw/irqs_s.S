@@ -1,11 +1,6 @@
+#include "intmacros.S"
+
 .section .text
-
-.set TSS_ESP0,              0x04
-
-.set X86_TASK_STRUCT_ESP0,  0x00
-.set X86_TASK_STACK,        18
-
-.extern x86_int_stack
 
 .macro irq_handler n
 .extern x86_irq_handler_\n
@@ -24,5 +19,30 @@ irq_handler 14
 .global x86_irq_syscall
 x86_irq_syscall:
     cli
+
+    x86_int_entry
+
+    push %esp
+    call x86_syscall
+    pop %esp
+
+    // Check if syscall called sched()
+    test %eax, %eax
+    jz 1f
+
+    // New task is in sched_current
+    mov sched_current, %esi
+    test %esi, %esi
+    jz 1f
+    mov X86_TASK_ESP0(%esi), %esp
+
+    // Set TSS entry to %esp + 18 * 4
+    mov %esp, %ecx
+    add $(18 * 4), %ecx
+    mov %ecx, (X86_TSS_ESP0 + x86_tss)
+
+1:  // Sched set task to null/Syscall didn't call sched()
+    x86_isr_exit
+
     iret
 #endif

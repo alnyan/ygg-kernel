@@ -11,6 +11,7 @@ typedef struct task_ctl task_ctl_t;
 #define task_ctl(t)             (((x86_task_t *) (t))->ctl)
 #define task_next(t)            (((x86_task_t *) (t))->next)
 #define task_prev(t)            (((x86_task_t *) (t))->prev)
+#define task_status(t)          (((x86_task_ctx_t *) (((x86_task_t *) (t))->kstack_esp))->gp.ebx)
 
 struct x86_task_ctx {
     x86_seg_regs_t seg;

@@ -17,7 +17,11 @@ task_ctl_t *task_ctl_create(void) {
 void task_terminate(task_t *t, int signum) {
     task_ctl(t)->flags |= TASK_FLG_STOP;
     // TODO: push signal to signal queue
-    kdebug("Terminating %d with signal %d\n", task_ctl(t)->pid, signum);
+    if (signum) {
+        kdebug("Terminating %d with signal %d\n", task_ctl(t)->pid, signum);
+    } else {
+        kdebug("Task exited with status %d\n", task_status(t));
+    }
 
     sched_remove(t);
 }

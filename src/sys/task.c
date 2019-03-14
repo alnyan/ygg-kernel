@@ -28,6 +28,12 @@ void task_terminate(task_t *t, int signum) {
 
 void task_busy(task_t *t) {
     task_ctl(t)->flags |= TASK_FLG_BUSY;
+    sched_busy(t, 1);
+}
+
+void task_nobusy(task_t *t) {
+    task_ctl(t)->flags &= ~TASK_FLG_BUSY;
+    sched_busy(t, 0);
 }
 
 vfs_node_t *task_get_fd(task_t *t, int fd) {

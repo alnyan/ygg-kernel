@@ -5,4 +5,5 @@
 #define ESRCH               3
 #define EINTR               4
 #define EBADF               9
+#define EINVAL              22
 #define ENFILE              23

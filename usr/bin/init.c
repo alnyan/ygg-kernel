@@ -147,22 +147,24 @@ int execute(const char *cmd, const char *arg) {
         }
     }
 
-    pid_t pid = fork();
+    fexecve("/bin/hello", NULL, NULL);
 
-    switch (pid) {
-    case 0:
-        printf("Sorry, I've disabled execve() for now\n");
-        //if (execve(cmd, NULL, NULL) != 0) {
-        //    perror("execve()");
-        //}
-        exit(1);
-    case -1:
-        perror("fork()");
-        return -1;
-    default:
-        waitpid(pid, NULL, 0);
-        break;
-    }
+    // pid_t pid = fork();
+
+    // switch (pid) {
+    // case 0:
+    //     printf("Sorry, I've disabled execve() for now\n");
+    //     //if (execve(cmd, NULL, NULL) != 0) {
+    //     //    perror("execve()");
+    //     //}
+    //     exit(1);
+    // case -1:
+    //     perror("fork()");
+    //     return -1;
+    // default:
+    //     waitpid(pid, NULL, 0);
+    //     break;
+    // }
 
     return 0;
 }

@@ -4,6 +4,7 @@
 #include "sys/assert.h"
 #include "fs/tarfs.h"
 #include "../util.h"
+#include "sys/heap.h"
 
 void kinit_task(void) {
     kinfo("kinit started\n");
@@ -14,6 +15,8 @@ void kinit_task(void) {
 
     // After running an userspace init, act as [idle] process
     while (1) {
+        for (int i = 0; i < 100000000; ++i);
+
         __idle();
     }
 }

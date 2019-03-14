@@ -97,12 +97,12 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
 void ioman_op_signal_error(ioman_op_t *op, int err) {
     *(op->res) = err;
     op->req = 0;
-    task_ctl(op->task)->flags &= ~TASK_FLG_BUSY;
+    task_nobusy(op->task);
 }
 
 void ioman_op_signal_success(ioman_op_t *op) {
     op->req = 0;
-    task_ctl(op->task)->flags &= ~TASK_FLG_BUSY;
+    task_nobusy(op->task);
 }
 
 int ioman_buf_read(ioman_op_t *op, void *dst, ssize_t count, ssize_t *rd) {

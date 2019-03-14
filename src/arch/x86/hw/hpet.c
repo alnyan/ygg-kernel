@@ -2,7 +2,9 @@
 #include "sys/assert.h"
 #include "sys/debug.h"
 #include "sys/time.h"
+#include "sys/heap.h"
 #include "dev/pci/net/rtl8139.h"
+#include "dev/tty.h"
 
 #define HPET_ENABLE_CNF     (1 << 0)
 #define HPET_LEG_RT_CNF     (1 << 1)

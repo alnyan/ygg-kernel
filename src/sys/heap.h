@@ -8,6 +8,9 @@ typedef int ssize_t;
 #define HEAP_FLG_USED       (1 << 4)
 #define HEAP_FLG_EXCLUDE    (1 << 5)
 
+#define heap_alloc(cnt)     __heap_alloc_trace(cnt, __func__)
+#define heap_free(v)        __heap_free(v)
+
 struct heap_stat {
     size_t free;
     size_t used;
@@ -29,6 +32,7 @@ void heap_remove_region(uintptr_t start, size_t size);
 void heap_stat(struct heap_stat *st);
 void heap_dump(void);
 
-void *heap_alloc(size_t count);
-void *heap_realloc(void *ptr, size_t newsz);
-void heap_free(void *ptr);
+void *__heap_alloc(size_t count);
+void __heap_free(void *ptr);
+
+void *__heap_alloc_trace(size_t count, const char *f);

@@ -13,7 +13,7 @@ int task_fexecve(const char *path, const char **argp, const char **envp) {
     asm volatile ("cli");
 
     // Obtain the file
-    vfs_node_t *fd = vfs_find_node(sched_current, "/bin/init");
+    vfs_node_t *fd = vfs_find_node(sched_current, path);
     if (!fd) {
         kdebug("vfs_find_node = ENOENT\n");
         return -ENOENT;

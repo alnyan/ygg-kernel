@@ -2,6 +2,7 @@
 #include "sys/debug.h"
 #include "mm.h"
 #include "arch/hw.h"
+#include "sys/heap.h"
 #include "sys/mm.h"
 
 #define X86_PF_FLG_PR   (1 << 0)
@@ -10,6 +11,12 @@
 #define X86_PF_FLG_ID   (1 << 4)
 
 void panic_reg(void) {
+    struct heap_stat st;
+    heap_stat(&st);
+    heap_dump();
+
+    kfatal("---- HEAP DUMP ----\n");
+    kfatal("Heap free: %u\n", st.free);
 }
 
 // Implements IRQ and ISR-specific panics, which dump registers

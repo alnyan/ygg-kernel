@@ -70,6 +70,7 @@ static vfs_node_t *tarfs_find_node(vfs_t *fs, task_t *t, const char *path) {
             if (!strcmp(path + 1, hdr->name)) {
                 // For now, just create a new node
                 vfs_node_t *res = vfs_node_create();
+                assert(res);
                 // TODO: directories
                 res->flags = VFS_NODE_TYPE_REG | VFS_NODE_FLG_MEMR;
 

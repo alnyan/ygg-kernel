@@ -24,6 +24,11 @@ int x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = sys_write(task, (int) regs->gp.ebx, (const userspace void *) regs->gp.ecx, regs->gp.edx);
         return 0;
 
+    case SYSCALL_NRX_FEXECVE:
+        regs->gp.eax = sys_fexecve(task, (const userspace char *) regs->gp.ebx,
+                                         (const userspace char **) regs->gp.ecx,
+                                         (const userspace char **) regs->gp.edx);
+
     case SYSCALL_NRX_SIGNAL:
         // TODO
         return 0;
@@ -53,7 +58,6 @@ SYSCALL_DEFINE3(read, int fd, userspace void *buf, size_t count) {
             l = SYSCALL_RWBUF_SIZE;
         }
 
-        kdebug("try read %d\n", l);
         ssize_t cw = vfs_read(node, (userspace void *) ((uintptr_t) buf + w), l);
 
         if (cw != l) {
@@ -70,7 +74,6 @@ SYSCALL_DEFINE3(read, int fd, userspace void *buf, size_t count) {
         count -= l;
     }
 
-    kdebug("READ: %d\n", w);
 
     return w;
 }
@@ -112,4 +115,17 @@ SYSCALL_DEFINE3(write, int fd, const userspace void *buf, size_t count) {
     }
 
     return w;
+}
+
+SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp, const userspace char **envp) {
+    if (argp || envp) {
+        // Not supported
+        return -EINVAL;
+    }
+
+    char namebuf[256];
+    namebuf[255] = 0;
+    mm_strncpy_user_to_kernel(task_space(task), namebuf, path, 255);
+
+    return task_fexecve(namebuf, NULL, NULL);
 }

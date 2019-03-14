@@ -66,6 +66,7 @@ static int region_get_intersect(uintptr_t a, size_t sa, uintptr_t b, size_t sb, 
 }
 
 void heap_remove_region(uintptr_t start, size_t sz) {
+    asm volatile ("cli");
     // Align down to 8-byte boundary
     start &= -8;
     sz = MM_ALIGN_UP(sz, 16);
@@ -133,6 +134,7 @@ void heap_remove_region(uintptr_t start, size_t sz) {
 }
 
 static void *heap_alloc_single(struct heap_block *begin, size_t count) {
+    asm volatile ("cli");
     struct heap_block *it;
 
     for (it = begin; it; it = it->next) {
@@ -224,7 +226,7 @@ static int heap_free_single(struct heap_block *begin, void *ptr) {
     }
 }
 
-void *heap_alloc(size_t count) {
+void *__heap_alloc(size_t count) {
 #ifdef ENABLE_HEAP_TRACE
     kdebug("heap_alloc %u\n", count);
 #endif
@@ -243,6 +245,12 @@ void *heap_alloc(size_t count) {
         }
     }
     return NULL;
+}
+
+void *__heap_alloc_trace(size_t count, const char *func) {
+    void *res = __heap_alloc(count);
+    kdebug("ALLOC %uB FOR %s = %p\n", count, func, res);
+    return res;
 }
 
 void *heap_realloc(void *ptr, size_t count) {
@@ -335,7 +343,7 @@ void *heap_realloc(void *ptr, size_t count) {
     }
 }
 
-void heap_free(void *ptr) {
+void __heap_free(void *ptr) {
 #ifdef ENABLE_HEAP_TRACE
     kdebug("heap_free %p\n", ptr);
 #endif

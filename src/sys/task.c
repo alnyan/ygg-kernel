@@ -25,3 +25,15 @@ void task_terminate(task_t *t, int signum) {
 
     sched_remove(t);
 }
+
+void task_busy(task_t *t) {
+    task_ctl(t)->flags |= TASK_FLG_BUSY;
+}
+
+vfs_node_t *task_get_fd(task_t *t, int fd) {
+    if (fd < 0 || fd >= 4) {
+        return NULL;
+    }
+
+    return task_ctl(t)->fds[fd];
+}

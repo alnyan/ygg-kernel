@@ -52,12 +52,12 @@ int task_fexecve(const char *path, const char **argp, const char **envp) {
     // task->esp3_size = 4;
 
     // TODO: vfs_open
-    // vfs_node_t *fd_tty_wr = vfs_node_create();
-    // assert(fd_tty_wr);
-    // fd_tty_wr->flags = VFS_NODE_TYPE_CHR;
-    // fd_tty_wr->fd_dev.dev = dev_tty;
-    // fd_tty_wr->task = task;
-    // task->ctl->fds[0] = fd_tty_wr;
+    vfs_node_t *fd_tty_wr = vfs_node_create();
+    assert(fd_tty_wr);
+    fd_tty_wr->flags = VFS_NODE_TYPE_CHR;
+    fd_tty_wr->fd_dev.dev = dev_tty;
+    fd_tty_wr->task = task;
+    task_ctl(task)->fds[0] = fd_tty_wr;
 
     // vfs_node_t *fd_tty_rd = vfs_node_create();
     // assert(fd_tty_rd);

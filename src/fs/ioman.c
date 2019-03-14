@@ -46,15 +46,15 @@ ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_
         };
 
         assert(dev && dev->read);
-        // XXX: task_busy
-        // ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+
+        task_busy(task);
+
         dev->read(dev, &op);
 
         asm volatile ("sti");
-        // XXX: task_is_busy
-        // while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
-        //     asm volatile ("hlt");
-        // }
+        while (task_ctl(task)->flags & TASK_FLG_BUSY) {
+            asm volatile ("hlt");
+        }
         asm volatile ("cli");
 
         return res;
@@ -78,15 +78,14 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
 
         assert(dev && dev->write);
 
-        // XXX: task_busy
-        // ((struct x86_task *) task)->flag |= TASK_FLG_BUSY;
+        task_busy(task);
+
         dev->write(dev, &op);
 
         asm volatile ("sti");
-        // XXX: task_is_busy
-        // while (((struct x86_task *) task)->flag & TASK_FLG_BUSY) {
-        //     asm volatile ("hlt");
-        // }
+        while (task_ctl(task)->flags & TASK_FLG_BUSY) {
+            asm volatile ("hlt");
+        }
         asm volatile ("cli");
 
         return res;
@@ -98,14 +97,12 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
 void ioman_op_signal_error(ioman_op_t *op, int err) {
     *(op->res) = err;
     op->req = 0;
-    // XXX: task_nobusy
-    // ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
+    task_ctl(op->task)->flags &= ~TASK_FLG_BUSY;
 }
 
 void ioman_op_signal_success(ioman_op_t *op) {
     op->req = 0;
-    // XXX: task_nobusy
-    // ((struct x86_task *) (op->task))->flag &= ~TASK_FLG_BUSY;
+    task_ctl(op->task)->flags &= ~TASK_FLG_BUSY;
 }
 
 int ioman_buf_read(ioman_op_t *op, void *dst, ssize_t count, ssize_t *rd) {
@@ -116,9 +113,9 @@ int ioman_buf_read(ioman_op_t *op, void *dst, ssize_t count, ssize_t *rd) {
     if (siz > op->req) {
         siz = op->req;
     }
-    // size_t pos = *(op->res);
+    size_t pos = *(op->res);
 
-    // mm_memcpy_user_to_kernel(task_space(op->task), dst, (void *) ((uintptr_t) op->buf + pos), siz);
+    mm_memcpy_user_to_kernel(task_space(op->task), dst, (void *) ((uintptr_t) op->buf + pos), siz);
 
     *(op->res) += siz;
     op->req -= siz;
@@ -141,9 +138,9 @@ int ioman_buf_write(ioman_op_t *op, const void *src, ssize_t count, ssize_t *wr)
     if (siz > op->req) {
         siz = op->req;
     }
-    // size_t pos = *(op->res);
+    size_t pos = *(op->res);
 
-    // mm_memcpy_kernel_to_user(task_space(op->task), (void *) ((uintptr_t) op->buf + pos), src, siz);
+    mm_memcpy_kernel_to_user(task_space(op->task), (void *) ((uintptr_t) op->buf + pos), src, siz);
 
     *(op->res) += siz;
     op->req -= siz;

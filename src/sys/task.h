@@ -62,5 +62,7 @@ void task_ubind_fd(task_t *t, int fd);
 mm_space_t task_space(task_t *t);
 #endif
 
+void task_busy(task_t *t);
+
 int task_fexecve(const char *p, const char **argp, const char **envp);
 void task_terminate(task_t *t, int signum);

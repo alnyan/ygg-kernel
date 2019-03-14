@@ -48,7 +48,6 @@ int x86_irq_handler_1(x86_irq_regs_t *regs) {
         }
     }
 
-#if defined(ENABLE_TASK)
     if (c < 0x80) {
         if (!(ps2_flags & PS2_FLG_RAW)) {
             char r;
@@ -59,7 +58,6 @@ int x86_irq_handler_1(x86_irq_regs_t *regs) {
             panic("Raw mode is not yet implemented\n");
         }
     }
-#endif
 
     return 0;
 }

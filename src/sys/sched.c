@@ -67,6 +67,20 @@ static void sched_list_remove(int l, task_t *t, int c) {
     }
 }
 
+task_t *sched_find(pid_t p) {
+    for (task_t *it = sched_ready.begin; it; it = task_next(it)) {
+        if (task_ctl(it)->pid == p) {
+            return it;
+        }
+    }
+    for (task_t *it = sched_waiting.begin; it; it = task_next(it)) {
+        if (task_ctl(it)->pid == p) {
+            return it;
+        }
+    }
+    return NULL;
+}
+
 void sched_init(void) {
     memset(&sched_ready, 0, sizeof(sched_ready));
     memset(&sched_waiting, 0, sizeof(sched_waiting));
@@ -87,7 +101,20 @@ void sched_busy(task_t *t, int b) {
 }
 
 void sched_remove(task_t *t) {
-    if (!(task_ctl(t)->flags & (TASK_FLG_BUSY | TASK_FLG_WAIT))) {
+    // Check if there're any busy tasks waiting for this pid
+    task_t *it = sched_waiting.begin;
+    while (it) {
+        if ((task_ctl(it)->flags & TASK_FLG_BUSY) && task_ctl(it)->wait_type == TASK_BUSY_PID && task_ctl(it)->wait.wait_pid == t) {
+            task_t *n = task_next(it);
+            task_nobusy(it);
+            it = n;
+            continue;
+        }
+
+        it = task_next(it);
+    }
+
+    if (!(task_ctl(t)->flags & TASK_FLG_BUSY)) {
         sched_list_remove(0, t, 1);
 
         // TODO: destroy the task
@@ -115,7 +142,7 @@ void sched(void) {
         to = sched_ready.begin;
     }
 
-    assert(!(task_ctl(to)->flags & (TASK_FLG_BUSY | TASK_FLG_WAIT)));
+    assert(!(task_ctl(to)->flags & TASK_FLG_BUSY));
 
     sched_current = to;
 }

@@ -47,7 +47,7 @@ ssize_t ioman_dev_read(dev_t *dev, task_t *task, void *buf, uintptr_t pos, size_
 
         assert(dev && dev->read);
 
-        task_busy(task);
+        task_busy(task, TASK_BUSY_IO);
 
         dev->read(dev, &op);
 
@@ -78,7 +78,7 @@ ssize_t ioman_dev_write(dev_t *dev, task_t *task, const void *buf, uintptr_t pos
 
         assert(dev && dev->write);
 
-        task_busy(task);
+        task_busy(task, TASK_BUSY_IO);
 
         dev->write(dev, &op);
 

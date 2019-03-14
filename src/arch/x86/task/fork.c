@@ -86,5 +86,5 @@ int task_fexecve(const char *path, const char **argp, const char **envp) {
     assert(sched_add(task) > 0);
 
     asm volatile ("sti");
-    return 0;
+    return task_ctl(task)->pid;
 }

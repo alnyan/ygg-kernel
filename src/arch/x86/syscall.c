@@ -28,6 +28,15 @@ int x86_syscall(x86_irq_regs_t *regs) {
         regs->gp.eax = sys_fexecve(task, (const userspace char *) regs->gp.ebx,
                                          (const userspace char **) regs->gp.ecx,
                                          (const userspace char **) regs->gp.edx);
+        return 0;
+
+    case SYSCALL_NR_WAITPID:
+        regs->gp.eax = sys_waitpid(task, (pid_t) regs->gp.ebx, (userspace int *) regs->gp.ecx, (int) regs->gp.edx);
+        return 0;
+
+    case SYSCALL_NR_GETPID:
+        regs->gp.eax = task_ctl(task)->pid;
+        return 0;
 
     case SYSCALL_NRX_SIGNAL:
         // TODO
@@ -128,4 +137,23 @@ SYSCALL_DEFINE3(fexecve, const userspace char *path, const userspace char **argp
     mm_strncpy_user_to_kernel(task_space(task), namebuf, path, 255);
 
     return task_fexecve(namebuf, NULL, NULL);
+}
+
+SYSCALL_DEFINE3(waitpid, pid_t pid, userspace int *wstatus, int options) {
+    kdebug("Waitpid %d\n", pid);
+
+    task_ctl(task)->wait.wait_pid = sched_find(pid);
+    if (!task_ctl(task)->wait.wait_pid) {
+        return -EINVAL;
+    }
+    task_busy(task, TASK_BUSY_PID);
+
+    asm volatile ("sti");
+    while (task_ctl(task)->flags & TASK_FLG_BUSY) {
+        asm volatile ("hlt");
+    }
+    asm volatile ("cli");
+    kdebug("Resume after waitpid\n");
+
+    return 0;
 }

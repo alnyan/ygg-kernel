@@ -147,7 +147,9 @@ int execute(const char *cmd, const char *arg) {
         }
     }
 
-    fexecve("/bin/hello", NULL, NULL);
+    int pid = fexecve(cmd, NULL, NULL);
+
+    waitpid(pid, NULL, 0);
 
     // pid_t pid = fork();
 

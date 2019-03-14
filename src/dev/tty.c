@@ -1,5 +1,6 @@
 #include "tty.h"
 #include "fs/ioman.h"
+#include "sys/assert.h"
 #include "sys/debug.h"
 
 #ifdef ARCH_X86
@@ -10,6 +11,9 @@ static dev_t tty;
 dev_t *dev_tty = &tty;
 
 static int tty_read(dev_t *dev, ioman_op_t *op) {
+    if (dev->pending) {
+        panic("tty was locked by another process\n");
+    }
     dev->pending = op;
     return 0;
 }

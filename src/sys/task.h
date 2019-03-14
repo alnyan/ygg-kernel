@@ -14,10 +14,13 @@ typedef int pid_t;
 
 #define TASK_FLG_RUNNING            (1 << 0)
 #define TASK_FLG_STOP               (1 << 1)
-#define TASK_FLG_WAIT               (1 << 2)
 #define TASK_FLG_BUSY               (1 << 3)
 #define TASK_FLG_SIG                (1 << 4)
 #define TASK_FLG_KERNEL             (1 << 31)
+
+#define TASK_BUSY_IO                1
+#define TASK_BUSY_PID               2
+#define TASK_BUSY_SLEEP             3
 
 // General control
 struct task_ctl {
@@ -28,9 +31,10 @@ struct task_ctl {
     uint32_t flags;
 
     // Wait and sleep
+    uint32_t wait_type;
     union {
         uint64_t wait_sleep;
-        pid_t wait_pid;
+        task_t *wait_pid;
     } wait;
 
     // I/O
@@ -62,7 +66,7 @@ void task_ubind_fd(task_t *t, int fd);
 mm_space_t task_space(task_t *t);
 #endif
 
-void task_busy(task_t *t);
+void task_busy(task_t *t, uint32_t type);
 void task_nobusy(task_t *t);
 
 int task_fexecve(const char *p, const char **argp, const char **envp);

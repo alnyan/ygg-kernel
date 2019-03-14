@@ -26,13 +26,15 @@ void task_terminate(task_t *t, int signum) {
     sched_remove(t);
 }
 
-void task_busy(task_t *t) {
+void task_busy(task_t *t, uint32_t type) {
     task_ctl(t)->flags |= TASK_FLG_BUSY;
+    task_ctl(t)->wait_type = type;
     sched_busy(t, 1);
 }
 
 void task_nobusy(task_t *t) {
     task_ctl(t)->flags &= ~TASK_FLG_BUSY;
+    task_ctl(t)->wait_type = 0;
     sched_busy(t, 0);
 }
 

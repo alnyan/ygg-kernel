@@ -172,10 +172,6 @@ int main(void) {
     char cmd[64];
     const char *arg = NULL;
 
-    read(STDOUT_FILENO, input, 4);
-    printf("Test 1234 %s\n", input);
-    while (1);
-
     while (1) {
         printf("# ");
         readline(input, sizeof(input));
